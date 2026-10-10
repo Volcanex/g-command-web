@@ -7,8 +7,7 @@ mostly renders: the data comes from the g-brain API and the instance manifest
 (format in g-core). The one store it keeps is the g-admin ticket queue, a
 SQLite file at `var/gadmin.db`.
 
-This repo is source-available under the PolyForm Noncommercial 1.0.0 licence.
-It is not open source.
+This repo is open source under the GNU Affero General Public License v3.0.
 
 ## How it works
 
@@ -45,6 +44,6 @@ To run the tests, install `requirements-dev.txt` into the same venv and run
 
 ## Licence
 
-PolyForm Noncommercial 1.0.0, see `LICENSE`. Copyright Gabriel Penman. The
-fonts and icons vendored here keep their own licences, listed in
-`THIRD_PARTY_NOTICES`.
+Copyright (C) 2026 Gabriel Penman. Licensed under the GNU Affero General
+Public License v3.0 only, see `LICENSE`. The fonts and icons vendored here
+keep their own licences, listed in `THIRD_PARTY_NOTICES`.

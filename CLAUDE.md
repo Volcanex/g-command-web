@@ -7,7 +7,7 @@ name and the `gcommand` compat symlink on h keep the old name.
 
 **Owner:** Gabriel Penman
 **Role in supersystem:** consumes gp-core (topology) + g-brain (`/api/*`). Renders only and holds no data of its own.
-**Licence:** PolyForm Noncommercial 1.0.0 (`LICENSE`), source-available. Vendored fonts and icons are listed in `THIRD_PARTY_NOTICES`.
+**Licence:** GNU AGPL v3.0 only (`LICENSE`), open source. Vendored fonts and icons are listed in `THIRD_PARTY_NOTICES`.
 
 ## What it does
 - Renders the brain's graphs (notes, nerves, lineage, refs) by consuming the brain REST API at `BRAIN_API`.

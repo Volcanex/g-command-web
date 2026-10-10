@@ -1,8 +1,8 @@
 Third-party notices for g-command-web
 
-The code in this repo is licensed under PolyForm Noncommercial 1.0.0 (see
-LICENSE). The third-party files below are redistributed under their own
-licences, which still apply to them.
+The code in this repo is licensed under the GNU AGPL v3.0 only (see LICENSE).
+The third-party files below are redistributed under their own licences, which
+still apply to them.
 
 Fonts, in core/static/css/gsys/fonts/
   Inter, JetBrains Mono and Space Grotesk, subset by g-design.
@@ -15,7 +15,7 @@ Phosphor icon font, in core/static/css/vendor/phosphor/
   core/static/css/vendor/phosphor/LICENSE.
 
 g-design pack, in core/static/css/gsys/ (g.css, g-ui.js, g-admin.css, g-admin.js)
-  Vendored from g-design, which is PolyForm Noncommercial 1.0.0 like this repo.
+  Vendored from g-design, which is under the GNU AGPL v3.0 only like this repo.
   It embeds Phosphor icon glyphs (MIT, Copyright (c) 2023 Phosphor Icons) and
   Radix Colors scales (MIT, Copyright (c) 2021 Radix). See g-design's
   THIRD_PARTY_NOTICES for the full texts.
