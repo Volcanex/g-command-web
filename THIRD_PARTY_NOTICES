@@ -1,0 +1,25 @@
+Third-party notices for g-command-web
+
+The code in this repo is licensed under PolyForm Noncommercial 1.0.0 (see
+LICENSE). The third-party files below are redistributed under their own
+licences, which still apply to them.
+
+Fonts, in core/static/css/gsys/fonts/
+  Inter, JetBrains Mono and Space Grotesk, subset by g-design.
+  SIL Open Font License 1.1. Copyright notices and the full licence text are in
+  core/static/css/gsys/fonts/OFL.txt.
+
+Phosphor icon font, in core/static/css/vendor/phosphor/
+  Phosphor.woff2 and style.css from Phosphor Icons.
+  MIT License, Copyright (c) 2023 Phosphor Icons. The full text is in
+  core/static/css/vendor/phosphor/LICENSE.
+
+g-design pack, in core/static/css/gsys/ (g.css, g-ui.js, g-admin.css, g-admin.js)
+  Vendored from g-design, which is PolyForm Noncommercial 1.0.0 like this repo.
+  It embeds Phosphor icon glyphs (MIT, Copyright (c) 2023 Phosphor Icons) and
+  Radix Colors scales (MIT, Copyright (c) 2021 Radix). See g-design's
+  THIRD_PARTY_NOTICES for the full texts.
+
+Loaded from a CDN at runtime and not redistributed here
+  cytoscape, 3d-force-graph, xterm.js and its canvas and fit add-ons are fetched
+  from cdn.jsdelivr.net by the pages that use them. Each is MIT licensed.

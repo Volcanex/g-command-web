@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+.env
+.env.local
+
+output/
+
+# Generated runtime state for /projects: screenshots + git/meta sidecar.
+# Lives outside output/ (which compile.py wipes) so it survives recompiles.
+var/
+
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+
+# Docker / Caddy volumes if bound locally
+caddy-data/
+caddy-config/
+
+# Local compose overrides. The .example file is committed.
+docker-compose.override.yml

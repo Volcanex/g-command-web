@@ -1,0 +1,11 @@
+{
+  "title": "Install",
+  "slug": "install",
+  "description": "Connect this brain to Claude, ChatGPT, and other MCP clients.",
+  "nav": true,
+  "nav_section": "Brain",
+  "nav_icon": "plug",
+  "nav_label": "Install (MCP)",
+  "order": 40,
+  "gsys": true
+}

@@ -1,0 +1,342 @@
+<div class="page-head">
+  <h1>Projects</h1>
+  <span class="badge badge-plain num" data-stat-total>Loading&hellip;</span>
+  <span class="badge badge-plain num" data-stat-compliant hidden></span>
+  <span class="head-spacer"></span>
+  <span class="legend" data-legend></span>
+</div>
+
+<p class="page-sub">Every project at a glance, derived from the instance manifest: thumbnail, live health and g-core compliance. Add a manifest entry, a card appears.</p>
+
+<div id="proj-root"><p class="proj-loading">Loading&hellip;</p></div>
+
+<style>
+  body.projects-page .site-main > * { max-width: none; }
+
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .head-spacer { flex: 1; }
+  .page-sub {
+    margin: var(--sp-2) 0 var(--sp-4);
+    color: var(--text-secondary); font-size: 12px; line-height: 1.55; max-width: 640px;
+  }
+
+  .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  .legend .swatch { display: inline-flex; gap: 6px; align-items: center; }
+  .legend .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+  .proj-host-head { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-5) 0 var(--sp-3); }
+  .proj-host-head::after { content: ""; flex: 1; border-top: 1px solid var(--border-subtle); }
+  #proj-root > .proj-host-head:first-child { margin-top: 0; }
+  .proj-host-head .host-id { font-size: var(--font-size-ui); font-weight: 500; }
+  .proj-host-head .host-name { font-size: 12px; color: var(--text-secondary); }
+
+  .proj-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--sp-3);
+  }
+
+  .proj-card {
+    padding: 0; overflow: hidden; display: flex; flex-direction: column;
+    transition: border-color var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out);
+  }
+  .proj-card:hover { border-color: var(--border-hover); }
+
+  /* Non-active projects (deprecated, fossil) render inert per the
+     conventions: still visible, visibly not being built on. Hover restores
+     them so the metadata stays readable. */
+  .proj-card.inert { opacity: 0.6; }
+  .proj-card.inert:hover, .proj-card.inert:focus-within { opacity: 1; }
+  .proj-card.inert .proj-thumb-img { filter: grayscale(1); }
+  .proj-card.inert:hover .proj-thumb-img { filter: none; }
+
+  .proj-thumb {
+    position: relative; display: block; aspect-ratio: 16 / 10;
+    background: var(--surface-2); border-bottom: 1px solid var(--card-border); overflow: hidden;
+  }
+  .proj-thumb-img {
+    width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block;
+    transition: filter var(--dur-base) var(--ease-out);
+  }
+  .proj-thumb.noshot::after {
+    content: attr(data-initial);
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 500; color: var(--text-placeholder);
+  }
+
+  .proj-body { padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); }
+  .proj-titlerow { display: flex; align-items: center; gap: var(--sp-2); justify-content: space-between; }
+  .proj-title { font-size: var(--font-size-ui); font-weight: 500; margin: 0; overflow-wrap: anywhere; }
+
+  .proj-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .proj-row .rowk { font-size: 12px; color: var(--text-placeholder); }
+
+  .proj-links { display: flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; }
+  .proj-links a {
+    color: var(--text-secondary); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .proj-links a:hover { color: var(--text-primary); }
+
+  .proj-lineage, .proj-commit, .proj-note { font-size: 12px; color: var(--text-placeholder); line-height: 1.5; }
+  .proj-lineage, .proj-commit { display: flex; flex-wrap: wrap; column-gap: 12px; }
+  .proj-commit .mono { color: var(--text-secondary); }
+  .proj-note { font-style: italic; }
+
+  .proj-loading { color: var(--text-secondary); font-size: 12px; margin: 0; }
+</style>
+
+<script>
+(async () => {
+  const root = document.getElementById('proj-root');
+  const statTotal = document.querySelector('[data-stat-total]');
+  const statComp = document.querySelector('[data-stat-compliant]');
+  const legend = document.querySelector('[data-legend]');
+  const BRAIN = BRAIN_API;
+  const POLL_MS = 60000;
+
+  legend.innerHTML = [
+    ['Up', 'var(--ok-text)'],
+    ['Down', 'var(--danger-text)'],
+    ['Unknown or no service', 'var(--text-placeholder)'],
+  ].map(([label, color]) =>
+    `<span class="swatch"><span class="dot" style="background:${color}"></span>${label}</span>`
+  ).join('');
+
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
+  ));
+
+  // Live states map onto the shipped badge kinds; unknown keeps the plain dot.
+  const BADGE_KIND = { up: 'ok', down: 'danger', warn: 'warn', unknown: '' };
+  const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+
+  // The state is tracked here rather than read back off the element: g.status
+  // leaves its own animation classes behind, so a className comparison would
+  // re-blink every badge on every poll.
+  function setBadge(el, state, label, animate) {
+    if (el.dataset.state === state) return;
+    el.dataset.state = state;
+    const kind = BADGE_KIND[state] || '';
+    if (animate && window.g && g.status) { g.status(el, { kind, label }); return; }
+    el.className = 'badge' + (kind ? ' badge-' + kind : '');
+    el.textContent = label;
+  }
+
+  function fail(title, desc) {
+    root.innerHTML = `<div class="empty"><div class="e-title">${esc(title)}</div><div class="e-desc">${esc(desc)}</div></div>`;
+  }
+
+  // ── manifest (projects, services, hosts) ──
+  let manifest;
+  try {
+    const r = await fetch('/api/gcore');
+    if (!r.ok) throw new Error(`gcore ${r.status}`);
+    manifest = (await r.json()).manifest;
+  } catch (e) {
+    fail('Could not load the manifest', `The /api/gcore route failed (${e.message}). Reload once the server is back.`);
+    setBadge(statTotal, 'down', 'Manifest unavailable', false);
+    statTotal.classList.add('num');
+    return;
+  }
+
+  // ── screenshot + git sidecar (graceful if the job hasn't run) ──
+  let meta = {};
+  try {
+    const r = await fetch('/api/projects/meta');
+    if (r.ok) meta = (await r.json()).projects || {};
+  } catch (e) { /* page still works without thumbnails / commits */ }
+
+  // ── compliance (nerves) + lineage, both best-effort ──
+  const compliance = {};
+  const lineage = {};
+  await Promise.all([
+    fetch(`${BRAIN}/api/nerves`).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      for (const n of d.nodes) if (n.type === 'repo') compliance[n.label] = { compliant: n.compliant, title: n.title };
+    }).catch(() => {}),
+    fetch(`${BRAIN}/api/lineage`).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      const label = {};
+      for (const n of d.nodes) label[n.id] = n.label;
+      for (const lk of d.links) {
+        const rid = String(lk.source).replace(/^repo-/, '');
+        const tgt = label[lk.target] || String(lk.target).replace(/^src-/, '');
+        (lineage[rid] = lineage[rid] || {})[lk.rel] = tgt;
+      }
+    }).catch(() => {}),
+  ]);
+
+  // ── index services by repo (the join key is service.repo == project.id) ──
+  const svcByRepo = {};
+  for (const s of (manifest.services || [])) (svcByRepo[s.repo] = svcByRepo[s.repo] || []).push(s);
+
+  const projects = manifest.projects || [];
+  const hostName = {};
+  for (const h of (manifest.hosts || [])) hostName[h.id] = (h.aliases && h.aliases[1]) || h.provider || h.id;
+
+  // ── build card ──
+  function buildCard(p) {
+    const id = p.id;
+    const svcs = svcByRepo[id] || [];
+    const domain = (svcs.find(s => s.domain) || {}).domain || null;
+    const liveUrl = domain ? `https://${domain}` : null;
+    const m = meta[id] || {};
+    const comp = compliance[id] || {};
+    // Heading is the manifest id: unique, stable, what every other view keys
+    // on. The brain `title` (often a domain-like string that mismatches the
+    // live domain, e.g. a .co.uk title on a site served at .com) goes to the
+    // tooltip only, so it can't read as a "merged" card.
+    const titleAttr = comp.title && comp.title !== id ? comp.title : id;
+    const initial = (id[0] || '?').toUpperCase();
+    const status = p.status || 'active';
+
+    const card = document.createElement('div');
+    card.className = 'card proj-card' + (status === 'active' ? '' : ' inert');
+    card.dataset.repo = id;
+
+    // thumbnail (anchor to live site, else github)
+    const href = liveUrl || p.url || '#';
+    const knownNoShot = m.shot === false;
+    const thumbInner = knownNoShot
+      ? ''
+      : `<img class="proj-thumb-img" src="/api/projects/shot/${encodeURIComponent(id)}" alt="" loading="lazy"
+             onerror="this.closest('.proj-thumb').classList.add('noshot'); this.remove();">`;
+    const thumb = `<a class="proj-thumb${knownNoShot ? ' noshot' : ''}" data-initial="${esc(initial)}"
+                      href="${esc(href)}" target="_blank" rel="noopener">${thumbInner}</a>`;
+
+    // health (only when a service maps to this project)
+    const health = svcs.length
+      ? `<span class="badge" data-health>&hellip;</span>`
+      : `<span class="badge badge-plain">No service</span>`;
+
+    // badges: lifecycle first, then compliance
+    const badges = [];
+    if (status !== 'active') badges.push(`<span class="badge badge-warn">${esc(cap(status))}</span>`);
+    badges.push(p.managed
+      ? `<span class="badge badge-plain">Managed</span>`
+      : `<span class="badge badge-plain">Unmanaged</span>`);
+    if (comp.compliant === true) badges.push(`<span class="badge badge-ok">Compliant</span>`);
+    else if (comp.compliant === false) badges.push(`<span class="badge badge-plain">Not compliant</span>`);
+
+    // links
+    const links = [];
+    if (liveUrl) links.push(`<a href="${esc(liveUrl)}" target="_blank" rel="noopener"><i class="ph ph-globe"></i>${esc(domain)}</a>`);
+    if (p.url) links.push(`<a href="${esc(p.url)}" target="_blank" rel="noopener"><i class="ph ph-github-logo"></i>GitHub</a>`);
+
+    // dependencies (badge kind patched live by refreshStatus)
+    const deps = (m.depends || []).map(d =>
+      `<span class="badge" data-dep-id="${esc(d)}">${esc(d)}</span>`
+    ).join('');
+    const depsRow = deps ? `<div class="proj-row"><span class="rowk">Deps</span>${deps}</div>` : '';
+
+    // lineage
+    const ln = lineage[id] || {};
+    const lnParts = [];
+    if (ln.starter) lnParts.push(`Starter: ${esc(ln.starter)}`);
+    if (ln.design) lnParts.push(`Design: ${esc(ln.design)}`);
+    const lineageRow = lnParts.length ? `<div class="proj-lineage">${lnParts.map(p => `<span>${p}</span>`).join('')}</div>` : '';
+
+    // last commit
+    const lc = m.last_commit;
+    const commitRow = lc
+      ? `<div class="proj-commit"><span class="mono">${esc(lc.hash)}</span><span>${esc(lc.date)}</span><span>${esc(lc.subject)}</span></div>`
+      : '';
+
+    const noteRow = p.note ? `<div class="proj-note">${esc(p.note)}</div>` : '';
+
+    card.innerHTML = `
+      ${thumb}
+      <div class="proj-body">
+        <div class="proj-titlerow">
+          <h3 class="proj-title" title="${esc(titleAttr)}">${esc(id)}</h3>
+          ${health}
+        </div>
+        <div class="proj-row">${badges.join('')}</div>
+        ${links.length ? `<div class="proj-links">${links.join('')}</div>` : ''}
+        ${depsRow}
+        ${lineageRow}
+        ${commitRow}
+        ${noteRow}
+      </div>`;
+    return card;
+  }
+
+  // ── render grouped by host ──
+  root.innerHTML = '';
+  if (!projects.length) {
+    fail('No projects yet', 'Nothing in the manifest to show. Add an entry to the instance manifest and a card appears here.');
+    setBadge(statTotal, 'unknown', '0 projects', false);
+    return;
+  }
+
+  const byHost = {};
+  for (const p of projects) (byHost[p.host || '?'] = byHost[p.host || '?'] || []).push(p);
+
+  for (const [host, list] of Object.entries(byHost)) {
+    const head = document.createElement('div');
+    head.className = 'proj-host-head';
+    head.innerHTML = `<span class="host-id">${esc(host)}</span>` +
+      (hostName[host] ? `<span class="host-name">${esc(hostName[host])}</span>` : '');
+    root.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'proj-grid';
+    for (const p of list) grid.appendChild(buildCard(p));
+    root.appendChild(grid);
+  }
+
+  const compliantCount = projects.filter(p => (compliance[p.id] || {}).compliant === true).length;
+  statTotal.textContent = `${projects.length} projects`;
+  statComp.textContent = `${compliantCount} g-core compliant`;
+  statComp.hidden = false;
+
+  // ── live health (services + dependency badges), polled ──
+  function aggState(states) {
+    if (!states || !states.length) return 'unknown';
+    if (states.includes('down')) return 'down';
+    if (states.includes('up')) return 'up';
+    return 'unknown';
+  }
+
+  // First pass paints silently; later passes animate, so a blink always means
+  // something actually changed.
+  let painted = false;
+
+  async function refreshStatus() {
+    let snap;
+    try {
+      const r = await fetch(`${BRAIN}/api/status`);
+      if (!r.ok) throw new Error(r.status);
+      snap = await r.json();
+    } catch (e) { return; }
+
+    const svcStates = {};
+    for (const s of (snap.services || [])) (svcStates[s.repo] = svcStates[s.repo] || []).push(s.state);
+
+    for (const card of root.querySelectorAll('[data-repo]')) {
+      const states = svcStates[card.dataset.repo];
+      if (!states) continue; // no service, so leave the "No service" badge
+      const el = card.querySelector('[data-health]');
+      if (!el) continue;
+      const state = aggState(states);
+      el.title = state;
+      setBadge(el, state, cap(state), painted);
+    }
+
+    const depState = {};
+    for (const d of (snap.dependencies || [])) depState[d.id] = d.state;
+    for (const pill of root.querySelectorAll('[data-dep-id]')) {
+      const state = depState[pill.dataset.depId] || 'unknown';
+      pill.title = `${pill.dataset.depId}: ${state}`;
+      setBadge(pill, state, pill.dataset.depId, painted);
+    }
+
+    painted = true;
+  }
+
+  await refreshStatus();
+  setInterval(refreshStatus, POLL_MS);
+})();
+</script>

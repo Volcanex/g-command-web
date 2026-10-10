@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="g-admin-project" content="gcommand">
+  <meta name="g-command" content="{{ g_command }}">
+  <title>{{ title }} - {{ site_name }}</title>
+  <meta name="description" content="{{ description }}">
+  <!-- Brain API origin, set by BRAIN_API at compile time. Page scripts read
+       window.BRAIN_API instead of naming the host. -->
+  <meta name="brain-api" content="{{ brain_api }}">
+  <script>window.BRAIN_API=document.querySelector('meta[name="brain-api"]').content;</script>
+  <link rel="icon" type="image/svg+xml" href="/css/gsys/brand/icon.svg">
+  <!-- Apply the stored theme before first paint. g-design is dark by
+       default (no attribute); only an explicit choice sets one. Key
+       matches g-ui.js (g.theme). -->
+  <script>(function(){try{var t=localStorage.getItem('g-theme');if(t)document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('g-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}})();</script>
+  <!-- Page styles live inside the streamed body, so on a slow connection the
+       markup would paint unstyled and then jump. Hold the content invisible
+       until chrome.js (deferred, runs after the full parse) reveals it with
+       the entrance stagger. The keyframe is a bounded fallback: if JS never
+       arrives, the page still reveals itself after 1.5s. -->
+  <style>.site-main{opacity:0;animation:g-page-fallback .2s ease-out 1.5s forwards}@keyframes g-page-fallback{to{opacity:1}}</style>
+  <noscript><style>.site-main{opacity:1;animation:none}</style></noscript>
+  <link rel="preload" href="/css/vendor/phosphor/Phosphor.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- g-design (vendored) + g-command-web chrome -->
+  <link rel="stylesheet" href="/css/gsys/g.css">
+  <link rel="stylesheet" href="/css/gsys/chrome.css">
+  <link rel="stylesheet" href="/css/vendor/phosphor/style.css">
+  <script defer src="/css/gsys/g-ui.js"></script>
+  <script defer src="/js/chrome.js"></script>
+</head>
+<body class="g-shell {{ body_class }}">
+
+  <aside aria-label="Main navigation">
+    <a href="/" class="brand" aria-label="Command home">
+      <span class="mark" aria-hidden="true"></span>
+    </a>
+
+    {{! nav_pages }}
+
+    <div class="nav-drawer-section">
+      <h3>Brain kinds</h3>
+      <a href="/notes?kind=design"><i class="ph ph-blueprint"></i><span>Designs</span></a>
+      <a href="/notes?kind=finding"><i class="ph ph-magnifying-glass"></i><span>Findings</span></a>
+      <a href="/notes?kind=idea"><i class="ph ph-lightbulb"></i><span>Ideas</span></a>
+      <a href="/notes?kind=reference"><i class="ph ph-book-open"></i><span>References</span></a>
+      <a href="/notes?kind=source"><i class="ph ph-quotes"></i><span>Sources</span></a>
+      <a href="/notes?kind=log"><i class="ph ph-clock-counter-clockwise"></i><span>Logs</span></a>
+    </div>
+
+    <div class="nav-drawer-section">
+      <h3>Elsewhere</h3>
+      <a href="{{ owner_site_url }}" rel="noopener"{{ owner_site_hidden }}><i class="ph ph-globe"></i><span>{{ owner_site_label }}</span></a>
+      <a href="/logout"><i class="ph ph-sign-out"></i><span>Log out</span></a>
+    </div>
+
+    <div class="side-foot">
+      <span class="who">v1 on g-design</span>
+      <button class="btn btn-tertiary btn-sm" id="t-density" data-tip="Comfortable and compact">Density</button>
+      <button class="btn btn-tertiary btn-sm" id="t-theme" data-tip="Dark and light">Theme</button>
+    </div>
+  </aside>
+
+  <div class="g-scrim"></div>
+
+  <div class="g-main">
+    <header class="g-top">
+      <button class="btn btn-tertiary btn-sm btn-icon g-nav-toggle" aria-label="Menu" aria-expanded="false" data-icon="list" onclick="toggleNav()"></button>
+      <span class="g-top-title">{{ title }}</span>
+      <span class="spacer"></span>
+      <a href="{{ owner_site_url }}" class="g-top-link" rel="noopener"{{ owner_site_hidden }}>{{ owner_site_label }}</a>
+    </header>
+
+    <main class="site-main">
+      {{! content }}
+    </main>
+
+    <footer class="g-status">
+      <span>{{ site_name }}</span>
+      <span class="host">{{ public_host }}</span>
+      <span data-clock></span>
+    </footer>
+  </div>
+
+</body>
+</html>

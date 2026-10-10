@@ -1,0 +1,161 @@
+<div class="page-head">
+  <h1>Photos</h1>
+  <span data-stats class="badge badge-plain">Loading</span>
+  <span class="spacer"></span>
+  <div class="tabs" role="tablist" data-tabs>
+    <button class="tab" role="tab" aria-selected="true" data-cat="compressed">Compressed</button>
+    <button class="tab" role="tab" data-cat="masters">Masters</button>
+    <button class="tab" role="tab" data-cat="raw">Raw</button>
+  </div>
+</div>
+<p class="page-sub">The R2 photo store, browsable, newest first. Deleting removes the object from R2; there is no undo.</p>
+
+<div id="ph-root"><p class="dim">Loading</p></div>
+<div class="ph-more-wrap"><button id="ph-more" class="btn btn-secondary" hidden>Load more</button></div>
+
+<style>
+  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  [data-stats] { font-variant-numeric: tabular-nums; }
+  .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
+
+  #ph-root, .ph-more-wrap { max-width: none; }
+  .ph-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--sp-2);
+  }
+  .ph-card {
+    position: relative;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--card-bg);
+  }
+  .ph-card .ph-frame {
+    display: block; width: 100%; aspect-ratio: 1;
+    background: var(--surface-2); cursor: pointer;
+  }
+  .ph-card img {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    opacity: 0; transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .ph-card img.loaded { opacity: 1; }
+  .ph-card .ph-meta {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 4px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);
+    padding: 4px 6px; overflow: hidden;
+    font-variant-numeric: tabular-nums;
+  }
+  .ph-card .ph-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ph-card .ph-meta span:last-child { white-space: nowrap; flex: none; }
+  .ph-card .ph-del {
+    position: absolute; top: 4px; right: 4px; display: none;
+  }
+  .ph-card:hover .ph-del, .ph-card:focus-within .ph-del { display: inline-flex; }
+
+  .ph-more-wrap { text-align: center; margin: var(--sp-4) 0; }
+</style>
+
+<script>
+(function () {
+  var PAGE = 60;
+  var data = null, cat = 'compressed', shown = 0;
+  var root = document.getElementById('ph-root');
+  var more = document.getElementById('ph-more');
+
+  function fmtMB(mb) { return mb >= 1024 ? (mb / 1024).toFixed(1) + ' GB' : mb.toFixed(1) + ' MB'; }
+
+  function render(reset) {
+    if (reset) { root.innerHTML = ''; shown = 0; }
+    var files = (data && data[cat]) || [];
+    if (!files.length) { root.innerHTML = '<p class="dim">Nothing in ' + cat + '.</p>'; more.hidden = true; return; }
+    var grid = root.querySelector('.ph-grid');
+    if (!grid) { grid = document.createElement('div'); grid.className = 'ph-grid'; root.appendChild(grid); }
+    files.slice(shown, shown + PAGE).forEach(function (f) {
+      var card = document.createElement('div');
+      card.className = 'ph-card';
+      var frame = document.createElement('span');
+      frame.className = 'ph-frame';
+      var img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.src = '/api/photos/thumb/' + cat + '/' + encodeURIComponent(f.name) + '?size=small';
+      img.title = f.name + ', ' + (f.modified || '').slice(0, 10);
+      img.onclick = function () { openFull(f.name); };
+      /* fade each thumb in as it arrives; a cached image is ready at once */
+      img.onload = function () { img.classList.add('loaded'); };
+      if (img.complete && img.naturalWidth) img.classList.add('loaded');
+      frame.appendChild(img);
+      card.appendChild(frame);
+      var meta = document.createElement('div');
+      meta.className = 'ph-meta';
+      meta.innerHTML = '<span class="ph-name">' + f.name + '</span><span>' + fmtMB(f.size_mb || 0) + '</span>';
+      card.appendChild(meta);
+      if (cat !== 'compressed') {
+        var del = document.createElement('button');
+        del.className = 'ph-del btn btn-danger btn-sm';
+        del.textContent = 'Delete';
+        del.setAttribute('aria-label', 'Delete ' + f.name);
+        del.onclick = function () { doDelete(f.name, card); };
+        card.appendChild(del);
+      }
+      grid.appendChild(card);
+    });
+    shown += PAGE;
+    more.hidden = shown >= files.length;
+  }
+
+  function openFull(name) {
+    fetch('/api/photos/full/' + cat + '/' + encodeURIComponent(name))
+      .then(function (r) {
+        var ct = r.headers.get('Content-Type') || '';
+        if (ct.indexOf('application/json') === 0) {
+          return r.json().then(function (j) { if (j.redirect) window.open(j.redirect, '_blank'); });
+        }
+        return r.blob().then(function (b) { window.open(URL.createObjectURL(b), '_blank'); });
+      });
+  }
+
+  function doDelete(name, card) {
+    if (!confirm('Delete ' + name + ' from ' + cat + '? This removes it from R2 permanently.')) return;
+    fetch('/api/photos/' + cat + '/' + encodeURIComponent(name), { method: 'DELETE' })
+      .then(function (r) {
+        if (r.ok) {
+          card.remove();
+          if (window.g && g.toast) g.toast({ title: 'Photo deleted', desc: name, kind: 'ok' });
+        } else {
+          r.text().then(function (t) {
+            if (window.g && g.toast) g.toast({ title: 'Delete failed', desc: t, kind: 'danger' });
+            else alert('Delete failed: ' + t);
+          });
+        }
+      });
+  }
+
+  document.querySelectorAll('[data-tabs] .tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      cat = b.dataset.cat;
+      render(true);
+    });
+  });
+  more.onclick = function () { render(false); };
+
+  fetch('/api/photos/stats').then(function (r) { return r.json(); }).then(function (s) {
+    var bits = ['raw', 'masters', 'compressed'].map(function (c) {
+      return c + ' ' + (s.counts[c] || 0) + ' / ' + fmtMB((s.bytes[c] || 0) / 1048576);
+    });
+    document.querySelector('[data-stats]').textContent = bits.join(', ');
+  }).catch(function () {
+    document.querySelector('[data-stats]').textContent = 'Stats unavailable';
+  });
+
+  fetch('/api/photos/list').then(function (r) { return r.json(); }).then(function (d) {
+    data = d; render(true);
+  }).catch(function (e) {
+    root.innerHTML = '<p class="dim">Failed to load: ' + e + '</p>';
+  });
+})();
+</script>

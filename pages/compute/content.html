@@ -1,0 +1,712 @@
+<div class="page-head">
+  <h1>Compute</h1>
+  <span class="badge badge-plain" data-overall>Loading</span>
+  <span class="head-actions">
+    <button class="btn btn-sm" data-preset="meeting" data-tip="Both providers on Burn and Fast until midnight London time">Go all out today</button>
+    <button class="btn btn-sm btn-ghost" data-preset="clear">Clear overrides</button>
+  </span>
+</div>
+<div class="glance" data-glance></div>
+
+<h2 class="section-head">Selection</h2>
+<p class="page-sub">How g-env picks a model for a job, and what it nearly picked. Every bar is one model at one effort: quality and taste push it right, quota price and slowness pull it back, and it lands on its score. The dashed line is the pick's score, so each gap is how far a rival fell short. Change the what-ifs to preview another day; nothing is saved.</p>
+<div class="card compute-card sel-card" data-sel>
+  <div class="sel-controls">
+    <div class="sel-group">
+      <span class="fact-k">Job</span>
+      <div class="sel-row">
+        <span class="select-wrap"><select class="select" data-v-role aria-label="Role"></select></span>
+        <div class="g-segmented g-segmented-sm" role="radiogroup" aria-label="Stakes">
+          <label><input type="radio" name="v-stakes" value="routine">Routine</label>
+          <label><input type="radio" name="v-stakes" value="normal" checked>Normal</label>
+          <label><input type="radio" name="v-stakes" value="important">Important</label>
+          <label><input type="radio" name="v-stakes" value="critical">Critical</label>
+        </div>
+      </div>
+    </div>
+    <div class="sel-group" data-whatif="claude"></div>
+    <div class="sel-group" data-whatif="codex"></div>
+  </div>
+  <div class="sel-status" data-v-status>
+    <span class="badge badge-plain" data-v-mode>Live</span>
+    <span class="sel-status-text" data-v-mode-text>As g-pick sees it now.</span>
+    <button class="btn btn-sm btn-ghost" data-v-reset hidden>Reset to live</button>
+  </div>
+  <p class="sel-headline" data-v-why aria-live="polite">Loading the value model.</p>
+  <div class="sel-body">
+    <div class="sel-anatomy">
+      <div class="compute-head"><span class="card-title">Score anatomy</span><span class="dim num" data-v-asof></span></div>
+      <div data-v-anatomy></div>
+    </div>
+    <div class="sel-map">
+      <div class="compute-head"><span class="card-title">Quality against price now</span>
+        <div class="g-segmented g-segmented-sm" role="radiogroup" aria-label="Price scale">
+          <label><input type="radio" name="v-scale" value="fit" checked>In the running</label>
+          <label><input type="radio" name="v-scale" value="all">Every price</label>
+        </div>
+      </div>
+      <div class="plot-value" data-v-plot></div>
+      <span class="ctl-note num" data-v-note></span>
+    </div>
+  </div>
+</div>
+<div class="sel-lower">
+  <div class="card compute-card">
+    <div class="compute-head"><span class="card-title">Picks by role and stakes</span><span class="dim" data-v-grid-note>Select a cell to open that job</span></div>
+    <div class="table-wrap" data-density="compact"><table class="table sel-matrix" aria-label="Picks by role and stakes" data-v-grid></table></div>
+  </div>
+  <div class="card compute-card">
+    <div class="compute-head"><span class="card-title">Tuning</span><span class="dim">The knobs behind this pick</span></div>
+    <div class="sel-knobs" data-v-knobs></div>
+  </div>
+</div>
+
+<h2 class="section-head">Temperature and speed</h2>
+<p class="page-sub">Temperature is safe burn over actual burn per work hour: Burn means plenty spare, Freezing means ration it. Claude is the protected quota; Codex should run out each week. Speed is separate: Slow with Burn buys quality, Fast with Burn buys speed. Overrides clear at midnight London time.</p>
+
+<div class="compute-grid" data-temps></div>
+
+<div class="section-row">
+  <h2 class="section-head">Where it goes</h2>
+  <div class="g-segmented g-segmented-sm" role="radiogroup" aria-label="Window">
+    <label><input type="radio" name="win" value="today" checked>Today</label>
+    <label><input type="radio" name="win" value="week">This quota week</label>
+  </div>
+</div>
+<p class="page-sub" data-spend-sub>Units are an estimate of relative quota cost, one unit being one Opus output token. Not a billed number.</p>
+<div class="compute-grid" data-spend></div>
+
+<h2 class="section-head">Codex jobs</h2>
+<p class="page-sub">Sol and Luna jobs from g-agent-run, with the time since each role last finished a job.</p>
+<div class="role-strip" data-roles></div>
+<div class="card table-card"><div class="table-wrap"><table class="table" aria-label="Recent jobs" data-jobs></table></div></div>
+
+<h2 class="section-head">Models</h2>
+<p class="page-sub" data-models-sub>Artificial Analysis intelligence index against cost and time to first token per effort level. The dashed line is the Pareto frontier: nothing beats a point on it for both score and price. Ringed points are what the system uses now.</p>
+<div class="compute-grid wide" data-models></div>
+
+<p class="api-note" data-note hidden></p>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .head-actions { margin-left: auto; display: flex; gap: var(--sp-2); }
+  .page-sub { margin: var(--sp-2) 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); max-width: var(--col-prose, 720px); }
+  .compute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--sp-4); }
+  .compute-grid.wide { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+  .compute-card { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+  .compute-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+  .section-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-6, 32px); }
+  .section-row .section-head { margin: 0; }
+  .section-head { font-size: 16px; margin: var(--sp-6, 32px) 0 0; }
+  .glance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-4); }
+  @media (min-width: 1680px) { .glance { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .glance .card { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+  .g-left { display: flex; align-items: baseline; gap: var(--sp-2); }
+  .g-left .big { font-size: 28px; line-height: 32px; font-weight: 600; }
+  .g-line { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--font-size-ui); line-height: 20px; }
+  .g-line .k { color: var(--text-secondary); white-space: nowrap; }
+  .g-line > :last-child { text-align: right; min-width: 0; }
+  .temp-big { display: flex; align-items: baseline; gap: var(--sp-3); }
+  .temp-word { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+  .temp-ratio { color: var(--text-secondary); font-size: var(--font-size-ui); }
+  .t-burn, .t-hot { color: var(--ok-text); }
+  .t-warm, .t-cool { color: var(--text-primary); }
+  .t-cold { color: var(--warn-text); }
+  .t-freezing { color: var(--danger-text); }
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+  .fact { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+  .fact-k { color: var(--text-placeholder); font-size: 12px; line-height: 16px; }
+  .fact-v { font-size: var(--font-size-ui); line-height: 20px; }
+  .controls { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--sp-2) var(--sp-3); }
+  .controls .label { margin: 0; color: var(--text-secondary); font-size: 12px; }
+  .ctl-note { color: var(--text-placeholder); font-size: 12px; line-height: 16px; }
+  .efforts { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+  .row { display: flex; flex-direction: column; gap: var(--sp-1); }
+  .row-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-3); }
+  .row-name { color: var(--text-secondary); font-size: var(--font-size-ui); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-val { font-variant-numeric: tabular-nums; font-size: var(--font-size-ui); }
+  .row-sub { color: var(--text-placeholder); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
+  .plot-donut { height: 160px; }
+  .plot-line { height: 200px; }
+  .plot-scatter { height: 280px; }
+  .sel-card { gap: var(--sp-4); }
+  .sel-controls { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-6); }
+  .sel-group { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+  .sel-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  .sel-status { display: flex; align-items: center; gap: var(--sp-3); min-height: var(--h-2, 28px); padding: 0 var(--sp-3); border: 1px solid var(--border-subtle); border-radius: var(--radius); }
+  .sel-status[data-preview] { border-color: var(--warn-text); border-style: dashed; }
+  .sel-status-text { color: var(--text-secondary); font-size: var(--font-size-ui); line-height: 20px; min-width: 0; flex: 1 1 auto; }
+  .sel-headline { margin: 0; font-size: 16px; line-height: 24px; color: var(--text-primary); max-width: var(--col-prose, 720px); min-height: 48px; }
+  .sel-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-5); align-items: start; }
+  .sel-anatomy, .sel-map { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+  .plot-value { height: 360px; }
+  .sel-lower { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-4); margin-top: var(--sp-4); }
+  .sel-matrix th:not(:first-child), .sel-matrix td:not(:first-child) { text-align: left; }
+  .sel-matrix td[data-cell] { cursor: pointer; white-space: nowrap; }
+  .sel-matrix td[data-cell]:hover { background: var(--fill-hover); }
+  .sel-matrix td[aria-current] { color: var(--text-primary); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent-edge); }
+  .sel-matrix td[data-changed] { color: var(--warn-text); }
+  .sel-matrix td[data-changed] .was { display: block; color: var(--text-placeholder); font-size: 12px; line-height: 16px; font-weight: 400; text-decoration: line-through; }
+  .sel-knobs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .sel-knobs .fact-v { font-variant-numeric: tabular-nums; }
+  .sel-knobs .where { color: var(--text-placeholder); font-size: 12px; line-height: 16px; font-family: var(--font-mono, monospace); overflow-wrap: anywhere; }
+  .value-temp { font-size: 20px; line-height: 28px; font-weight: 600; }
+  .role-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-4); }
+  .role-cell { border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-1); }
+  .role-cell.hl { border-color: var(--border); }
+  .table-card { padding: 0; overflow: hidden; }
+  .table td.label-cell { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .api-note { margin-top: var(--sp-4); padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-secondary); font-size: var(--font-size-ui); }
+  @media (max-width: 640px) {
+    .head-actions { margin-left: 0; width: 100%; }
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .glance { grid-template-columns: 1fr; }
+    .compute-grid.wide { grid-template-columns: 1fr; }
+    .plot-value { height: 300px; }
+    .sel-knobs { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 1080px) { .sel-body, .sel-lower { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+(() => {
+  const NAMES = { claude: 'Claude', codex: 'Codex', openrouter: 'OpenRouter', jev: 'Jev (TypeSafe)' };
+  const PROVIDERS = ['claude', 'codex'];
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => (
+    {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+  const london = (iso) => new Date(iso).toLocaleString('en-GB', {
+    timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const clock = (iso) => new Date(iso).toLocaleString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });
+  const age = (s) => s < 90 ? `${Math.round(s)} seconds` : s < 5400 ? `${Math.round(s / 60)} minutes`
+    : s < 129600 ? `${Math.round(s / 3600)} hours` : `${Math.round(s / 86400)} days`;
+  const ago = (iso) => iso ? `${age((Date.now() - new Date(iso)) / 1000)} ago` : 'never';
+  const span = (s) => { s = Math.max(0, s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+    return d ? `${d}d ${h}h` : `${h}h ${String(m).padStart(2, '0')}m`; };
+  const usd = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+  const units = (n) => n == null ? '0' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : `${Math.round(n)}`;
+  const tempClass = (w) => `t-${String(w || '').toLowerCase()}`;
+  const tempBadge = (w) => ({ BURN: 'badge-ok', HOT: 'badge-ok', WARM: 'badge-ok', COOL: 'badge-plain', COLD: 'badge-warn', FREEZING: 'badge-danger' })[w] || 'badge-plain';
+  const STATUS = { BURN: 'Plenty spare, spend it', HOT: 'Ahead, spend more', WARM: 'Slightly ahead', COOL: 'On pace', COLD: 'Behind, go easy', FREEZING: 'Will run out, ration it' };
+  const MEANING = {
+    claude: { BURN: 'Claude fallbacks and Claude workers allowed freely', COLD: 'Claude fallbacks skipped, Claude agents need an OK', FREEZING: 'Claude fallbacks skipped, Claude agents need an OK' },
+    codex: { BURN: 'Sol effort up a level, as far as xhigh', HOT: 'Sol effort up a level, as far as high', COLD: 'Sol effort down a level', FREEZING: 'Sol effort down a level' },
+  };
+  const SPEED = { FAST: 'Fast caps Sol at medium effort', SLOW: 'Slow adds a level of effort', NORMAL: '' };
+
+  let state = null, usage = null, hours = null, ready;
+  let win = 'today';
+
+  const api = async (url, opts) => {
+    const res = await fetch(url, { credentials: 'same-origin', ...opts });
+    if (!res.ok) { const e = new Error(res.status); e.status = res.status; try { e.body = await res.json(); } catch (_) {} throw e; }
+    return res.json();
+  };
+  const quota = (p, id) => (state.pace && state.pace.quotas || []).find(q => q.id === id && q.provider === p);
+
+  function tempCard(p) {
+    const t = state.temps && state.temps[p];
+    if (!t) return `<div class="card compute-card"><div class="compute-head"><span class="card-title">${NAMES[p]}</span></div><span class="dim">No temperature yet. Check compute-pace.timer on h.</span></div>`;
+    const levels = state.levels || { temps: [], speeds: [] };
+    const q = quota(p, `${p} 7d`);
+    const q5 = quota(p, `${p} 5h`);
+    const facts = [];
+    if (q) {
+      facts.push(['Left this week', `${Math.round(q.remaining_pct)}%`]);
+      facts.push(['Resets in', span((new Date(q.resets_at) - Date.now()) / 1000)]);
+      facts.push(['Burn per work hour', q.burn_pct_per_work_hour == null ? 'Too few hours' : `${q.burn_pct_per_work_hour.toFixed(1)}% vs ${q.safe_burn_pct_per_work_hour.toFixed(1)}% safe`]);
+      facts.push(['At reset', q.runs_out_at ? `Runs out ${london(q.runs_out_at)}` : q.projected_remaining_pct == null ? 'No projection yet' : `${Math.round(q.projected_remaining_pct)}% unused`]);
+    }
+    if (q5) facts.push(['5 hour window', `${Math.round(q5.remaining_pct)}% left, resets ${clock(q5.resets_at)}`]);
+    facts.push(['Measured', t.measured ? `${cap(t.measured)}${t.ratio ? ` x${t.ratio.toFixed(1)}` : ''}` : 'No reading']);
+    const over = t.temp_override || (t.speed && t.speed !== 'NORMAL');
+    const meaning = [MEANING[p][t.temp], SPEED[t.speed || 'NORMAL']].filter(Boolean).join('. ');
+    const efforts = p === 'codex' && state.roles && state.roles.effective_codex_effort
+      ? `<div class="row"><span class="fact-k">Sol effort per role now</span><div class="efforts">${Object.entries(state.roles.effective_codex_effort).map(([r, e]) => {
+          const base = state.roles.base_effort[r];
+          return `<span class="badge ${e !== base ? 'badge-info' : 'badge-plain'}" data-tip="${esc(`${r}: base ${base}, acting ${e}`)}">${esc(r)} ${esc(e)}</span>`; }).join('')}</div></div>`
+      : '';
+    return `<div class="card compute-card" data-provider="${p}">
+      <div class="compute-head"><span class="card-title">${NAMES[p]}</span><span class="badge ${tempBadge(t.temp)}">${esc(STATUS[t.temp] || 'Unknown')}</span></div>
+      <div class="temp-big"><span class="temp-word ${tempClass(t.temp)}">${esc(cap(t.temp))}</span>
+        <span class="temp-ratio num">${t.temp_override ? 'Override' : t.ratio ? `x${t.ratio.toFixed(1)} safe over actual` : ''}${t.speed && t.speed !== 'NORMAL' ? `, ${esc(cap(t.speed))}` : ''}</span></div>
+      <div class="facts">${facts.map(([k, v]) => `<div class="fact"><span class="fact-k">${esc(k)}</span><span class="fact-v num">${esc(v)}</span></div>`).join('')}</div>
+      <div class="controls">
+        <label class="label" for="temp-${p}">Temperature</label>
+        <span class="select-wrap"><select class="select" id="temp-${p}" data-temp="${p}">
+          <option value="">Auto${t.measured ? `, measured ${cap(t.measured)}` : ''}</option>
+          ${levels.temps.map(w => `<option value="${w}" ${t.temp_override === w ? 'selected' : ''}>${cap(w)}</option>`).join('')}
+        </select></span>
+        <span class="label">Speed</span>
+        <div class="g-segmented g-segmented-sm" data-block role="radiogroup" aria-label="${NAMES[p]} speed">
+          ${levels.speeds.map(s => `<label><input type="radio" name="speed-${p}" value="${s}" data-speed="${p}" ${(t.speed || 'NORMAL') === s ? 'checked' : ''}>${cap(s)}</label>`).join('')}
+        </div>
+      </div>
+      <span class="ctl-note">${esc(meaning || 'No change to routing at this temperature.')}${over && t.expires_at ? ` Override until ${esc(london(t.expires_at))}.` : ''}</span>
+      ${efforts}
+    </div>`;
+  }
+
+  function glanceCard(p) {
+    const t = (state.temps || {})[p] || {}, q = quota(p, `${p} 7d`), q5 = quota(p, `${p} 5h`);
+    if (!q) return `<div class="card"><span class="card-title">${NAMES[p]}</span><span class="dim">No quota reading yet.</span></div>`;
+    const left = Math.round(q.remaining_pct);
+    const end = q.runs_out_at ? `out ${london(q.runs_out_at)}` : q.projected_remaining_pct == null ? 'no projection yet' : `${Math.round(q.projected_remaining_pct)}% unused at reset`;
+    const over = t.temp_override ? `, set by hand${t.measured ? `, measured ${cap(t.measured)}` : ''}` : '';
+    return `<div class="card">
+      <div class="compute-head"><span class="card-title">${NAMES[p]}</span><span class="badge ${tempBadge(t.temp)}">${esc(cap(t.temp || 'unknown'))}${t.speed && t.speed !== 'NORMAL' ? `, ${esc(cap(t.speed))}` : ''}</span></div>
+      <div class="g-left"><span class="big num">${left}%</span><span class="dim">left this week</span></div>
+      <div class="g-meter" data-value="${left}" data-max="100" aria-label="${NAMES[p]} left this week"></div>
+      <div class="g-line"><span class="k">Resets</span><span class="num">${esc(london(q.resets_at))}</span></div>
+      <div class="g-line"><span class="k">Pace</span><span class="num">${esc(end)}</span></div>
+      ${q5 ? `<div class="g-line"><span class="k">5 hour</span><span class="num">${Math.round(q5.remaining_pct)}% left, ${esc(clock(q5.resets_at))}</span></div>` : ''}
+      <span class="ctl-note">${esc((STATUS[t.temp] || '') + over)}</span>
+    </div>`;
+  }
+
+  function glanceToday() {
+    const sp = state.spend || {}, cl = sp.claude || {}, cx = sp.codex || {};
+    const tot = (w) => Object.values((w || {}).by_model || {}).reduce((n, v) => n + (v.units || 0), 0);
+    const top = (w) => { const all = sorted((w || {}).by_worker, 'units'), t = tot(w); return all[0] ? `${all[0][0]}, ${Math.round(all[0][1].units / (t || 1) * 100)}%` : 'nothing yet'; };
+    const last = (cx.last_by_role || {}).research;
+    const lines = [
+      ['Claude today', `${units(tot(cl.today))} units`], ['Codex today', `${units(tot(cx.today))} units`],
+      ['Claude top, week', top(cl.week)], ['Codex top, week', top(cx.week)],
+      ['Last research', ago(last)],
+    ];
+    if (hours) lines.push(['Worked today', `${hrs(hours.today)}, usual ${hrs(hours.avg_today_weekday)}`], ['Worked this week', hrs(hours.claude_week_so_far)]);
+    return `<div class="card"><div class="compute-head"><span class="card-title">Today</span><span class="dim">${sp.computed_at ? `as of ${esc(clock(sp.computed_at))}` : ''}</span></div>
+      ${lines.map(([k, v]) => `<div class="g-line"><span class="k">${esc(k)}</span><span class="num">${esc(v)}</span></div>`).join('')}</div>`;
+  }
+
+  function renderGlance() {
+    const box = document.querySelector('[data-glance]');
+    const paid = ['openrouter', 'jev'].map(p => (usage || []).filter(r => r.provider === p)).filter(r => r.length);
+    box.innerHTML = PROVIDERS.map(glanceCard).join('') + glanceToday()
+      + (paid.length ? `<div class="card"><span class="card-title">Paid APIs</span>${paid.map(rs => `<span class="fact-k">${NAMES[rs[0].provider]}</span>${rs.map(rowHtml).join('')}`).join('')}</div>` : '');
+    if (window.g && g.init) g.init(box);
+  }
+
+  function renderTemps() {
+    const box = document.querySelector('[data-temps]');
+    box.innerHTML = PROVIDERS.map(tempCard).join('');
+    box.querySelectorAll('[data-temp]').forEach(el => el.addEventListener('change', () =>
+      setMode(el.dataset.temp, { temp: el.value || null })));
+    box.querySelectorAll('[data-speed]').forEach(el => el.addEventListener('change', () =>
+      setMode(el.dataset.speed, { speed: el.value })));
+    if (window.g && g.init) g.init(box);
+  }
+
+  async function setMode(p, change) {
+    const t = state.temps[p] || {};
+    const body = { provider: p, temp: t.temp_override || null, speed: t.speed && t.speed !== 'NORMAL' ? t.speed : null, ...change };
+    if (body.speed === 'NORMAL') body.speed = null;
+    try {
+      const out = await api('/api/compute/mode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      state.temps = out.temps; state.overrides = out.overrides;
+      await refreshEfforts();
+      renderGlance(); renderTemps(); loadValue();
+      const acting = state.temps[p];
+      g.toast({ title: `${NAMES[p]} set to ${cap(acting.temp)}, ${cap(acting.speed || 'NORMAL')}`, desc: body.temp || body.speed ? 'Until midnight London time' : 'Back to measured', kind: 'ok' });
+    } catch (e) {
+      renderGlance(); renderTemps();
+      g.toast({ title: `${NAMES[p]} mode not changed`, desc: e.status === 401 || e.status === 403 ? 'Sign in again, then retry.' : 'The server refused the change; the old mode still applies.', kind: 'danger' });
+    }
+  }
+
+  async function refreshEfforts() {
+    try { const s = await api('/api/compute/state'); state.roles = s.roles; } catch (_) {}
+  }
+
+  document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', async () => {
+    const meeting = b.dataset.preset === 'meeting';
+    for (const p of PROVIDERS) await setMode(p, meeting ? { temp: 'BURN', speed: 'FAST' } : { temp: null, speed: null });
+  }));
+
+  function sorted(obj, key) {
+    return Object.entries(obj || {}).sort((a, b) => (b[1][key] || 0) - (a[1][key] || 0));
+  }
+
+  function spendCard(p) {
+    const s = state.spend && state.spend[p];
+    if (!s) return `<div class="card compute-card"><div class="compute-head"><span class="card-title">${NAMES[p]}</span></div><span class="dim">No spend data yet. compute-spend runs every 15 minutes on h.</span></div>`;
+    const w = s[win] || {};
+    const models = sorted(w.by_model, 'units');
+    const workers = sorted(w.by_worker, 'units');
+    const total = models.reduce((n, [, v]) => n + (v.units || 0), 0);
+    const rows = workers.slice(0, 8).map(([name, v]) => {
+      const top = sorted(Object.fromEntries(Object.entries(v.models || {}).map(([m, u]) => [m, { units: u }])), 'units').map(([m]) => m)[0] || '';
+      const pct = total ? (v.units / total * 100) : 0;
+      return `<div class="row"><div class="row-top"><span class="row-name" data-tip="${esc(`${v.turns || 0} turns, ${units(v.output)} output tokens${top ? `, mostly ${top}` : ''}`)}">${esc(name)}</span><span class="row-val num">${units(v.units)}, ${pct.toFixed(0)}%</span></div><div class="g-meter" data-value="${pct.toFixed(1)}" data-max="100" aria-label="${esc(name)} share"></div></div>`;
+    }).join('');
+    return `<div class="card compute-card">
+      <div class="compute-head"><span class="card-title">${NAMES[p]}</span><span class="row-val num">${units(total)} units</span></div>
+      <div class="plot-donut" data-donut="${p}"></div>
+      <span class="fact-k">By worker</span>
+      ${rows || '<span class="dim">Nothing yet in this window.</span>'}
+      <span class="fact-k">Daily by model, last 8 days</span>
+      <div class="plot-line" data-daily="${p}"></div>
+    </div>`;
+  }
+
+  function renderSpend() {
+    const box = document.querySelector('[data-spend]');
+    box.innerHTML = PROVIDERS.map(spendCard).join('');
+    const sub = document.querySelector('[data-spend-sub]');
+    if (state.spend) {
+      const errs = Object.entries(state.spend.errors || {});
+      sub.textContent = `Units are an estimate of relative quota cost, one unit being one Opus output token, not a billed number. Hosts ${(state.spend.hosts || []).join(' and ')}, computed ${ago(state.spend.computed_at)}.${errs.length ? ` No data from ${errs.map(e => e[0]).join(', ')}.` : ''}`;
+    }
+    for (const p of PROVIDERS) {
+      const s = state.spend && state.spend[p];
+      if (!s) continue;
+      const models = sorted((s[win] || {}).by_model, 'units');
+      const d = box.querySelector(`[data-donut="${p}"]`);
+      if (d && models.length) g.chart.donut(d, models.slice(0, 6).map(([m, v]) => ({ label: m, value: Math.round(v.units) })), { legend: 'side', center: units(models.reduce((n, [, v]) => n + v.units, 0)), caption: 'units' });
+      const l = box.querySelector(`[data-daily="${p}"]`);
+      const days = s.daily || [];
+      const names = [...new Set(days.flatMap(x => Object.keys(x.by_model || {})))]
+        .sort((a, b) => days.reduce((n, x) => n + ((x.by_model[b] || {}).units || 0), 0) - days.reduce((n, x) => n + ((x.by_model[a] || {}).units || 0), 0)).slice(0, 6);
+      if (l && names.length) g.chart.line(l, {
+        labels: days.map(x => new Date(x.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short' })),
+        series: names.map(m => ({ label: m, values: days.map(x => Math.round(((x.by_model || {})[m] || {}).units || 0)) })),
+      }, { format: units, zero: true });
+    }
+    if (window.g && g.init) g.init(box);
+  }
+
+  function renderJobs() {
+    const c = state.spend && state.spend.codex;
+    const strip = document.querySelector('[data-roles]');
+    const table = document.querySelector('[data-jobs]');
+    if (!c) { strip.innerHTML = '<span class="dim">No job data yet.</span>'; table.closest('.card').hidden = true; return; }
+    const roles = (state.roles && state.roles.order ? Object.keys(state.roles.order) : []).concat(Object.keys(c.last_by_role || {}));
+    strip.innerHTML = [...new Set(roles)].map(r => {
+      const t = (c.last_by_role || {})[r];
+      return `<div class="role-cell ${r === 'research' ? 'hl' : ''}"><span class="fact-k">Last ${esc(r)}</span><span class="fact-v num" ${t ? `data-tip="${esc(london(t))}"` : ''}>${esc(ago(t))}</span></div>`;
+    }).join('');
+    const badge = (s) => s === 'ok' ? 'badge-ok' : s === 'skipped' ? 'badge-plain' : 'badge-danger';
+    table.innerHTML = `<thead><tr><th>When</th><th>Role</th><th>Model</th><th>Effort</th><th class="num">Secs</th><th class="num">Units</th><th>Status</th><th>Job</th></tr></thead><tbody>${
+      (c.recent || []).slice(0, 20).map(j => `<tr>
+        <td class="num" data-tip="${esc(london(j.ts))}">${esc(ago(j.ts))}</td><td>${esc(j.role)}</td>
+        <td>${esc(String(j.provider || '').replace(/^\w+:/, ''))}${j.host && j.host !== 'h' ? ` on ${esc(j.host)}` : ''}</td>
+        <td>${esc(j.effort || '')}${j.web ? ', web' : ''}</td><td class="num">${j.secs == null ? '' : j.secs}</td>
+        <td class="num">${j.units == null ? '' : units(j.units)}</td>
+        <td><span class="badge ${badge(j.status)}" ${j.reason ? `data-tip="${esc(j.reason)}"` : ''}>${esc(cap(j.status))}</span></td>
+        <td class="label-cell" ${j.label ? `data-tip="${esc(j.label)}"` : ''}>${esc(j.label || '')}</td></tr>`).join('')
+    }</tbody>`;
+    if (window.g && g.init) g.init(table.closest('.card'));
+  }
+
+  function renderModels() {
+    const box = document.querySelector('[data-models]');
+    const m = state.models;
+    if (!m) { box.innerHTML = '<span class="dim">models.json could not be read.</span>'; return; }
+    const vendor = Object.fromEntries((m.models || []).map(x => [x.id, x.vendor]));
+    const cells = (m.effort_ladder || []).concat(m.codex_ladder || []);
+    const eff = state.roles && state.roles.effective_codex_effort || {};
+    const groups = [...new Set(cells.map(c => c.model))];
+    const pts = (key) => cells.filter(c => c[key] != null && c.score != null).map(c => ({
+      label: `${c.model.replace(/^gpt-[\d.]+-/, '').replace(/-[\d.]+$/, '')} ${c.effort}`,
+      x: c[key], y: c.score, group: c.model, color: groups.indexOf(c.model) + 1,
+      active: (vendor[c.model] === 'openai' && c.model.includes('sol') && c.effort === eff.build) || (c.model === 'opus-5.5' && c.effort === 'medium'),
+      tip: `${c.model} at ${c.effort}: score ${c.score}, ${c.cost_usd != null ? usd(c.cost_usd) + ' per task' : 'cost unpublished'}${c.ttft_s != null ? `, ${c.ttft_s}s to first token` : ''}`,
+    }));
+    box.innerHTML = `<div class="card compute-card"><div class="compute-head"><span class="card-title">Score against cost</span><span class="row-sub">Dollars per index task, log scale</span></div><div class="plot-scatter" data-sc="cost"></div></div>
+      <div class="card compute-card"><div class="compute-head"><span class="card-title">Score against latency</span><span class="row-sub">Seconds to first token, log scale</span></div><div class="plot-scatter" data-sc="ttft"></div></div>`;
+    g.chart.scatter(box.querySelector('[data-sc="cost"]'), { points: pts('cost_usd') }, { frontier: true, xLog: true, labels: 'edge', xFormat: (v) => '$' + (v < 0.1 ? v.toFixed(3) : v < 1 ? v.toFixed(2) : v.toFixed(1)), yLabel: 'Score' });
+    g.chart.scatter(box.querySelector('[data-sc="ttft"]'), { points: pts('ttft_s').map(p => ({ ...p, x: Math.max(p.x, 0.5) })) }, { frontier: true, xLog: true, labels: 'edge', xFormat: (v) => `${Math.round(v)}s`, yLabel: 'Score' });
+    const sub = document.querySelector('[data-models-sub]');
+    sub.textContent += ` Data as of ${m.as_of}${m.codex_ladder ? '' : '; Codex effort cells not yet in models.json'}.`;
+    if (window.g && g.init) g.init(box);
+  }
+
+  /* Selection: g-env's value.explain and value.flips for one job, as a score anatomy beside
+     quality against price now. What-ifs go to the API as a preview and are never saved. */
+  const VNAMES = { claude: 'Claude', codex: 'Codex' };
+  const vName = (id) => { const [f, e] = String(id || '').split('-'); return `${cap(f)} ${e || ''}`.trim(); };
+  const vNum = (n) => n == null ? '' : Math.abs(n) >= 10 ? n.toFixed(0) : n.toFixed(1);
+  const vSpeed = (ttft) => 2.2 - 0.55 * Math.log10(Math.max(ttft || 1, 1));
+  const KEYS = [
+    { key: 'quality', label: 'Quality gain', color: 1 },
+    { key: 'taste', label: 'Taste gain', color: 3 },
+    { key: 'price', label: 'Quota price', sign: -1, color: 5 },
+    { key: 'speed', label: 'Speed penalty', sign: -1, color: 4 },
+  ];
+  let vData = null, vSeq = 0;
+  const vControls = () => {
+    const pick = (name) => (document.querySelector(`input[name="${name}"]:checked`) || {}).value || '';
+    const out = {
+      role: document.querySelector('[data-v-role]').value || 'build',
+      stakes: pick('v-stakes') || 'normal',
+      scale: pick('v-scale') || 'fit',
+    };
+    for (const p of PROVIDERS) {
+      out[`${p}_temp`] = (document.querySelector(`[data-wi-temp="${p}"]`) || {}).value || '';
+      out[`${p}_speed`] = pick(`wi-speed-${p}`);
+    }
+    return out;
+  };
+
+  function renderWhatIf(live) {
+    const temps = ['BURN', 'HOT', 'WARM', 'COOL', 'COLD', 'FREEZING'];
+    for (const p of PROVIDERS) {
+      const box = document.querySelector(`[data-whatif="${p}"]`);
+      const lp = live[p], c = vControls();
+      const hand = (state && state.overrides && state.overrides[p] && state.overrides[p].temp) || null;
+      if (!box.dataset.init) {
+        box.dataset.init = '1';
+        box.innerHTML = `<span class="fact-k">What if ${VNAMES[p]}</span><div class="sel-row">
+          <span class="select-wrap"><select class="select" data-wi-temp="${p}" aria-label="${VNAMES[p]} temperature"></select></span>
+          <div class="g-segmented g-segmented-sm" role="radiogroup" aria-label="${VNAMES[p]} speed">
+            ${['FAST', 'NORMAL', 'SLOW'].map(s => `<label><input type="radio" name="wi-speed-${p}" value="${s}">${cap(s)}</label>`).join('')}
+          </div></div>`;
+        box.querySelector('select').addEventListener('change', loadValue);
+        box.querySelectorAll('input').forEach(el => el.addEventListener('change', loadValue));
+      }
+      const sel = box.querySelector('select'), keep = c[`${p}_temp`];
+      sel.innerHTML = `<option value="">Live, ${esc(cap(lp.temp))}</option>`
+        + (hand ? '<option value="auto">Measured</option>' : '')
+        + temps.map(w => `<option value="${w}">${cap(w)}</option>`).join('');
+      sel.value = [...sel.options].some(o => o.value === keep) ? keep : '';
+      const speed = c[`${p}_speed`] || lp.speed || 'NORMAL';
+      box.querySelectorAll('input').forEach(el => { el.checked = el.value === speed; el.dataset.live = el.value === (lp.speed || 'NORMAL') ? '1' : ''; });
+    }
+  }
+
+  /* A rival's loss in words, from the parts that made the gap. */
+  function lossWords(d, pick, r) {
+    const ex = d.explain, P = pick.parts, R = r.parts, gap = pick.score - r.score;
+    const rp = d.prices[r.provider], pp = d.prices[pick.provider];
+    const causes = [
+      { n: P.quality - R.quality, say: (n) => n > 0 ? `${vNum(n)} less quality at ${ex.stakes} stakes`
+        : `its extra quality, worth only ${vNum(-n)} at ${ex.stakes} stakes` },
+      { n: P.taste - R.taste, say: (n) => n > 0 ? `${vNum(n)} less taste` : `taste worth ${vNum(-n)} on its side` },
+      { n: R.price - P.price, say: (n) => r.provider !== pick.provider
+        ? `${VNAMES[r.provider]} is ${cap(rp.temp)} (price ${vNum(rp.lambda)} a unit against ${vNum(pp.lambda)})`
+        : n > 0 ? `it costs ${vNum(n)} more at ${VNAMES[r.provider]} ${cap(rp.temp)}` : `it is ${vNum(-n)} cheaper` },
+      { n: R.speed - P.speed, say: (n) => n > 0 ? `slower to first token, ${vNum(n)}` : `quicker to first token, ${vNum(-n)}` },
+    ].filter(x => Math.abs(x.n) >= Math.max(0.5, Math.abs(gap) * 0.1)).sort((a, b) => b.n - a.n);
+    const against = causes.filter(x => x.n > 0).slice(0, 2), forIt = causes.filter(x => x.n < 0).slice(0, 1);
+    let line = gap >= 0 ? `Lost by ${vNum(gap)}` : `Outscores the pick by ${vNum(-gap)}`;
+    if (against.length) line += `: ${against.map(x => x.say(x.n)).join(' and ')}`;
+    if (forIt.length && gap >= 0) line += `, despite ${forIt[0].say(forIt[0].n)}`;
+    if (!r.eligible) line = `Sits out: ${r.reason.replace(/\.$/, '')}. On score alone it ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+    const flip = (d.flips || {})[r.id];
+    return `${line}. ${flip ? `${flip.text}.` : 'No single or paired change makes it win.'}`;
+  }
+
+  function vWhy(d) {
+    const ex = d.explain, ranked = ex.ranked || [], win = ranked[0];
+    if (!win) return `Nothing can run ${ex.role} at ${ex.stakes} stakes: every point sits out, hover the plot to see why.`;
+    const pr = d.prices[win.provider];
+    const live = d.preview && d.live.pick !== ex.pick ? ` In this preview it takes the job from ${vName(d.live.pick)}, the live pick.` : '';
+    const near = ex.rivals[0] ? ex.points.find(p => p.id === ex.rivals[0]) : null;
+    return `${vName(win.id)} wins ${ex.role} at ${ex.stakes} stakes, scoring ${vNum(win.score)} with ${VNAMES[win.provider]} ${cap(pr.temp)} at ${vNum(pr.lambda)} a unit.`
+      + (near ? ` Closest is ${vName(near.id)}, ${vNum(win.score - near.score)} behind.` : '') + live;
+  }
+
+  function renderValue() {
+    const d = vData;
+    if (!d) return;
+    const c = vControls(), ex = d.explain;
+    const why = Object.fromEntries(ex.points.map(p => [p.id, p]));
+    const win = (ex.ranked || [])[0];
+    const pick = win && why[win.id];
+    const ids = [...new Set([win && win.id, ...ex.rivals, d.preview && d.live.pick].filter(Boolean))];
+    g.chart.breakdown(document.querySelector('[data-v-anatomy]'), {
+      keys: KEYS.filter(k => k.key !== 'taste' || ex.taste_weight),
+      rows: ids.map(id => why[id]).filter(Boolean).map(r => {
+        const isPick = pick && r.id === pick.id, wasLive = d.preview && r.id === d.live.pick && !isPick;
+        return {
+          id: r.id, label: `${vName(r.id)}, ${VNAMES[r.provider]}`, active: isPick, hollow: !r.eligible,
+          badge: isPick ? (d.preview && d.live.pick !== r.id ? 'Pick in preview' : 'Pick') : wasLive ? 'Live pick' : r.eligible ? '' : 'Sits out',
+          badgeKind: isPick ? 'ok' : wasLive ? 'info' : null,
+          parts: Object.entries(r.parts).map(([key, value]) => ({ key, value })), total: r.score,
+          note: isPick ? '' : lossWords(d, pick, r),
+        };
+      }),
+    }, { guide: pick && pick.id, format: vNum });
+
+    const live = d.points.filter(p => why[p.id] && why[p.id].eligible);
+    const top = Math.max(...(live.length ? live : d.points).map(p => p.price_now));
+    const xMax = c.scale === 'fit' ? top * 1.15 + 0.5 : null;
+    const plot = document.querySelector('[data-v-plot]');
+    g.chart.scatter(plot, {
+      points: d.points.map(p => {
+        const w = why[p.id] || {};
+        return {
+          id: p.id, label: vName(p.id), x: p.price_now, y: p.q, r: vSpeed(p.ttft_s),
+          group: VNAMES[p.provider], color: p.provider === 'claude' ? 1 : 2,
+          active: !!win && p.id === win.id, hollow: !w.eligible,
+          tip: `${vName(p.id)}: quality ${p.q}, price now ${vNum(p.price_now)}, ${p.ttft_s}s to first token, score ${vNum(w.score)}${w.eligible ? '' : `. ${w.reason}`}`,
+        };
+      }),
+    }, {
+      xMin: 0, xMax, labels: 'edge', xLabel: 'Price now', yLabel: 'Quality',
+      xFormat: vNum, yFormat: (v) => String(Math.round(v)),
+      lines: win ? [{ slope: 1 / ex.multiplier, through: { x: d.points.find(p => p.id === win.id).price_now, y: win.q }, label: 'Equal score', active: true }] : [],
+    });
+    const past = xMax == null ? [] : d.points.filter(p => p.price_now > xMax);
+    document.querySelector('[data-v-note]').textContent = `Points on the line score the same as the pick, anything above it would win; hollow points sit out. Slope ${(1 / ex.multiplier).toFixed(2)}, one over stakes times role weight.`
+      + (past.length ? ` The right edge holds ${past.length} dearer points, up to ${vNum(Math.max(...past.map(p => p.price_now)))}.` : '');
+    document.querySelector('[data-v-why]').textContent = vWhy(d);
+    document.querySelector('[data-v-asof]').textContent = `as of ${clock(d.computed_at)}`;
+
+    const status = document.querySelector('[data-v-status]'), on = !!d.preview;
+    status.toggleAttribute('data-preview', on);
+    const mode = document.querySelector('[data-v-mode]');
+    mode.className = `badge ${on ? 'badge-warn' : 'badge-plain'}`;
+    mode.textContent = on ? 'Preview, not live' : 'Live';
+    document.querySelector('[data-v-mode-text]').textContent = on
+      ? `${PROVIDERS.map(p => `${VNAMES[p]} ${cap(d.prices[p].temp)}${d.prices[p].speed !== 'NORMAL' ? ` on ${cap(d.prices[p].speed)}` : ''}`).join(' and ')}. Nothing is saved; jobs still route on live prices.`
+      : `As g-pick sees it now: ${PROVIDERS.map(p => `${VNAMES[p]} ${cap(d.prices[p].temp)}`).join(' and ')}.`;
+    document.querySelector('[data-v-reset]').hidden = !on;
+
+    const stakes = Object.keys(d.stakes);
+    const changed = (role, s) => d.preview && d.live.grid[role] && d.live.grid[role][s] !== d.grid[role][s];
+    const roles = d.roles;
+    const nChanged = roles.reduce((n, r) => n + stakes.filter(s => changed(r, s)).length, 0);
+    document.querySelector('[data-v-grid]').innerHTML = `<thead><tr><th>Role</th>${stakes.map(s => `<th>${cap(s)}</th>`).join('')}</tr></thead><tbody>${
+      roles.map(r => `<tr><td>${esc(cap(r))}</td>${stakes.map(s => {
+        const id = d.grid[r][s], cur = r === ex.role && s === ex.stakes, ch = changed(r, s);
+        return `<td class="num" data-cell data-role="${esc(r)}" data-stakes="${s}" tabindex="0" ${cur ? 'aria-current="true"' : ''} ${ch ? `data-changed data-tip="${esc(`Live pick ${vName(d.live.grid[r][s])}`)}"` : ''}>${esc(id ? vName(id) : 'Unavailable')}${ch ? `<span class="was">${esc(vName(d.live.grid[r][s]))}</span>` : ''}</td>`;
+      }).join('')}</tr>`).join('')}</tbody>`;
+    document.querySelector('[data-v-grid-note]').textContent = on ? `${nChanged} ${nChanged === 1 ? 'pick changes' : 'picks change'} in this preview` : 'Select a cell to open that job';
+
+    const t = d.tuning, files = t.files, rel = (f) => String(f).replace(/^\/home\/[^/]+\//, '~/');
+    const knobs = [
+      ['Role weight', `x${ex.weight}`, `${rel(files.roles)}, value.${ex.role}.weight`],
+      ['Taste weight', ex.taste_weight ? `${vNum(ex.taste_weight)} per taste point` : 'Off for this role', `${rel(files.roles)}, value.${ex.role}.taste`],
+      ['Quality floor', `${ex.floor}`, `${rel(files.roles)}, value.${ex.role}.floor`],
+      ['Families', ex.families.map(cap).join(', '), `${rel(files.roles)}, value.${ex.role}.families`],
+      ['Stakes', `x${vNum(d.stakes[ex.stakes])} at ${ex.stakes}`, `${rel(files.prices)}, STAKES`],
+      ['Model taste', `${(d.points.filter(p => p.taste).map(p => p.id.split('-')[0]).filter((v, i, a) => a.indexOf(v) === i).map(f => `${cap(f)} ${vNum(d.points.find(p => p.id.startsWith(f + '-')).taste)}`).join(', ')) || 'None set'}`, `${rel(files.prices)}, tastes() from scores.DA in ${rel(files.models)}`],
+      ...PROVIDERS.map(p => [`${VNAMES[p]} base and r`, `${vNum(t.base[p])} base, r ${d.prices[p].r.toFixed(2)} from ${d.prices[p].source}`, `${rel(files.prices)}, BASE; r from compute-pace`]),
+    ];
+    document.querySelector('[data-v-knobs]').innerHTML = knobs.map(([k, v, w]) =>
+      `<div class="fact"><span class="fact-k">${esc(k)}</span><span class="fact-v">${esc(v)}</span><span class="where">${esc(w)}</span></div>`).join('');
+    if (window.g && g.init) g.init(document.querySelector('[data-sel]').parentNode);
+  }
+
+  async function loadValue() {
+    const c = vControls(), seq = ++vSeq;
+    const q = { role: c.role, stakes: c.stakes };
+    for (const p of PROVIDERS) {
+      if (c[`${p}_temp`]) q[`${p}_temp`] = c[`${p}_temp`];
+      const live = vData && vData.live.prices[p].speed;
+      if (c[`${p}_speed`] && vData && c[`${p}_speed`] !== live) q[`${p}_speed`] = c[`${p}_speed`];
+    }
+    try {
+      const d = await api(`/api/compute/value?${new URLSearchParams(q)}`);
+      if (seq !== vSeq) return;
+      const sel = document.querySelector('[data-v-role]');
+      if (!sel.options.length) sel.innerHTML = d.roles.map(r => `<option value="${esc(r)}">${esc(cap(r))}</option>`).join('');
+      sel.value = d.explain.role;
+      vData = d;
+      renderWhatIf(d.live.prices);
+      renderValue();
+    } catch (e) {
+      if (seq !== vSeq) return;
+      document.querySelector('[data-v-why]').textContent = e.status === 401
+        ? 'Sign in again to see the selection; it retries every minute.'
+        : e.status === 400 ? 'That what-if could not be scored, so the view shows the last good reading. Reset to live to start again.'
+        : 'The value model could not be read, so the view shows the last good reading. It retries every minute.';
+    }
+  }
+  document.querySelector('[data-v-role]').addEventListener('change', loadValue);
+  document.querySelectorAll('input[name="v-stakes"]').forEach(el => el.addEventListener('change', loadValue));
+  document.querySelectorAll('input[name="v-scale"]').forEach(el => el.addEventListener('change', renderValue));
+  document.querySelector('[data-v-reset]').addEventListener('click', () => {
+    for (const p of PROVIDERS) {
+      const s = document.querySelector(`[data-wi-temp="${p}"]`);
+      if (s) s.value = '';
+      document.querySelectorAll(`input[name="wi-speed-${p}"]`).forEach(el => { el.checked = !!el.dataset.live; });
+    }
+    loadValue();
+  });
+  const openCell = (td) => {
+    document.querySelector('[data-v-role]').value = td.dataset.role;
+    const r = document.querySelector(`input[name="v-stakes"][value="${td.dataset.stakes}"]`);
+    if (r) r.checked = true;
+    loadValue();
+  };
+  const grid = document.querySelector('[data-v-grid]');
+  grid.addEventListener('click', (e) => { const td = e.target.closest('td[data-cell]'); if (td) openCell(td); });
+  grid.addEventListener('keydown', (e) => { const td = e.target.closest('td[data-cell]'); if (td && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCell(td); } });
+  const anatomy = document.querySelector('[data-v-anatomy]'), plotEl = document.querySelector('[data-v-plot]');
+  anatomy.addEventListener('g-chart:focus', (e) => g.chart.focus(plotEl, e.detail.id));
+  plotEl.addEventListener('g-chart:focus', (e) => g.chart.focus(anatomy, e.detail.id));
+  let vWidth = 0;
+  new ResizeObserver(([e]) => {
+    const w = Math.round(e.contentRect.width);
+    if (vWidth && w !== vWidth) renderValue();
+    vWidth = w;
+  }).observe(plotEl);
+  loadValue();
+  setInterval(loadValue, 60000);
+
+  document.querySelectorAll('input[name="win"]').forEach(el => el.addEventListener('change', () => { win = el.value; renderSpend(); }));
+
+  ready = (async () => {
+    const overall = document.querySelector('[data-overall]');
+    try {
+      state = await api('/api/compute/state');
+    } catch (e) {
+      overall.className = 'badge badge-danger';
+      overall.textContent = 'No data';
+      const note = document.querySelector('[data-note]');
+      note.hidden = false;
+      note.textContent = 'The compute state could not be read. The rest of the page fills in on the next reload once g-command-web answers /api/compute/state.';
+      return;
+    }
+    const c = state.temps && state.temps.claude, x = state.temps && state.temps.codex;
+    overall.className = 'badge ' + tempBadge(c && c.temp);
+    overall.textContent = `Claude ${cap(c && c.temp || 'unknown')}, Codex ${cap(x && x.temp || 'unknown')}`;
+    for (const f of [renderGlance, renderTemps, renderSpend, renderJobs, renderModels]) {
+      try { f(); } catch (err) { console.warn(f.name, err); }
+    }
+  })();
+
+  /* Raw quota windows and pace, as before. */
+  const METRICS = { five_hour: '5 hour window', seven_day: '7 day window', credits: 'Credits',
+    usage_today: 'Spent today', usage_week: 'Spent this week', usage_month: 'Spent this month' };
+  function label(r) {
+    if (METRICS[r.metric]) return METRICS[r.metric];
+    const m = /(\d+) min window/.exec(r.note || '');
+    if (m) { const mins = +m[1]; return mins % 1440 === 0 ? `${mins / 1440} day window` : mins % 60 === 0 ? `${mins / 60} hour window` : `${mins} minute window`; }
+    return r.label || r.metric;
+  }
+  function rowHtml(r) {
+    if (r.status !== 'ok') {
+      const text = r.status === 'unsupported' ? (r.note || 'No usage API') : `Unavailable${r.note ? ', ' + r.note : ''}`;
+      return `<div class="row"><span class="dim">${esc(text.charAt(0).toUpperCase() + text.slice(1))}</span></div>`;
+    }
+    let val, meter = '', sub = [];
+    if (r.unit === 'percent') {
+      val = `${Math.round(r.remaining)}% remaining`;
+      meter = `<div class="g-meter" data-value="${r.used}" data-max="100" data-warn-at="70" data-danger-at="90" aria-label="${esc(label(r))} used"></div>`;
+    } else if (r.metric === 'credits') {
+      val = `${usd(r.remaining)} left`;
+      const pct = r.limit ? Math.min(100, Math.max(0, r.used / r.limit * 100)) : 0;
+      meter = `<div class="g-meter" data-value="${pct.toFixed(1)}" data-max="100" data-warn-at="70" data-danger-at="90" aria-label="Credits used"></div>`;
+      sub.push(`${usd(r.used)} spent of ${usd(r.limit)} bought`);
+    } else {
+      val = usd(r.used);
+    }
+    if (r.resets_at) sub.push(`Resets ${london(r.resets_at)}`);
+    if (r.stale) sub.push(`Stale, ${age(r.age_seconds)} old`);
+    return `<div class="row"><div class="row-top"><span class="row-name">${esc(label(r))}</span><span class="row-val num">${esc(val)}</span></div>${meter}${sub.length ? `<span class="row-sub">${esc(sub.join('. '))}</span>` : ''}</div>`;
+  }
+  const hrs = (n) => n == null ? 'n/a' : `${n.toFixed(1)}h`;
+  (async () => {
+    const [u, p] = await Promise.allSettled([api('/api/compute/usage'), api('/api/compute/pace')]);
+    if (u.status === 'fulfilled') usage = u.value.rows;
+    if (p.status === 'fulfilled') hours = p.value.hours;
+    await ready;
+    if (state) renderGlance();
+  })();
+})();
+</script>

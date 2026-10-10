@@ -1,0 +1,116 @@
+<section class="card fd-panel" id="fd-pulse">
+  <header class="fd-panel-head">
+    <i class="ph ph-sun-horizon"></i>
+    <h2 class="card-title">Brief</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/pulse" data-tip="Open pulse" aria-label="Open pulse"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-pulse .fd-body { max-height: 420px; overflow-y: auto; }
+  #fd-pulse .fd-pulse-text {
+    font-size: var(--font-size-body);
+    line-height: 1.65;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+  }
+  #fd-pulse .fd-pulse-line:empty::before { content: '\00a0'; }
+  #fd-pulse .fd-pulse-h {
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-top: var(--sp-3);
+  }
+  #fd-pulse .fd-pulse-li {
+    position: relative;
+    padding-left: 14px;
+  }
+  #fd-pulse .fd-pulse-li::before {
+    content: '-';
+    position: absolute;
+    left: 0;
+    color: var(--text-placeholder);
+  }
+  #fd-pulse .fd-pulse-text strong { color: var(--text-primary); font-weight: 500; }
+  #fd-pulse .fd-pulse-text code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--fill-hover);
+    border-radius: var(--radius-sm);
+    padding: 1px 4px;
+  }
+</style>
+<script>(function () {
+  var root = document.getElementById('fd-pulse');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+
+  function appendInline(el, text) {
+    var parts = String(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (!p) continue;
+      var node;
+      if (p.length > 4 && p.indexOf('**') === 0 && p.slice(-2) === '**') {
+        node = document.createElement('strong');
+        node.textContent = p.slice(2, -2);
+      } else if (p.length > 2 && p.charAt(0) === '*' && p.slice(-1) === '*') {
+        node = document.createElement('em');
+        node.textContent = p.slice(1, -1);
+      } else if (p.length > 2 && p.charAt(0) === '`' && p.slice(-1) === '`') {
+        node = document.createElement('code');
+        node.textContent = p.slice(1, -1);
+      } else {
+        node = document.createTextNode(p);
+      }
+      el.appendChild(node);
+    }
+  }
+
+  function render(data) {
+    meta.textContent = data && data.date ? String(data.date) : '';
+    var text = data && data.body ? String(data.body) : '';
+    if (!text.trim()) { FD.empty(body, 'No brief yet.'); return; }
+
+    var wrap = document.createElement('div');
+    wrap.className = 'fd-pulse-text';
+    var lines = text.split('\n');
+    var inComment = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (inComment) {
+        if (line.indexOf('-->') !== -1) inComment = false;
+        continue;
+      }
+      if (line.indexOf('<!--') !== -1) {
+        if (line.indexOf('-->') === -1) inComment = true;
+        continue;
+      }
+      var div = document.createElement('div');
+      if (line.charAt(0) === '#') {
+        div.className = 'fd-pulse-h';
+        appendInline(div, line.replace(/^#+\s*/, ''));
+      } else if (line.indexOf('- ') === 0) {
+        div.className = 'fd-pulse-li';
+        appendInline(div, line.slice(2));
+      } else {
+        div.className = 'fd-pulse-line';
+        appendInline(div, line);
+      }
+      wrap.appendChild(div);
+    }
+
+    body.textContent = '';
+    body.appendChild(wrap);
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/pulse/brief')
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Brief unavailable. The panel retries every 10 minutes.',
+          (e && e.message) || e);
+      });
+  }, 600000);
+})();</script>

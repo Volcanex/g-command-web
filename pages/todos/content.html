@@ -1,0 +1,310 @@
+<div class="page-head">
+  <h1>Todos</h1>
+  <span class="badge badge-plain num" data-count>Loading</span>
+  <span class="spacer"></span>
+  <button class="btn btn-secondary btn-sm" type="button" data-toggle-add aria-expanded="true">
+    <i class="ph ph-plus"></i><span>New todo</span>
+  </button>
+</div>
+<p class="page-sub">Work tracked in the brain, sorted by priority then due date.</p>
+
+<section class="card add-card" data-add-card>
+  <form class="todo-form" data-add-form>
+    <label class="field f-title">
+      <span class="label">Title</span>
+      <input class="input" type="text" name="title" required placeholder="What needs doing?">
+    </label>
+    <label class="field f-prio">
+      <span class="label">Priority</span>
+      <span class="select-wrap">
+        <select class="select" name="priority">
+          <option value="P0">P0</option>
+          <option value="P1" selected>P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
+      </span>
+    </label>
+    <label class="field f-due">
+      <span class="label">Due</span>
+      <input class="input" type="date" name="due">
+    </label>
+    <label class="field f-rel">
+      <span class="label">Relates to</span>
+      <input class="input" type="text" name="relates_to" placeholder="Comma-separated permalinks">
+    </label>
+    <label class="field f-body">
+      <span class="label">Notes</span>
+      <textarea class="textarea" name="body" rows="2" placeholder="Optional body"></textarea>
+    </label>
+    <div class="f-actions">
+      <button class="btn btn-primary" type="submit" data-submit>
+        <span class="spinner"></span><span>Create todo</span>
+      </button>
+    </div>
+  </form>
+</section>
+
+<div class="card todos-card">
+  <div class="tabs" role="tablist">
+    <button class="tab" type="button" role="tab" data-view="open" aria-selected="true">Open</button>
+    <button class="tab" type="button" role="tab" data-view="done" aria-selected="false">Done</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table todos-table">
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Title</th>
+          <th>Due</th>
+          <th>Relates</th>
+          <th class="r">Action</th>
+        </tr>
+      </thead>
+      <tbody data-rows>
+        <tr><td colspan="5" class="dim">Loading todos</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-sub {
+    margin: var(--sp-1) 0 var(--sp-5);
+    color: var(--text-secondary); font-size: var(--font-size-ui);
+  }
+
+  .add-card { margin-bottom: var(--sp-4); }
+  .add-card[hidden] { display: none; }
+  .todo-form {
+    display: grid;
+    grid-template-columns: 1fr 130px 170px 1fr;
+    gap: var(--sp-3) var(--sp-4);
+  }
+  .todo-form .f-title { grid-column: 1 / span 2; }
+  .todo-form .f-rel { grid-column: 1 / -1; }
+  .todo-form .f-body { grid-column: 1 / -1; }
+  .todo-form .f-actions { grid-column: 1 / -1; display: flex; gap: var(--sp-3); align-items: center; }
+  .todo-form .textarea { resize: vertical; }
+
+  @media (max-width: 720px) {
+    .todo-form { grid-template-columns: 1fr 1fr; }
+    .todo-form .f-title, .todo-form .f-rel,
+    .todo-form .f-body, .todo-form .f-actions { grid-column: 1 / -1; }
+  }
+
+  /* Tabs and rows run the full width of the card, so the tab rule and row
+     hover both read as one band. */
+  .todos-card { padding: var(--pad-card); }
+  .todos-card .tabs {
+    margin: calc(-1 * var(--pad-card)) calc(-1 * var(--pad-card)) 0;
+    padding: 0 var(--pad-card);
+  }
+  .todos-card .table-wrap { margin: 0 calc(-1 * var(--pad-card)); }
+  .todos-card .table th:first-child,
+  .todos-card .table td:first-child { padding-left: var(--pad-card); }
+  .todos-card .table th:last-child,
+  .todos-card .table td:last-child { padding-right: var(--pad-card); }
+
+  .todos-table td { vertical-align: top; padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
+  .todos-table td.prio, .todos-table td.actions { white-space: nowrap; width: 1%; }
+  .todos-table td.due, .todos-table td.rel {
+    color: var(--text-secondary); white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .todos-table td.title a { color: var(--text-primary); text-decoration: none; }
+  .todos-table td.title a:hover { text-decoration: underline; }
+  .todos-table tr.done td.title a { color: var(--text-secondary); text-decoration: line-through; }
+  .todos-table .summary { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
+  .todos-table td.rel a { color: var(--text-secondary); }
+  .todos-table .due.overdue { color: var(--danger-text); }
+  .dim { color: var(--text-placeholder); }
+</style>
+
+<script>
+(async () => {
+  const API_BASE = BRAIN_API;
+  const tbody = document.querySelector('[data-rows]');
+  const cnt = document.querySelector('[data-count]');
+  const form = document.querySelector('[data-add-form]');
+  const submitBtn = form.querySelector('[data-submit]');
+  const addCard = document.querySelector('[data-add-card]');
+  const addToggle = document.querySelector('[data-toggle-add]');
+  const tabs = document.querySelectorAll('.tabs .tab');
+
+  const PRIO_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 };
+  const PRIO_BADGE = { P0: 'badge-danger', P1: 'badge-warn', P2: 'badge-info', P3: 'badge-plain' };
+  let view = 'open';
+  let items = [];
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function sortTodos(arr) {
+    return arr.slice().sort((a, b) => {
+      const pa = PRIO_ORDER[a.priority] ?? 9;
+      const pb = PRIO_ORDER[b.priority] ?? 9;
+      if (pa !== pb) return pa - pb;
+      const da = a.due || '9999-99-99';
+      const db = b.due || '9999-99-99';
+      return da.localeCompare(db);
+    });
+  }
+
+  function renderRelates(rel) {
+    if (!rel || !rel.length) return '<span class="dim">None</span>';
+    if (rel.length === 1) {
+      return `<a href="/note/${escapeHtml(rel[0])}">1 link</a>`;
+    }
+    return `<span data-tip="${escapeHtml(rel.join(', '))}">${rel.length} links</span>`;
+  }
+
+  function isOverdue(due) {
+    if (!due) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    return due < today;
+  }
+
+  function slugFromPermalink(p) {
+    if (!p) return '';
+    return p.split('/').pop();
+  }
+
+  function render() {
+    const rows = sortTodos(items);
+    cnt.textContent = `${rows.length} ${view}`;
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="dim">No ${view} todos.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(t => {
+      const slug = slugFromPermalink(t.permalink);
+      const prio = t.priority || 'P3';
+      const due = t.due
+        ? `<span class="due ${isOverdue(t.due) && view === 'open' ? 'overdue' : ''}">${escapeHtml(t.due)}</span>`
+        : '<span class="dim">No date</span>';
+      const action = view === 'open'
+        ? `<button class="btn btn-tertiary btn-sm" data-mark-done="${escapeHtml(slug)}">Mark done</button>`
+        : `<button class="btn btn-tertiary btn-sm" data-mark-open="${escapeHtml(slug)}">Reopen</button>`;
+      return `
+        <tr class="${view}">
+          <td class="prio"><span class="badge ${PRIO_BADGE[prio] || 'badge-plain'}">${escapeHtml(prio)}</span></td>
+          <td class="title"><a href="/note/${escapeHtml(t.permalink || '')}">${escapeHtml(t.title || '(untitled)')}</a>${t.summary && t.summary !== t.title ? `<div class="summary">${escapeHtml(t.summary)}</div>` : ''}</td>
+          <td class="due">${due}</td>
+          <td class="rel">${renderRelates(t.relates_to)}</td>
+          <td class="actions r">${action}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function load() {
+    tbody.innerHTML = '<tr><td colspan="5" class="dim">Loading todos</td></tr>';
+    try {
+      const r = await fetch(`${API_BASE}/api/todos?status=${encodeURIComponent(view)}`);
+      if (!r.ok) throw new Error(`todos ${r.status}`);
+      const data = await r.json();
+      items = Array.isArray(data) ? data : (data.todos || []);
+      render();
+    } catch (e) {
+      items = [];
+      tbody.innerHTML = `<tr><td colspan="5" class="dim">The brain API did not answer (${escapeHtml(e.message)}). Reload to try again.</td></tr>`;
+      cnt.textContent = 'Unavailable';
+    }
+  }
+
+  addToggle.addEventListener('click', () => {
+    const open = addCard.hasAttribute('hidden');
+    addCard.toggleAttribute('hidden', !open);
+    addToggle.setAttribute('aria-expanded', String(open));
+  });
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.view === view) return;
+      view = tab.dataset.view;
+      load();
+    });
+  });
+
+  tbody.addEventListener('click', async (e) => {
+    const doneBtn = e.target.closest('[data-mark-done]');
+    const openBtn = e.target.closest('[data-mark-open]');
+    if (!doneBtn && !openBtn) return;
+    const btn = doneBtn || openBtn;
+    const slug = btn.dataset.markDone || btn.dataset.markOpen;
+    const newStatus = doneBtn ? 'done' : 'open';
+    btn.disabled = true;
+    try {
+      const r = await fetch(`${API_BASE}/api/todos/${encodeURIComponent(slug)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!r.ok) throw new Error(`patch ${r.status}`);
+      await load();
+      g.toast({ title: newStatus === 'done' ? 'Marked done' : 'Reopened', desc: slug, kind: 'ok' });
+    } catch (err) {
+      btn.disabled = false;
+      g.toast({
+        title: newStatus === 'done' ? 'Could not mark it done' : 'Could not reopen it',
+        desc: `The brain API refused the change (${err.message}). The todo is unchanged, try again.`,
+        kind: 'danger',
+      });
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const title = (fd.get('title') || '').toString().trim();
+    if (!title) {
+      g.toast({ title: 'Title is needed', desc: 'Give the todo a title, then create it.', kind: 'danger' });
+      return;
+    }
+    const relRaw = (fd.get('relates_to') || '').toString().trim();
+    const payload = {
+      title,
+      priority: fd.get('priority') || 'P1',
+    };
+    const due = (fd.get('due') || '').toString().trim();
+    if (due) payload.due = due;
+    if (relRaw) payload.relates_to = relRaw.split(',').map(s => s.trim()).filter(Boolean);
+    const body = (fd.get('body') || '').toString().trim();
+    if (body) payload.body = body;
+    submitBtn.setAttribute('data-loading', '');
+    try {
+      const r = await fetch(`${API_BASE}/api/todos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(`${r.status}: ${t.slice(0, 200)}`);
+      }
+      form.reset();
+      g.toast({ title: 'Todo created', desc: title, kind: 'ok' });
+      if (view !== 'open') {
+        document.querySelector('.tabs .tab[data-view="open"]').click();
+      } else {
+        await load();
+      }
+    } catch (err) {
+      g.toast({
+        title: 'Could not create the todo',
+        desc: `The brain API refused it (${err.message}). Nothing was saved, try again.`,
+        kind: 'danger',
+      });
+    } finally {
+      submitBtn.removeAttribute('data-loading');
+    }
+  });
+
+  await load();
+})();
+</script>

@@ -1,0 +1,12 @@
+{
+  "title": "Full dash",
+  "slug": "full-dash",
+  "description": "The whole G-System at a glance.",
+  "nav": true,
+  "order": 11,
+  "body_class": "full-dash-page",
+  "nav_section": "g-core",
+  "nav_icon": "gauge",
+  "nav_label": "Full dash",
+  "gsys": true
+}

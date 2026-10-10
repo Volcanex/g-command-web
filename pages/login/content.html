@@ -1,0 +1,47 @@
+<form class="card login-card" id="login-form" autocomplete="off">
+  <div class="login-brand"><span class="mark">g</span><b>Command</b></div>
+  <p class="login-sub">This center is private. Enter the password to continue.</p>
+  <input class="input" type="password" id="password" name="password" placeholder="Password" required autofocus>
+  <button type="submit" class="btn btn-primary">Sign in</button>
+  <p class="login-error" id="login-error" hidden></p>
+</form>
+
+<style>
+  .login-card { display: flex; flex-direction: column; gap: var(--sp-3); width: 320px; }
+  .login-brand { display: flex; align-items: center; gap: 8px; }
+  .login-brand .mark {
+    width: 22px; height: 22px; border-radius: var(--radius-sm);
+    background: var(--accent-fill); color: var(--accent-fg);
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 500;
+  }
+  .login-brand b { font-size: 14px; font-weight: 500; }
+  .login-sub { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+  .login-error { margin: 0; color: var(--danger-text); font-size: 12px; }
+</style>
+
+<script>
+(() => {
+  const form = document.getElementById('login-form');
+  const err = document.getElementById('login-error');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.hidden = true;
+    const password = document.getElementById('password').value;
+    try {
+      const r = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (r.ok) { window.location.href = '/'; return; }
+      const body = await r.json().catch(() => ({}));
+      err.textContent = r.status === 429 ? 'Too many attempts. Wait a minute.' : (body.detail || 'Wrong password.');
+      err.hidden = false;
+    } catch {
+      err.textContent = 'Network error. Try again.';
+      err.hidden = false;
+    }
+  });
+})();
+</script>

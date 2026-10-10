@@ -1,0 +1,146 @@
+<div class="page-head">
+  <h1>gcore</h1>
+  <span class="badge badge-plain">Topology source of truth</span>
+</div>
+<p class="page-sub">Manifest, conventions and the secret passport, read from the instance checkout on this host.</p>
+
+<section class="card gcore-block">
+  <div class="block-head">
+    <span class="card-title">Passport</span>
+    <span class="hint">Secrets from the instance <code>.env</code>. Click a value to reveal it. Anyone with the site password can.</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table kv-table"><tbody data-env></tbody></table>
+  </div>
+</section>
+
+<section class="card gcore-block">
+  <div class="block-head"><span class="card-title">Services</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Service</th><th>Host</th><th>Domain</th><th>Unit</th><th>Health</th></tr></thead>
+      <tbody data-services></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card gcore-block">
+  <div class="block-head">
+    <span class="card-title">manifest.json</span>
+    <span class="spacer"></span>
+    <button id="toggle-manifest" class="btn btn-secondary btn-sm">Show raw</button>
+  </div>
+  <pre data-manifest hidden></pre>
+</section>
+
+<section class="card gcore-block">
+  <div class="block-head"><span class="card-title">conventions.md</span></div>
+  <pre data-conventions></pre>
+</section>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .gcore-block { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .block-head { display: flex; align-items: center; gap: 10px; }
+  .block-head .spacer { flex: 1; }
+  .block-head .hint { font-size: 12px; color: var(--text-placeholder); }
+  .kv-table td:first-child { color: var(--text-secondary); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; }
+  .kv-table td:last-child { word-break: break-all; font-family: var(--font-mono); font-size: 12px; }
+  .kv-table .secret { cursor: pointer; }
+  .kv-table .masked { letter-spacing: 1px; color: var(--text-placeholder); }
+  pre[data-manifest], pre[data-conventions] {
+    margin: 0; padding: var(--sp-3);
+    background: var(--well-bg); border: 1px solid var(--well-border); border-radius: var(--radius-sm);
+    overflow: auto; max-height: 480px;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.55; white-space: pre-wrap;
+  }
+</style>
+
+<script>
+(async () => {
+  const envBody = document.querySelector('[data-env]');
+  const svcBody = document.querySelector('[data-services]');
+  const manifestPre = document.querySelector('[data-manifest]');
+  const convPre = document.querySelector('[data-conventions]');
+
+  let data;
+  try {
+    const r = await fetch('/api/gcore');
+    if (!r.ok) throw new Error(`gcore ${r.status}`);
+    data = await r.json();
+  } catch (e) {
+    envBody.innerHTML = `<tr><td style="color:var(--danger-text)">Could not load gcore: ${e.message}</td></tr>`;
+    return;
+  }
+
+  // The list carries key names only. A value is fetched when its row is
+  // clicked and dropped again when it is hidden.
+  const MASK = '•'.repeat(12);
+  for (const [key, isSet] of Object.entries(data.env || {})) {
+    const tr = document.createElement('tr');
+    const k = document.createElement('td');
+    k.textContent = key;
+    const v = document.createElement('td');
+    const span = document.createElement('span');
+    span.className = 'masked';
+    span.textContent = isSet ? MASK : '(empty)';
+    if (isSet) {
+      span.classList.add('secret');
+      span.title = 'Click to reveal';
+      span.addEventListener('click', () => toggle(span, key));
+    }
+    v.appendChild(span);
+    tr.append(k, v);
+    envBody.appendChild(tr);
+  }
+
+  async function toggle(span, key) {
+    if (!span.classList.contains('masked')) {
+      span.classList.add('masked');
+      span.textContent = MASK;
+      span.title = 'Click to reveal';
+      return;
+    }
+    try {
+      const r = await fetch('/api/gcore/reveal', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({key}),
+      });
+      if (!r.ok) throw new Error(`reveal ${r.status}`);
+      span.textContent = (await r.json()).value;
+      span.classList.remove('masked');
+      span.title = 'Click to hide';
+    } catch (e) {
+      span.textContent = `Could not reveal: ${e.message}`;
+    }
+  }
+
+  for (const svc of (data.manifest?.services || [])) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${svc.id}</td>
+      <td>${svc.host || '-'}</td>
+      <td>${svc.domain || '-'}</td>
+      <td>${svc.unit || '-'}</td>
+      <td>${svc.health_url || (svc.domain ? 'via domain' : (svc.port ? 'via port' : 'via unit'))}</td>`;
+    svcBody.appendChild(tr);
+  }
+
+  manifestPre.textContent = JSON.stringify(data.manifest, null, 2);
+  document.getElementById('toggle-manifest').addEventListener('click', (e) => {
+    const hidden = manifestPre.hasAttribute('hidden');
+    if (hidden) manifestPre.removeAttribute('hidden'); else manifestPre.setAttribute('hidden', '');
+    e.target.textContent = hidden ? 'Hide raw' : 'Show raw';
+  });
+
+  convPre.textContent = data.conventions || '(none)';
+})();
+</script>
+
+<!-- token-select: LLM-token selection highlight, scoped to the prose block.
+     Wider scopes split badge/button labels into flex items and gap them apart. -->
+<script>var _m=document.querySelector("[data-conventions]");if(_m)_m.setAttribute("data-tokens","");</script>
+<script src="/js/token-select.js"></script>

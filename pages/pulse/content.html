@@ -1,0 +1,116 @@
+<div class="page-head">
+  <h1>Pulse</h1>
+  <span class="badge badge-plain">The live layer</span>
+</div>
+<p class="page-sub">Money, messages, deadlines. Ephemeral and auto-ingested, kept out of the brain; its only durable output is L6 todos.</p>
+
+<div class="card pulse-block">
+  <span class="card-title">Page</span>
+  <pre class="brief-body" data-page-body>Loading</pre>
+</div>
+
+<div class="card pulse-block">
+  <span class="card-title">Today's brief</span>
+  <p class="brief-date" data-brief-date>Loading</p>
+  <pre class="brief-body" data-brief-body></pre>
+</div>
+
+<div class="card pulse-block">
+  <span class="card-title">Inlets</span>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Inlet</th><th>Status</th><th>Schedule</th><th>Last run</th><th>Summary</th></tr>
+      </thead>
+      <tbody data-inlet-rows>
+        <tr><td colspan="5" class="dim">Loading</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="api-note" data-api-note hidden></p>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .pulse-block { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .dim { color: var(--text-placeholder); }
+  .brief-date { margin: 0; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .brief-date:empty { display: none; }
+  .brief-body {
+    margin: 0; padding: var(--sp-3);
+    background: var(--well-bg); border: 1px solid var(--well-border); border-radius: var(--radius-sm);
+    white-space: pre-wrap;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.55;
+  }
+  .brief-body:empty { display: none; }
+  .table td:first-child { font-family: var(--font-mono); font-size: 12px; }
+  .table .mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .api-note {
+    padding: 12px 16px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text-secondary); font-size: var(--font-size-ui);
+  }
+</style>
+
+<script>
+(async () => {
+  const API = BRAIN_API + '/api';
+  const note = document.querySelector('[data-api-note]');
+  const offline = (msg) => { note.hidden = false; note.textContent = msg; };
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, c => (
+    {'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const badgeFor = (status) => {
+    const kind = { live: 'badge-ok', ok: 'badge-ok', stub: 'badge-plain', error: 'badge-danger', stale: 'badge-warn' }[status] || 'badge-plain';
+    return `<span class="badge ${kind}">${esc(cap(status))}</span>`;
+  };
+
+  try {
+    const r = await fetch(`${API}/pulse/page`);
+    if (!r.ok) throw new Error(`page ${r.status}`);
+    const text = await r.text();
+    const stripped = text.replace(/^<!--[\s\S]*?-->\n?/, '').trimStart();
+    document.querySelector('[data-page-body]').textContent = stripped;
+  } catch (e) {
+    document.querySelector('[data-page-body]').textContent = 'Not available.';
+  }
+
+  try {
+    const r = await fetch(`${API}/pulse/brief`);
+    if (!r.ok) throw new Error(`brief ${r.status}`);
+    const b = await r.json();
+    document.querySelector('[data-brief-date]').textContent =
+      b.date ? `Generated ${b.date}` : 'No brief generated yet.';
+    document.querySelector('[data-brief-body]').textContent = b.body || '';
+  } catch (e) {
+    document.querySelector('[data-brief-date]').textContent = '';
+    document.querySelector('[data-brief-body]').textContent = '';
+    offline('The pulse API did not answer. Check that the brain service is running, then this page fills itself in.');
+  }
+
+  try {
+    const r = await fetch(`${API}/pulse/inlets`);
+    if (!r.ok) throw new Error(`inlets ${r.status}`);
+    const inlets = await r.json();
+    const tb = document.querySelector('[data-inlet-rows]');
+    if (!inlets.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="dim">No inlets defined.</td></tr>';
+      return;
+    }
+    tb.innerHTML = inlets.map(i => `
+      <tr>
+        <td>${esc(i.id)}</td>
+        <td>${badgeFor(i.status)}</td>
+        <td><span class="mono">${esc(i.schedule) || '-'}</span></td>
+        <td><span class="mono">${esc(i.last_run) || '-'}</span></td>
+        <td>${esc(i.summary)}</td>
+      </tr>`).join('');
+  } catch (e) {
+    document.querySelector('[data-inlet-rows]').innerHTML =
+      '<tr><td colspan="5" class="dim">Not available.</td></tr>';
+  }
+})();
+</script>

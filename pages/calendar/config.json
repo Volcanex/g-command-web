@@ -1,0 +1,11 @@
+{
+  "title": "Calendar",
+  "slug": "calendar",
+  "description": "Every dated todo on a month grid, with the reminders each one will fire.",
+  "nav": true,
+  "order": 21,
+  "nav_section": "Brain",
+  "nav_icon": "calendar-blank",
+  "nav_label": "Calendar",
+  "gsys": true
+}

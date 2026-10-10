@@ -1,0 +1,437 @@
+<div class="page-head">
+  <h1>Install</h1>
+  <span class="badge badge-plain" data-status-badge>Checking</span>
+</div>
+
+<div class="install-intro" data-tokens>
+  <p>Connect this brain to any MCP-aware client. There are two paths: OAuth for hosted chats (Claude.ai, ChatGPT) and service-token headers for local headless agents (Claude Code, Codex, scripts). Pick the one that matches your client.</p>
+</div>
+
+<section class="card install-card" id="endpoint">
+  <div class="card-head">
+    <span class="card-title">Public OAuth endpoint</span>
+    <span class="badge badge-plain">For Claude.ai and ChatGPT</span>
+  </div>
+  <div class="well url-well">
+    <code id="server-url"><!-- seed:mcp_url --></code>
+    <button class="btn btn-secondary btn-sm copy-btn" data-copy="<!-- seed:mcp_url -->" aria-label="Copy server URL"><span class="copy-label">Copy</span></button>
+  </div>
+  <p class="hint" data-status-detail>Checking whether the server answers from this browser.</p>
+</section>
+
+<section class="card install-card" id="headless" data-origin="<!-- seed:mcp_headless_url -->">
+  <div class="card-head">
+    <span class="card-title">Local agents (headless)</span>
+    <span class="badge badge-ok">Recommended for Claude Code, Codex, scripts</span>
+  </div>
+  <p>The OAuth endpoint above needs a browser and a 127.0.0.1 callback: fine for humans, hostile to unattended agents. Headless clients should hit the origin directly with the same Cloudflare Access service-token pair the OAuth Worker uses upstream. <strong>Paste your service-token pair below. It stays in your browser and is never sent to this site.</strong></p>
+
+  <div class="token-form">
+    <div class="field">
+      <label class="label" for="cf-client-id">CF-Access-Client-Id</label>
+      <input class="input" type="text" id="cf-client-id" placeholder="xxxxxxxx.access" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label class="label" for="cf-client-secret">CF-Access-Client-Secret</label>
+      <input class="input" type="password" id="cf-client-secret" placeholder="Paste secret" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+  <p class="hint">Where to get these: Cloudflare dashboard, Zero Trust, Access, Service Auth, Service Tokens, Create. Bind the token to the Access application that protects <code><!-- seed:mcp_headless_host --></code>.</p>
+
+  <div class="tabs" role="tablist" aria-label="Headless install snippets">
+    <button class="tab" role="tab" aria-selected="true" aria-controls="snip-agent">Agent prompt</button>
+    <button class="tab" role="tab" aria-controls="snip-claude">Claude Code</button>
+    <button class="tab" role="tab" aria-controls="snip-codex">Codex CLI</button>
+    <button class="tab" role="tab" aria-controls="snip-json">JSON config</button>
+  </div>
+  <div class="tabpanels">
+    <div id="snip-agent" role="tabpanel">
+      <p>Universal natural-language prompt, paste it into any agent. Works for Claude Code, Codex, or any MCP-aware agent: the agent picks the right command for its own environment.</p>
+      <div class="codeblock"><code data-snippet="agent-prompt">[fill in the token fields above]</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="" data-snippet-copy="agent-prompt" aria-label="Copy agent prompt"></button></div>
+    </div>
+    <div id="snip-claude" role="tabpanel" hidden>
+      <p>One-liner for the Claude Code CLI.</p>
+      <div class="codeblock"><code data-snippet="claude">[fill in the token fields above]</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="" data-snippet-copy="claude" aria-label="Copy Claude Code command"></button></div>
+    </div>
+    <div id="snip-codex" role="tabpanel" hidden>
+      <p>One-liner for the Codex CLI. If your Codex version has no <code>--header</code> flag, edit <code>~/.codex/config.toml</code> and add the same headers under the brain entry.</p>
+      <div class="codeblock"><code data-snippet="codex">[fill in the token fields above]</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="" data-snippet-copy="codex" aria-label="Copy Codex command"></button></div>
+    </div>
+    <div id="snip-json" role="tabpanel" hidden>
+      <p>Config block for Cursor, Zed, Claude Desktop, and anything else that takes raw MCP JSON.</p>
+      <div class="codeblock"><code data-snippet="json">[fill in the token fields above]</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="" data-snippet-copy="json" aria-label="Copy JSON config"></button></div>
+    </div>
+  </div>
+
+  <p class="hint">This path bypasses the OAuth Worker entirely and authenticates directly to <code><!-- seed:mcp_headless_host --></code> with Cloudflare Access service tokens, the standard CF mechanism for unattended access. No browser, no callback, no token-refresh fragility.</p>
+</section>
+
+<section class="card install-card" id="oauth-clients">
+  <div class="card-head">
+    <span class="card-title">OAuth clients</span>
+    <span class="badge badge-plain">Browser flow, one authorize per client</span>
+  </div>
+  <p>These clients take the public endpoint above and run the OAuth flow themselves. Nothing to paste beyond the URL.</p>
+
+  <div class="tabs" role="tablist" aria-label="OAuth client walkthroughs">
+    <button class="tab" role="tab" aria-selected="true" aria-controls="cl-claude-ai">Claude.ai</button>
+    <button class="tab" role="tab" aria-controls="cl-chatgpt">ChatGPT</button>
+    <button class="tab" role="tab" aria-controls="cl-desktop">Claude Desktop</button>
+    <button class="tab" role="tab" aria-controls="cl-claude-code">Claude Code</button>
+    <button class="tab" role="tab" aria-controls="cl-codex">Codex CLI</button>
+    <button class="tab" role="tab" aria-controls="cl-editors">Editors</button>
+    <button class="tab" role="tab" aria-controls="cl-prompts">Agent prompts</button>
+  </div>
+  <div class="tabpanels">
+
+    <div id="cl-claude-ai" role="tabpanel">
+      <h3>Claude.ai (web, desktop, mobile)</h3>
+      <p>Works on Pro, Max, Team, and Enterprise plans. The server announces itself over OAuth, so you never paste client credentials.</p>
+      <ol>
+        <li>Open <a href="https://claude.ai/settings/connectors" target="_blank" rel="noopener">claude.ai, Settings, Connectors</a>.</li>
+        <li>Click <strong>Add custom connector</strong>.</li>
+        <li>Paste the server URL above into the <em>Server URL</em> field.</li>
+        <li>Leave <em>Advanced settings</em> empty and click <strong>Add</strong>.</li>
+        <li>Claude opens an authorization tab, click <strong>Authorize</strong>. The window closes itself.</li>
+        <li>Back on the chat page, the brain's tools (search, read_note, propose_commit, &hellip;) appear in the tool tray.</li>
+      </ol>
+      <p class="hint">First time only: Claude registers itself as an OAuth client (RFC 7591 DCR). Later connects from the same Claude account skip this.</p>
+    </div>
+
+    <div id="cl-chatgpt" role="tabpanel" hidden>
+      <h3>ChatGPT (developer mode)</h3>
+      <p>Plus, Pro, Business, Enterprise, or Edu. Developer mode is in beta: once enabled you get the full brain tool surface in chat, and writes prompt for confirmation per call.</p>
+      <ol>
+        <li>Open <a href="https://chatgpt.com/#settings" target="_blank" rel="noopener">ChatGPT, Settings, Connectors</a>.</li>
+        <li>Scroll to <strong>Advanced</strong> at the bottom and toggle <strong>Developer mode</strong> on.</li>
+        <li>Back in <em>Connectors</em>, click <strong>Create connector</strong>.</li>
+        <li>Paste the server URL above into the <em>MCP server URL</em> field.</li>
+        <li>Choose <strong>OAuth</strong> as the auth method. Leave the rest blank.</li>
+        <li>Click <strong>Create</strong>. ChatGPT opens an authorization tab, click <strong>Authorize</strong>.</li>
+      </ol>
+      <p class="hint">Deep research mode only invokes the <code>search</code> and <code>fetch</code> tools. The full brain surface (commit flow, lineage, and the rest) is exposed in normal chat under developer mode.</p>
+    </div>
+
+    <div id="cl-desktop" role="tabpanel" hidden>
+      <h3>Claude Desktop</h3>
+      <p>Takes the same OAuth-protected URL and handles the flow over a localhost callback.</p>
+      <ol>
+        <li>Open Claude Desktop, Settings, Developer, <strong>Edit config</strong>.</li>
+        <li>Add this entry under <code>mcpServers</code>:</li>
+      </ol>
+      <div class="codeblock"><code>{
+  "mcpServers": {
+    "brain": {
+      "url": "<!-- seed:mcp_url -->"
+    }
+  }
+}</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy='{"mcpServers":{"brain":{"url":"<!-- seed:mcp_url -->"}}}' aria-label="Copy config"></button></div>
+      <ol start="3">
+        <li>Save and restart Claude Desktop. A browser window opens for OAuth, authorize once.</li>
+      </ol>
+    </div>
+
+    <div id="cl-claude-code" role="tabpanel" hidden>
+      <h3>Claude Code</h3>
+      <p>Claude Code can use the same MCP URL. Add the server in the CLI, then authorize when the browser prompts.</p>
+      <div class="codeblock"><code>claude mcp add brain --transport http <!-- seed:mcp_url --></code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="claude mcp add brain --transport http <!-- seed:mcp_url -->" aria-label="Copy command"></button></div>
+      <p>The first <code>claude</code> command after this opens a browser for OAuth. Tokens are cached locally.</p>
+    </div>
+
+    <div id="cl-codex" role="tabpanel" hidden>
+      <h3>Codex CLI</h3>
+      <p>Codex uses the public OAuth MCP endpoint directly. Add the server once, then run the OAuth login flow once.</p>
+      <ol>
+        <li>Add the server to Codex:</li>
+      </ol>
+      <div class="codeblock"><code>codex mcp add brain --url <!-- seed:mcp_url --></code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="codex mcp add brain --url <!-- seed:mcp_url -->" aria-label="Copy command"></button></div>
+      <ol start="2">
+        <li>Start the OAuth flow:</li>
+      </ol>
+      <div class="codeblock"><code>codex mcp login brain</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="codex mcp login brain" aria-label="Copy command"></button></div>
+      <ol start="3">
+        <li>Launch <code>codex</code>. The brain should appear in MCP startup.</li>
+      </ol>
+      <p class="hint">If you previously added a broken brain config, remove and re-add it: <code>codex mcp remove brain</code>, then run the two commands above again.</p>
+    </div>
+
+    <div id="cl-editors" role="tabpanel" hidden>
+      <h3>Cursor, Windsurf, and other MCP-aware editors</h3>
+      <p>Most editors accept a JSON snippet under their MCP settings. The same shape works for Cursor, Windsurf, Zed, and Continue:</p>
+      <div class="codeblock"><code>{
+  "mcpServers": {
+    "brain": {
+      "url": "<!-- seed:mcp_url -->"
+    }
+  }
+}</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy='{"mcpServers":{"brain":{"url":"<!-- seed:mcp_url -->"}}}' aria-label="Copy config"></button></div>
+      <p class="hint">If your editor only supports the older SSE transport, point it at the same URL. FastMCP responds to both.</p>
+    </div>
+
+    <div id="cl-prompts" role="tabpanel" hidden>
+      <h3>Legacy OAuth agent prompts</h3>
+      <p>These prompts go through the OAuth flow and need a human at a browser. <strong>Prefer the headless flow above for any local agent install.</strong> Kept here only for clients that genuinely need the OAuth path.</p>
+      <h4>Prompt for Codex (OAuth)</h4>
+      <div class="codeblock"><code>Install the Brain MCP in Codex. Use the server URL <!-- seed:mcp_url -->. Run the correct Codex MCP add command, then run the Codex MCP login flow for the server name brain. If an old brain entry exists, remove it and re-add it. Stop only after the MCP server is registered and Codex login has succeeded.</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="Install the Brain MCP in Codex. Use the server URL <!-- seed:mcp_url -->. Run the correct Codex MCP add command, then run the Codex MCP login flow for the server name brain. If an old brain entry exists, remove it and re-add it. Stop only after the MCP server is registered and Codex login has succeeded." aria-label="Copy prompt"></button></div>
+      <h4>Prompt for Claude Code (OAuth)</h4>
+      <div class="codeblock"><code>Install the Brain MCP in Claude Code. Use the MCP server URL <!-- seed:mcp_url -->. Add it under the server name brain using the Claude CLI MCP command, then complete the OAuth browser flow if prompted. If a stale brain entry already exists, remove or replace it and finish with a working authenticated Brain MCP connection.</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="Install the Brain MCP in Claude Code. Use the MCP server URL <!-- seed:mcp_url -->. Add it under the server name brain using the Claude CLI MCP command, then complete the OAuth browser flow if prompted. If a stale brain entry already exists, remove or replace it and finish with a working authenticated Brain MCP connection." aria-label="Copy prompt"></button></div>
+    </div>
+
+  </div>
+</section>
+
+<section class="card install-card" id="troubleshooting">
+  <div class="card-head">
+    <span class="card-title">Troubleshooting</span>
+  </div>
+  <dl class="trouble">
+    <dt>The OAuth tab opens but loops or shows <code>about:blank</code></dt>
+    <dd>Refresh the well-known endpoint cache: in your client, remove the connector and re-add it. The metadata is fetched at registration time and cached briefly.</dd>
+
+    <dt><code>redirect_uri_mismatch</code></dt>
+    <dd>Your client's redirect URL host is not on the brain's allowlist. Currently allowed: <code>claude.ai</code>, <code>chatgpt.com</code>, <code>chat.openai.com</code>. Other clients use a localhost callback, which is also allowed for desktop and CLI flows.</dd>
+
+    <dt>401 unauthorized after a successful authorize</dt>
+    <dd>Brain restarts wipe in-memory tokens. Re-authorize from the connector, one click.</dd>
+
+    <dt>Codex shows MCP startup failed, or a handshake or content-type error</dt>
+    <dd>Remove the brain entry, add it again with <code>codex mcp add brain --url <!-- seed:mcp_url --></code>, then run <code>codex mcp login brain</code> again. If that still fails, the public MCP endpoint is unhealthy and needs a server-side fix.</dd>
+
+    <dt>Tools appear but calls return errors</dt>
+    <dd>Check the brain's audit log: <code>~/brain/.commits.log</code> on the server. Most write errors are validator rejections (wrong kind, malformed path), see <a href="/note/designs/brain-write-discipline">the write discipline note</a>.</dd>
+  </dl>
+</section>
+
+<section class="card install-card install-foot">
+  <div class="card-head">
+    <span class="card-title">What's running here</span>
+  </div>
+  <p>The public endpoint at <code><!-- seed:mcp_url --></code> is the MCP URL to use in clients. Behind it sits the brain MCP service with OAuth 2.1, PKCE, dynamic client registration for web connectors, and the full brain toolset. Tokens are short-lived in local clients and may need re-auth after server-side restarts.</p>
+</section>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-3); }
+  .page-head h1 { font-size: 18px; margin: 0; }
+
+  .install-intro p {
+    margin: 0 0 var(--sp-5);
+    max-width: 68ch;
+    font-size: var(--font-size-body);
+    color: var(--text-secondary);
+  }
+
+  .install-card { margin-bottom: var(--sp-4); }
+  .install-card .card-head {
+    display: flex; align-items: center; gap: var(--sp-2);
+    flex-wrap: wrap;
+    margin-bottom: var(--sp-3);
+  }
+  .install-card h3 {
+    font-size: 14.5px; font-weight: 500; margin: 0 0 var(--sp-2);
+    color: var(--text-primary);
+  }
+  .install-card h4 {
+    font-size: 13px; font-weight: 500; margin: var(--sp-4) 0 var(--sp-2);
+    color: var(--text-secondary);
+  }
+  .install-card p {
+    margin: 0 0 var(--sp-3);
+    font-size: var(--font-size-ui); line-height: 1.6;
+    color: var(--text-secondary); max-width: 72ch;
+  }
+  .install-card p strong { color: var(--text-primary); font-weight: 500; }
+  .install-card a { color: var(--text-primary); }
+  .install-card ol {
+    margin: 0 0 var(--sp-3); padding-left: 1.4em;
+    font-size: var(--font-size-ui); line-height: 1.6; color: var(--text-secondary);
+  }
+  .install-card li { margin: 4px 0; }
+  .install-card li::marker { color: var(--text-placeholder); }
+  .install-card code {
+    font-family: var(--font-mono); font-size: 0.9em;
+    background: var(--well-bg); border: 1px solid var(--well-border);
+    padding: 1px 5px; border-radius: var(--radius-sm);
+    color: var(--text-primary);
+  }
+  .install-card .hint {
+    margin: var(--sp-3) 0 0;
+    padding-left: var(--sp-3);
+    border-left: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text-placeholder);
+  }
+  .install-card .hint code { color: var(--text-secondary); }
+  .install-card > .hint:last-child { margin-bottom: 0; }
+  .install-card > p:last-child { margin-bottom: 0; }
+
+  .url-well {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  }
+  .url-well code {
+    flex: 1 1 auto; min-width: 0;
+    background: none; border: none; padding: 0;
+    font-size: 13px; word-break: break-all;
+  }
+
+  .token-form {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3);
+    margin-bottom: var(--sp-2);
+  }
+  .token-form .field { display: grid; gap: 5px; min-width: 0; }
+  .token-form .label { font-family: var(--font-mono); font-size: 12px; }
+  .token-form .input { font-family: var(--font-mono); font-size: 12.5px; }
+  @media (max-width: 700px) { .token-form { grid-template-columns: 1fr; } }
+
+  .install-card .tabs { margin-bottom: var(--sp-3); }
+  .install-card .tabpanels > [role="tabpanel"] { padding-top: 2px; }
+
+  .codeblock { padding-right: 44px; }
+  /* the code scrolls, not the block, so the copy button stays pinned */
+  .codeblock code {
+    display: block; max-height: 340px; overflow-y: auto;
+    background: none; border: none; padding: 0;
+    color: var(--text-primary);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .codeblock .copy-btn { position: absolute; top: 6px; right: 6px; }
+
+  .trouble { margin: 0; }
+  .trouble dt {
+    font-size: var(--font-size-ui); font-weight: 500; color: var(--text-primary);
+    margin-top: var(--sp-3);
+  }
+  .trouble dt:first-child { margin-top: 0; }
+  .trouble dd {
+    margin: 4px 0 0; font-size: var(--font-size-ui); line-height: 1.6;
+    color: var(--text-secondary); max-width: 72ch;
+  }
+
+  .install-foot p { color: var(--text-placeholder); }
+</style>
+
+<script>
+  // Headless install snippets, rendered live as the user types their CF Access service-token pair.
+  (() => {
+    const idIn = document.getElementById('cf-client-id');
+    const secIn = document.getElementById('cf-client-secret');
+    // Both endpoints are compiled into the markup from MCP_URL and MCP_HEADLESS_URL.
+    const ORIGIN = document.getElementById('headless').dataset.origin;
+    const SERVER = document.getElementById('server-url').textContent;
+    const PLACEHOLDER = '[fill in the token fields above]';
+
+    const buildSnippets = (id, secret) => {
+      const have = id && secret;
+      const safeId = have ? id : '<CF_ACCESS_CLIENT_ID>';
+      const safeSec = have ? secret : '<CF_ACCESS_CLIENT_SECRET>';
+
+      const jsonConfig = {
+        mcpServers: {
+          brain: {
+            type: 'http',
+            url: ORIGIN,
+            headers: {
+              'CF-Access-Client-Id': safeId,
+              'CF-Access-Client-Secret': safeSec,
+            },
+          },
+        },
+      };
+
+      const claudeJson = JSON.stringify({
+        type: 'http',
+        url: ORIGIN,
+        headers: {
+          'CF-Access-Client-Id': safeId,
+          'CF-Access-Client-Secret': safeSec,
+        },
+      });
+
+      const claudeCmd = `claude mcp add-json brain '${claudeJson}'`;
+
+      const codexCmd = [
+        'codex mcp add brain',
+        `  --url ${ORIGIN}`,
+        `  --header "CF-Access-Client-Id: ${safeId}"`,
+        `  --header "CF-Access-Client-Secret: ${safeSec}"`,
+      ].join(' \\\n');
+
+      const agentPrompt = [
+        `Install the Brain MCP server on this machine for headless / agent use. Do not use the OAuth endpoint at ${new URL(SERVER).host}. Use the credentials below, which authenticate directly via Cloudflare Access.`,
+        '',
+        `Endpoint: ${ORIGIN}`,
+        'Transport: http (MCP streamable-http)',
+        'Required headers on every request:',
+        `  CF-Access-Client-Id: ${safeId}`,
+        `  CF-Access-Client-Secret: ${safeSec}`,
+        '',
+        'Pick the install command that matches your environment:',
+        '',
+        '- If you are Claude Code, run:',
+        `    ${claudeCmd}`,
+        '',
+        '- If you are Codex CLI, run:',
+        `    ${codexCmd.replace(/\\\n\s*/g, ' ')}`,
+        '  (If --header is unsupported by your Codex version, edit ~/.codex/config.toml directly and add the same headers under the brain MCP entry.)',
+        '',
+        '- For any other MCP-aware client, register an HTTP MCP server pointing at the endpoint above and configure those two headers on every request. The shape is:',
+        JSON.stringify(jsonConfig, null, 2),
+        '',
+        'After install, verify by listing tools and confirming "search", "read_note", and "propose_commit" appear. Report success or paste the exact error.',
+      ].join('\n');
+
+      return {
+        'agent-prompt': agentPrompt,
+        'claude': claudeCmd,
+        'codex': codexCmd,
+        'json': JSON.stringify(jsonConfig, null, 2),
+      };
+    };
+
+    const render = () => {
+      const id = idIn.value.trim();
+      const secret = secIn.value.trim();
+      const snippets = buildSnippets(id, secret);
+      document.querySelectorAll('[data-snippet]').forEach((node) => {
+        const key = node.getAttribute('data-snippet');
+        node.textContent = snippets[key] ?? PLACEHOLDER;
+      });
+      document.querySelectorAll('[data-snippet-copy]').forEach((btn) => {
+        const key = btn.getAttribute('data-snippet-copy');
+        btn.dataset.copy = snippets[key] ?? '';
+      });
+    };
+
+    idIn.addEventListener('input', render);
+    secIn.addEventListener('input', render);
+    render();
+  })();
+
+  // Live status check: ping the well-known AS metadata endpoint.
+  (async () => {
+    const badge = document.querySelector('[data-status-badge]');
+    const detail = document.querySelector('[data-status-detail]');
+    const setBadge = (kind, text) => {
+      badge.className = 'badge ' + kind;
+      badge.textContent = text;
+    };
+    try {
+      const server = document.getElementById('server-url').textContent;
+      const r = await fetch(new URL('/.well-known/oauth-authorization-server', server), { mode: 'cors' });
+      if (r.ok) {
+        setBadge('badge-ok', 'Server live');
+        detail.textContent = 'OAuth 2.1 ready.';
+      } else {
+        setBadge('badge-warn', `Responding ${r.status}`);
+        detail.textContent = `The server answered ${r.status} instead of 200. Retry, or check the brain MCP service.`;
+      }
+    } catch (err) {
+      setBadge('badge-danger', 'Unreachable');
+      detail.textContent = 'The server is unreachable from this browser. The connector flow may still work: clients call the server directly, not through your browser.';
+    }
+  })();
+</script>
+
+<!-- token-select: LLM-token selection highlight. data-tokens sits on the intro
+     prose only, so the tokenizer never splits text inside badges, buttons,
+     inputs or code blocks. -->
+<script src="/js/token-select.js"></script>

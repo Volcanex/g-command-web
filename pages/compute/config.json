@@ -1,0 +1,12 @@
+{
+  "title": "Compute",
+  "slug": "compute",
+  "description": "Remaining allowance and balance across Claude, Codex, OpenRouter and Jev.",
+  "nav": true,
+  "order": 17,
+  "body_class": "compute-page",
+  "nav_section": "g-core",
+  "nav_icon": "gauge",
+  "nav_label": "Compute",
+  "gsys": true
+}

@@ -1,0 +1,168 @@
+<div class="page-head">
+  <h1>Crons</h1>
+  <span class="badge badge-plain" data-overall>Loading</span>
+</div>
+<p class="page-sub">Every scheduled job across the hosts: systemd timers, crontabs and pulse model jobs. Read from the g-cron cache, refreshed every 15 minutes; times are London.</p>
+
+<div data-problems></div>
+<div data-hosts></div>
+
+<p class="api-note" data-note hidden></p>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .section-head { font-size: 16px; margin: var(--sp-5, 24px) 0 var(--sp-2); display: flex; align-items: center; gap: var(--sp-2); }
+  .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
+  .cron-list { display: flex; flex-direction: column; }
+  .job { border-top: 1px solid var(--border); padding: var(--sp-3) 0; display: grid; gap: var(--sp-1) var(--sp-3);
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: baseline; }
+  .job:first-child { border-top: 0; }
+  .job-name { font-size: var(--font-size-ui); word-break: break-word; }
+  .job-kind { color: var(--text-placeholder); font-size: 12px; margin-left: var(--sp-2); }
+  .job-cell { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .job-cell b { font-weight: normal; color: var(--text-placeholder); display: block; }
+  .job-desc { grid-column: 1 / -1; font-size: 12px; color: var(--text-placeholder); word-break: break-word; }
+  .job-off .job-name { color: var(--text-placeholder); }
+  details.job > summary { display: contents; cursor: pointer; list-style: none; }
+  details.job > summary::-webkit-details-marker { display: none; }
+  .runs { grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-2) 0 0; }
+  .run { display: grid; grid-template-columns: 132px auto minmax(0, 1fr); gap: var(--sp-3); align-items: baseline; font-size: 12px; color: var(--text-secondary); }
+  .run-sum { word-break: break-word; }
+  .prob { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); padding: var(--sp-2) 0; border-top: 1px solid var(--border); font-size: var(--font-size-ui); }
+  .prob:first-child { border-top: 0; }
+  .prob-detail { color: var(--text-secondary); font-size: 12px; word-break: break-word; flex-basis: 100%; }
+  .api-note { margin-top: var(--sp-4); padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text-secondary); font-size: var(--font-size-ui); }
+  @media (max-width: 640px) {
+    .job { grid-template-columns: 1fr 1fr; }
+    .job > :first-child, .job > summary > :first-child { grid-column: 1 / -1; }
+    .job > :first-child, .job > summary > :first-child { grid-column: 1 / -1; }
+    .run { grid-template-columns: auto 1fr; }
+    .run-sum { grid-column: 1 / -1; }
+  }
+</style>
+
+<script>
+(async () => {
+  const problemsBox = document.querySelector('[data-problems]');
+  const hostsBox = document.querySelector('[data-hosts]');
+  const note = document.querySelector('[data-note]');
+  const overall = document.querySelector('[data-overall]');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => (
+    {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  // Source text carries middle dots, em dashes and markdown; flatten at the boundary.
+  const clean = (s) => {
+    let t = String(s == null ? '' : s).replace(/\s*[·—]\s*/g, ', ').replace(/[*`]/g, '').replace(/\[\[|\]\]/g, '');
+    return window.g && g.plain ? g.plain(t) : t;
+  };
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const london = (t) => new Date(typeof t === 'number' ? t * 1000 : t).toLocaleString('en-GB', {
+    timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const span = (s) => s < 90 ? `${Math.round(s)} seconds` : s < 5400 ? `${Math.round(s / 60)} minutes`
+    : s < 129600 ? `${Math.round(s / 3600)} hours` : `${Math.round(s / 86400)} days`;
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const two = (n) => String(n).padStart(2, '0');
+
+  function words(j) {
+    const s = (j.schedule || '').trim();
+    if (!s) return 'No schedule';
+    const f = s.split(/\s+/);
+    if (f.length !== 5) return cap(s);
+    let [m, h, dom, mon, dow] = f;
+    let every = /^\*\/(\d+)$/.exec(m);
+    if (every && h === '*' && dom === '*' && mon === '*' && dow === '*') return `Every ${every[1]} minutes`;
+    if (m === '*' && h === '*' && dom === '*' && mon === '*' && dow === '*') return 'Every minute';
+    if (/^\d+$/.test(m) && h === '*' && dom === '*' && mon === '*' && dow === '*') return `Hourly at :${two(m)}`;
+    if (/^\d+$/.test(m) && /^\d+$/.test(h) && mon === '*') {
+      // Cron times are UTC; show London so the schedule agrees with the next run.
+      const now = new Date(), probe = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), +h, +m));
+      const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .formatToParts(probe).map(x => [x.type, x.value]));
+      const lh = +parts.hour;
+      const roll = (lh * 60 + +parts.minute) < (+h * 60 + +m) ? 1 : 0;
+      const at = `${two(lh)}:${parts.minute}`;
+      if (/^\d$/.test(dow) && roll) dow = String((+dow + 1) % 7);
+      if (dom === '*' && dow === '*') return `Daily at ${at}`;
+      if (dom === '*' && /^\d$/.test(dow)) return `${DAYS[+dow]}s at ${at}`;
+      if (dom === '*' && dow === '1-5') return `Weekdays at ${at}`;
+      if (/^\d+$/.test(dom) && dow === '*') return `Monthly on day ${dom} at ${at}`;
+    }
+    return s;
+  }
+  const when = (t, none = 'Not recorded') => t == null ? none : london(t);
+  const resultBadge = (j) => {
+    const r = j.result;
+    if (!r || r === '-') return '<span class="badge badge-plain">No result</span>';
+    const bad = ['fail', 'missing', 'exit-code', 'failed', 'timeout'].includes(r);
+    return `<span class="badge ${bad ? 'badge-danger' : r === 'noop' ? 'badge-plain' : 'badge-ok'}">${esc(cap(r === 'exit-code' ? 'failed' : r))}</span>`;
+  };
+  function model(j) {
+    if (j.kind === 'pulse') {
+      const parts = [j.role, j.provider || j.runner, j.model].filter(Boolean);
+      return parts.length ? parts.join(', ') : '';
+    }
+    return j.model_label && j.model_label !== '-' ? j.model_label : '';
+  }
+  const KIND = { timer: 'Timer', cron: 'Cron', pulse: 'Pulse' };
+
+  function runHtml(r) {
+    const used = [r.role, r.provider, r.model].filter(Boolean).join(', ');
+    return `<div class="run"><span class="num">${esc(london(r.started))}</span>${resultBadge({ result: r.result })}`
+      + `<span class="run-sum">${esc(clean(r.summary || ''))}${used ? `<span class="dim"> (${esc(used)}${r.duration_s != null ? `, ${r.duration_s}s` : ''})</span>` : ''}</span></div>`;
+  }
+  function jobHtml(j, runs) {
+    const mdl = model(j);
+    const desc = clean(j.description || j.summary || '');
+    const inner = `<span class="job-name">${esc(j.name)}<span class="job-kind">${KIND[j.kind] || esc(j.kind)}${j.enabled === false ? ', disabled' : ''}</span></span>`
+      + `<span class="job-cell"><b>Schedule</b>${esc(words(j))}</span>`
+      + `<span class="job-cell"><b>Next</b>${esc(when(j.enabled === false ? null : j.next, 'Not scheduled'))}</span>`
+      + `<span class="job-cell"><b>Last</b>${esc(when(j.last))}</span>`
+      + `<span class="job-cell">${resultBadge(j)}${mdl ? `<br>${esc(mdl)}` : ''}</span>`
+      + (desc ? `<span class="job-desc">${esc(desc)}</span>` : '');
+    const cls = 'job' + (j.enabled === false ? ' job-off' : '');
+    if (j.kind === 'pulse') {
+      const body = runs.length ? runs.map(runHtml).join('') : '<span class="dim">No recorded runs.</span>';
+      return `<details class="${cls}"><summary>${inner}</summary><div class="runs">${body}</div></details>`;
+    }
+    return `<div class="${cls}">${inner}</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/crons/list', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(res.status);
+    const d = await res.json();
+    const badHosts = d.hosts.filter(h => h.status !== 'ok');
+    const probs = d.problems.map(p => ({ host: p.host, name: p.name, kind: p.kind, what: p.problem, detail: p.detail }))
+      .concat(badHosts.map(h => ({ host: h.id, name: h.id, kind: 'host', what: 'unreachable', detail: h.error })));
+    const stale = d.stale;
+    overall.className = 'badge ' + (stale ? 'badge-warn' : probs.length ? 'badge-danger' : 'badge-ok');
+    overall.textContent = stale ? `Stale, ${span(d.age_seconds)} old`
+      : probs.length ? `${probs.length} ${probs.length === 1 ? 'problem' : 'problems'}` : 'All clear';
+
+    problemsBox.innerHTML = `<h2 class="section-head">Problems</h2><div class="card">`
+      + (probs.length ? probs.map(p => `<div class="prob"><span>${esc(p.name)}</span><span class="badge badge-danger">${esc(cap(p.what))}</span>`
+        + `<span class="dim">${esc(p.host)}, ${esc(p.kind)}</span>${p.detail ? `<span class="prob-detail">${esc(clean(p.detail))}</span>` : ''}</div>`).join('')
+        : '<span class="dim">No failed jobs, bad results, overdue jobs or unreachable hosts.</span>')
+      + `</div>${stale ? `<p class="api-note">The snapshot is ${esc(span(d.age_seconds))} old, so what follows may be out of date. Check that g-cron.timer is running on h.</p>` : ''}`;
+
+    const byHost = {};
+    d.jobs.forEach(j => (byHost[j.host] = byHost[j.host] || []).push(j));
+    const order = d.hosts.map(h => h.id).concat(Object.keys(byHost).filter(h => !d.hosts.some(x => x.id === h)));
+    const status = Object.fromEntries(d.hosts.map(h => [h.id, h.status]));
+    hostsBox.innerHTML = order.filter(h => byHost[h] || status[h] !== 'ok').map(h => {
+      const jobs = (byHost[h] || []).sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
+      return `<h2 class="section-head">Host ${esc(h)}<span class="dim">${jobs.length} jobs</span>`
+        + (status[h] && status[h] !== 'ok' ? '<span class="badge badge-danger">Unreachable</span>' : '') + `</h2>`
+        + `<div class="card cron-list">${jobs.map(j => jobHtml(j, d.runs[j.name] || [])).join('') || '<span class="dim">No jobs found.</span>'}</div>`;
+    }).join('');
+    if (window.g && g.init) g.init(document);
+  } catch (e) {
+    overall.className = 'badge badge-danger';
+    overall.textContent = 'No data';
+    note.hidden = false;
+    note.textContent = 'The cron snapshot could not be read. Check that g-cron.timer is running on h; this page will fill in on the next reload.';
+  }
+})();
+</script>

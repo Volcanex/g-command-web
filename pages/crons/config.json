@@ -1,0 +1,12 @@
+{
+  "title": "Crons",
+  "slug": "crons",
+  "description": "Every scheduled job across the hosts: timers, crontabs and pulse model jobs.",
+  "nav": true,
+  "order": 18,
+  "body_class": "crons-page",
+  "nav_section": "g-core",
+  "nav_icon": "clock",
+  "nav_label": "Crons",
+  "gsys": true
+}

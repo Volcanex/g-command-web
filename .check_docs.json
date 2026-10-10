@@ -1,0 +1,6 @@
+{
+  "skip_dirs": ["agents", "design-language"],
+  "planned_paths": ["data/manifest.json", "var/gadmin.db", "var/shots/", "var/projects-meta.json"],
+  "planned_prefixes": [],
+  "root_line_cap": 400
+}

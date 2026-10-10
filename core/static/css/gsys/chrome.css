@@ -1,0 +1,91 @@
+/* gcommand app chrome on g-system: sidebar, top bar, status line.
+   Layout comes from .g-shell in g.css; this file only styles gcommand's
+   own furniture (brand, data-driven nav sections, footer). */
+
+body.g-shell > aside { overflow-y: auto; }
+
+/* brand */
+.brand { display: flex; align-items: center; gap: 8px; padding: 6px 8px 12px; text-decoration: none; color: var(--text-primary); flex: none; }
+.brand .mark {
+  width: 22px; height: 22px; border-radius: var(--radius-sm);
+  background: var(--accent-fill); color: var(--accent-fg);
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 500;
+}
+/* the g mark, vendored from g-design (brand/mark.svg), drawn in the mark's text colour */
+.brand .mark::before {
+  content: ""; width: 14px; height: 14px; background: currentColor;
+  mask: url(brand/mark.svg) center / contain no-repeat;
+}
+.brand b { font-size: 13px; font-weight: 500; }
+.brand span { font-size: 11px; color: var(--text-placeholder); }
+
+/* nav: compile.py emits .nav-drawer-section > h3 + a; the shell appends
+   hand-written sections in the same shape */
+.nav-drawer-section { display: flex; flex-direction: column; gap: 1px; }
+.nav-drawer-section h3 {
+  margin: 0; padding: 14px 8px 5px;
+  font-size: 11px; font-weight: 500; color: var(--text-placeholder);
+}
+.nav-drawer-section a {
+  display: flex; align-items: center; gap: 9px;
+  height: 30px; padding: 0 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary); text-decoration: none;
+  font-size: var(--font-size-ui); font-weight: 450;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.nav-drawer-section a i { font-size: 15px; width: 15px; text-align: center; }
+.nav-drawer-section a:hover { background: var(--fill-hover); color: var(--text-primary); }
+.nav-drawer-section a[aria-current="page"] { background: var(--fill-active); color: var(--text-primary); font-weight: 500; }
+
+.side-foot {
+  margin-top: auto; flex: none;
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 8px 2px;
+}
+.side-foot .who { font-size: 11px; color: var(--text-placeholder); margin-right: auto; }
+
+/* main column */
+body.g-shell > .g-main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.g-top {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px var(--sp-5);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  flex: none;
+}
+.g-top-title { font-size: 13px; font-weight: 500; }
+.g-top .spacer { flex: 1; }
+.g-top-link { font-size: 12px; color: var(--text-secondary); text-decoration: none; }
+.g-top-link:hover { color: var(--text-primary); }
+
+.site-main { flex: 1; overflow-y: auto; padding: var(--sp-5); }
+.site-main > * { max-width: 1080px; }
+
+/* chrome.js adds g-ready once the document is fully parsed (every body
+   style block applied), then the g.css .enter stagger sweeps content in */
+.site-main.g-ready { opacity: 1; animation: none; }
+
+.g-status {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px var(--sp-5);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px; color: var(--text-placeholder);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.g-status [data-clock] { margin-left: auto; }
+/* The name and the host used to be joined by a middle dot, which g-system
+   bans: it is a glyph doing a layout job. A gap off the spacing scale does
+   the same job without the glyph. */
+.g-status .host { margin-left: var(--sp-3); }
+
+/* login: no chrome, just the card */
+body.login-page { display: grid; grid-template-columns: 1fr; place-items: center; }
+body.login-page > aside, body.login-page .g-top, body.login-page .g-status, body.login-page .g-scrim { display: none; }
+body.login-page .site-main { flex: none; overflow: visible; }
+
+/* full-dash: full-bleed */
+body.full-dash-page .site-main { padding: 0; }
+body.full-dash-page .site-main > * { max-width: none; }

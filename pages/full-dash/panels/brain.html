@@ -1,0 +1,122 @@
+<section class="card fd-panel" id="fd-brain">
+  <header class="fd-panel-head">
+    <i class="ph ph-brain"></i>
+    <h2 class="card-title">Brain</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/notes" data-tip="Open notes" aria-label="Open notes"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-brain .fdb-kinds { display: flex; flex-direction: column; gap: 6px; }
+  #fd-brain .fdb-kind-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+  #fd-brain .fdb-kind-label {
+    font-size: 12px; color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-brain .fdb-kind-count {
+    font-size: 12px; font-variant-numeric: tabular-nums;
+    text-align: right; min-width: 3ch;
+  }
+  #fd-brain .fdb-subhead {
+    font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    margin: var(--sp-4) 0 var(--sp-1);
+  }
+  #fd-brain .fdb-recent { display: flex; flex-direction: column; }
+  #fd-brain .fdb-note-row {
+    display: flex; align-items: baseline; gap: var(--sp-3);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--font-size-ui);
+  }
+  #fd-brain .fdb-note-row:last-child { border-bottom: none; }
+  #fd-brain .fdb-note-row a {
+    flex: 1; min-width: 0;
+    text-decoration: none; color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-brain .fdb-note-row a:hover { text-decoration: underline; }
+  #fd-brain .fdb-note-when {
+    flex: none; font-size: 12px; color: var(--text-placeholder);
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-brain .fdb-refs {
+    margin-top: var(--sp-3);
+    font-size: 12px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-brain .fdb-refs .fdb-broken { color: var(--danger-text); }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-brain');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function render(data) {
+    var kinds = data.kinds || [];
+    var recent = data.recent || [];
+    var refs = data.refs || {};
+
+    var totalNotes = 0;
+    var maxKind = 1;
+    kinds.forEach(function (k) {
+      totalNotes += k.total;
+      if (k.total > maxKind) maxKind = k.total;
+    });
+    meta.textContent = totalNotes + ' notes';
+
+    var html = '<div class="fdb-kinds">';
+    kinds.forEach(function (k, i) {
+      // The var(), not FD.palette, so the bars follow a live theme change.
+      var color = 'var(--chart-' + (i % 6 + 1) + ')';
+      var pct = Math.max(1, Math.round(k.total / maxKind * 100));
+      html += '<div class="fdb-kind-row">' +
+        '<span class="fdb-kind-label" title="' + esc(k.kind) + '">' + esc(k.kind) + '</span>' +
+        '<span class="g-progress"><span class="g-progress-fill" style="width:' +
+          pct + '%;background:' + esc(color) + '"></span></span>' +
+        '<span class="fdb-kind-count">' + k.total + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    html += '<div class="fdb-subhead">Recent</div><div class="fdb-recent">';
+    recent.forEach(function (n) {
+      html += '<div class="fdb-note-row">' +
+        '<a href="/note/' + esc(n.path) + '" title="' + esc(n.path) + '">' +
+        esc(g.plain(n.title)) + '</a>';
+      if (n.updated) {
+        html += '<span class="fdb-note-when">' + esc(FD.rel(n.updated)) + '</span>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+
+    var broken = refs.broken
+      ? ', <span class="fdb-broken">' + refs.broken + ' broken</span>' : '';
+    html += '<div class="fdb-refs">' + (refs.total_urls || 0) + ' refs, ' +
+      (refs.distinct_canonical || 0) + ' canonical' + broken + '</div>';
+
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/home/stats')
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Brain stats unavailable. The panel retries every 5 minutes.',
+          (e && e.message) || e);
+      });
+  }, 300000);
+})();</script>

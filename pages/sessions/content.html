@@ -1,0 +1,684 @@
+<div class="term-app">
+  <div class="term-bar">
+    <button id="btn-nav" class="btn btn-tertiary btn-icon" aria-label="Open navigation"><i class="ph ph-list"></i></button>
+    <span class="select-wrap term-pick">
+      <select id="session-select" class="select" aria-label="Choose session"><option value="">Loading</option></select>
+    </span>
+    <span id="conn" class="badge badge-plain">Idle</span>
+    <span class="bar-spacer"></span>
+    <button id="btn-font-down" class="btn btn-tertiary btn-icon" aria-label="Smaller text" data-tip="Smaller text">A−</button>
+    <button id="btn-font-up" class="btn btn-tertiary btn-icon" aria-label="Larger text" data-tip="Larger text">A+</button>
+    <button id="btn-more" class="btn btn-tertiary btn-icon" popovertarget="term-menu" aria-label="More actions"><i class="ph ph-dots-three-vertical"></i></button>
+  </div>
+
+  <div class="term-body">
+    <div id="terminal" tabindex="0"></div>
+
+    <div class="term-rail" aria-label="Terminal keys">
+      <button id="btn-esc" class="btn btn-secondary" data-tip="Escape">esc</button>
+      <button id="btn-tab" class="btn btn-secondary" data-tip="Tab">tab</button>
+      <button id="btn-ctrl" class="btn btn-secondary" aria-pressed="false" data-tip="Sticky ctrl modifier">ctrl</button>
+      <button id="btn-scroll-up" class="btn btn-tertiary rail-step" aria-label="Scroll back"><i class="ph ph-caret-up"></i></button>
+      <div id="jog" class="jog" aria-label="Scroll history" data-tip="Drag to scroll history">
+        <div class="jog-thumb"><span></span><span></span><span></span></div>
+      </div>
+      <button id="btn-scroll-down" class="btn btn-tertiary rail-step" aria-label="Scroll forward"><i class="ph ph-caret-down"></i></button>
+      <button id="btn-up" class="btn btn-secondary" aria-label="Up arrow">↑</button>
+      <button id="btn-down" class="btn btn-secondary" aria-label="Down arrow">↓</button>
+    </div>
+  </div>
+
+  <div id="term-menu" class="menu term-menu" popover>
+    <div class="menu-row">
+      <span class="select-wrap">
+        <select id="host-select" class="select" aria-label="Host for the new session"></select>
+      </span>
+      <button id="btn-new" class="btn btn-primary">Start session</button>
+    </div>
+    <hr class="separator">
+    <button id="btn-claude" class="menu-item"><i class="ph ph-sparkle"></i><span class="mono">claude --dangerously-skip-permissions</span></button>
+    <button id="btn-remote" class="menu-item"><i class="ph ph-broadcast"></i><span id="remote-label" class="mono">/remote-control</span></button>
+    <button id="btn-mic" class="menu-item"><i class="ph ph-microphone"></i>Voice input</button>
+    <hr class="separator">
+    <button id="btn-detach" class="menu-item"><i class="ph ph-plugs"></i>Detach, keeps running</button>
+    <button id="btn-kill" class="menu-item danger"><i class="ph ph-trash"></i>Kill this session</button>
+    <button id="btn-purge" class="menu-item danger"><i class="ph ph-broom"></i>Purge idle over 7 days</button>
+  </div>
+</div>
+
+<style>
+  /* The shell's chrome is .g-top / .g-status inside .g-main. Both are hidden
+     here and .site-main gives up its padding, scroll and max-width: this page
+     is a full-bleed app, and anything left stacked on it pushes the terminal
+     off the bottom of the screen. Height comes from --vvh (the *visual*
+     viewport), the only measure that shrinks when the iOS keyboard opens.
+     --vvtop is applied as `top` rather than as a transform, because a
+     transformed body becomes the containing block for every fixed overlay and
+     the menu, toasts and tooltips would then land offset by that much. */
+  body.sessions-page .g-top,
+  body.sessions-page .g-status { display: none; }
+  body.sessions-page {
+    position: fixed;
+    inset: var(--vvtop, 0px) 0 auto 0;
+    height: var(--vvh, 100dvh);
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  body.sessions-page .g-main { min-height: 0; overflow: hidden; }
+  body.sessions-page .site-main {
+    padding: 0; height: 100%; min-height: 0; overflow: hidden;
+  }
+  body.sessions-page .site-main > * { max-width: none; }
+
+  .term-app { display: flex; flex-direction: column; height: 100%; }
+
+  .term-bar {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: 6px var(--sp-2);
+    flex: 0 0 auto;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  /* A thumb, not a mouse: the controls run taller than the 32px default.
+     --h-control is the size token both .btn and .select read. */
+  .term-bar .btn, .term-bar .select { --h-control: 40px; }
+  .term-bar .btn-icon { min-width: 44px; }
+  .term-bar .btn:active { background: var(--fill-active); }
+  .term-pick { flex: 1 1 auto; min-width: 0; max-width: 46ch; }
+  .term-pick .select {
+    font-family: var(--font-mono); font-size: 12px;
+    text-overflow: ellipsis;
+  }
+  .bar-spacer { flex: 0 1 auto; }
+  #conn { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  /* The shell's own hamburger lives in the hidden top bar, so this page
+     carries the one that opens the nav, on the widths where it exists. */
+  #btn-nav { display: none; }
+  @media (max-width: 720px) { #btn-nav { display: inline-flex; } }
+
+  .term-body { flex: 1 1 auto; display: flex; min-height: 0; }
+  /* xterm paints its own background from term.options.theme; the wrapper
+     holds that same literal colour so no seam shows around the grid. */
+  #terminal {
+    flex: 1 1 auto; background: #000; min-width: 0; min-height: 0;
+    outline: none; touch-action: none;
+  }
+  #terminal .xterm { padding: 4px; height: 100%; }
+
+  /* Keys live on the right edge rather than in a horizontally-scrolling strip:
+     reachable by thumb on a phone and by the right hand on an iPad, and nothing
+     in the page scrolls to get at them. */
+  .term-rail {
+    flex: 0 0 58px; display: flex; flex-direction: column; gap: var(--sp-1);
+    padding: var(--sp-1); background: var(--surface-1);
+    border-left: 1px solid var(--border-subtle);
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+  /* min-width: auto would let a key's own label set the rail's width, and the
+     rail is a fixed column by design. */
+  .term-rail .btn {
+    --h-control: 42px;
+    flex: 0 0 auto; width: 100%; min-width: 0;
+    padding: 0 var(--sp-1);
+    font-family: var(--font-mono); font-size: 12px;
+    touch-action: manipulation;
+  }
+  .term-rail .rail-step { --h-control: 34px; font-size: 14px; }
+  .term-rail .btn:active { background: var(--fill-active); }
+  /* Sticky ctrl reads as armed through the accent slot, the same one a
+     primary button fills from. */
+  .term-rail .btn.active {
+    --_fill: var(--accent-fill); --_fg: var(--accent-fg); --_edge: var(--accent-edge);
+  }
+
+  /* Relative jog, not an absolute scrollbar: we are attached to tmux's alternate
+     screen, so the browser has no idea how long the real history is or where in
+     it we are. Dragging emits wheel ticks and the grip springs back to centre. */
+  .jog {
+    flex: 1 1 auto; min-height: 60px; position: relative;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--well-bg);
+    touch-action: none; cursor: grab; overflow: hidden;
+  }
+  .jog.dragging { cursor: grabbing; border-color: var(--accent-edge); }
+  .jog-thumb {
+    position: absolute; left: 3px; right: 3px; top: 50%;
+    height: 46px; margin-top: -23px;
+    border-radius: 3px; background: var(--text-placeholder);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    transition: transform var(--dur-slow) var(--ease-out);
+  }
+  .jog.dragging .jog-thumb { transition: none; background: var(--accent-fill); }
+  .jog-thumb span { display: block; width: 16px; height: 2px; background: var(--surface-1); opacity: .7; }
+  .jog.dragging .jog-thumb span { background: var(--accent-fg); }
+
+  .term-menu { min-width: 272px; max-width: calc(100vw - 16px); }
+  .term-menu .menu-item { height: 40px; padding: 0 10px; }
+  .term-menu .menu-item i { font-size: 15px; width: 15px; text-align: center; color: var(--text-secondary); }
+  .term-menu .menu-item.danger i,
+  .term-menu .menu-item.active i { color: inherit; }
+  .term-menu .menu-item:disabled { opacity: .45; cursor: default; }
+  .term-menu .menu-item.active { background: var(--fill-active); color: var(--danger-text); }
+  .term-menu .mono { font-family: var(--font-mono); font-size: 12px; }
+  .term-menu .menu-row { display: flex; gap: var(--sp-1); padding: 2px 2px 6px; }
+  .term-menu .menu-row .select-wrap { flex: 0 0 82px; }
+  .term-menu .menu-row .btn { flex: 1 1 auto; }
+  .term-menu .menu-row .select, .term-menu .menu-row .btn { --h-control: 36px; }
+
+  @media (max-width: 600px) {
+    .term-rail { flex-basis: 50px; }
+    .term-bar { gap: var(--sp-1); padding: 5px 6px; }
+    .term-bar .btn-icon { min-width: 40px; }
+  }
+
+  /* A phone on its side has ~340px of rail. At the full-size key heights the
+     stack overflows and the bottom arrow lands off-screen, so the keys shrink
+     and the jog gives up its floor and absorbs what's left. */
+  @media (max-height: 520px) {
+    .term-rail { gap: 3px; padding: 3px; }
+    .term-rail .btn { --h-control: 32px; font-size: 11px; }
+    .term-rail .rail-step { --h-control: 24px; font-size: 12px; }
+    .jog { min-height: 0; }
+    .jog-thumb { height: 32px; margin-top: -16px; }
+  }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-canvas@0.5.0/lib/xterm-addon-canvas.min.js"></script>
+
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const select  = $('session-select');
+  const hostSel = $('host-select');
+  const conn    = $('conn');
+  const menu    = $('term-menu');
+  const btnCtrl = $('btn-ctrl');
+  const btnMic  = $('btn-mic');
+
+  // This script is parsed before the deferred g-ui.js runs, so every call into
+  // g goes through a guard rather than assuming it is there yet.
+  const toast = (opts) => { if (window.g && g.toast) g.toast(opts); };
+  const closeMenu = () => { try { menu.hidePopover(); } catch {} };
+
+  const FONT_KEY = 'gcmd-term-font';
+  const FONT_MIN = 8, FONT_MAX = 22;
+  let fontSize = Number(localStorage.getItem(FONT_KEY)) || 13;
+  fontSize = Math.min(FONT_MAX, Math.max(FONT_MIN, fontSize));
+
+  function ago(ts) {
+    if (!ts) return '?';
+    const s = Math.floor(Date.now()/1000 - Number(ts));
+    if (s < 60)     return s + 's ago';
+    if (s < 3600)   return Math.floor(s/60) + 'm ago';
+    if (s < 86400)  return Math.floor(s/3600) + 'h ago';
+    return Math.floor(s/86400) + 'd ago';
+  }
+
+  const term = new Terminal({
+    fontSize,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    cursorBlink: true,
+    convertEol: true,
+    scrollback: 2000,
+    theme: { background: '#000', foreground: '#e6e6e6' },
+  });
+  const fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  const termEl = $('terminal');
+  term.open(termEl);
+  // The DOM renderer repaints every cell as an element, which is what makes a
+  // busy pane stutter on a Retina panel. Canvas is optional: if the CDN script
+  // is missing or the context fails, xterm keeps the DOM renderer.
+  try { if (window.CanvasAddon) term.loadAddon(new CanvasAddon.CanvasAddon()); } catch {}
+  fit.fit();
+
+  // ---- viewport: the only height iOS shrinks for the keyboard ----
+  function applyViewport() {
+    const vv = window.visualViewport;
+    const h = vv ? vv.height : window.innerHeight;
+    // offsetTop matters as much as height: iOS shifts the visual viewport down
+    // (keyboard, toolbar, pinch) and an app sized only by height then hangs off
+    // the bottom by exactly that offset, which reads as the last rows being
+    // clipped just off the screen.
+    const top = vv ? vv.offsetTop : 0;
+    document.documentElement.style.setProperty('--vvh', h + 'px');
+    document.documentElement.style.setProperty('--vvtop', top + 'px');
+  }
+  applyViewport();
+
+  // ---- cell geometry + wheel forwarding ----
+  // Attached to tmux with mouse on, output lands on the alternate screen, so
+  // xterm's own scrollback stays empty and term.scrollLines() does nothing.
+  // Scrolling has to go out as SGR 1006 wheel events (64 = up, 65 = down) for
+  // tmux, or a mouse-aware TUI, to move its real history.
+  function cellDims() {
+    const d = term._core && term._core._renderService && term._core._renderService.dimensions;
+    const css = d && d.css && d.css.cell;
+    return {
+      w: (css && css.width) || (d && d.actualCellWidth) || 9,
+      h: (css && css.height) || (d && d.actualCellHeight) || 16,
+    };
+  }
+  function cellAt(clientX, clientY) {
+    const r = termEl.getBoundingClientRect();
+    const { w, h } = cellDims();
+    return {
+      col: Math.min(term.cols || 80, Math.max(1, Math.floor((clientX - r.left) / w) + 1)),
+      row: Math.min(term.rows || 24, Math.max(1, Math.floor((clientY - r.top) / h) + 1)),
+    };
+  }
+  function wheel(up, n, col, row) {
+    const seq = `\x1b[<${up ? 64 : 65};${col};${row}M`;
+    for (let i = 0; i < Math.max(1, n); i++) sendData(seq);
+  }
+  function wheelCentre(up, n) {
+    wheel(up, n, Math.max(1, Math.floor((term.cols || 80) / 2)),
+                 Math.max(1, Math.floor((term.rows || 24) / 2)));
+  }
+
+  // ---- touch scrolling on the terminal itself ----
+  (() => {
+    let startY = null, lastY = null, lastX = null, accum = 0, scrolling = false;
+    const DEAD = 8;
+    termEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { startY = null; return; }
+      startY = lastY = e.touches[0].clientY;
+      lastX = e.touches[0].clientX;
+      accum = 0; scrolling = false;
+    }, {passive: true});
+    termEl.addEventListener('touchmove', (e) => {
+      if (startY == null || e.touches.length !== 1) return;
+      const y = e.touches[0].clientY;
+      lastX = e.touches[0].clientX;
+      if (!scrolling && Math.abs(y - startY) < DEAD) return;
+      scrolling = true;
+      accum += (y - lastY);
+      lastY = y;
+      const { h } = cellDims();
+      const lines = Math.trunc(accum / h);
+      if (lines !== 0) {
+        const { col, row } = cellAt(lastX, lastY);
+        wheel(lines > 0, Math.abs(lines), col, row);
+        accum -= lines * h;
+      }
+    }, {passive: true});
+    termEl.addEventListener('touchend', () => { startY = lastY = null; });
+  })();
+
+  // ---- jog rail ----
+  (() => {
+    const jog = $('jog');
+    const thumb = jog.querySelector('.jog-thumb');
+    const STEP = 14;    // px of finger travel per wheel tick
+    const LIMIT = 0.35; // thumb travel, as a fraction of rail height
+    let dragging = false, originY = 0, lastTicks = 0, pid = null;
+
+    jog.addEventListener('pointerdown', (e) => {
+      dragging = true; originY = e.clientY; lastTicks = 0; pid = e.pointerId;
+      try { jog.setPointerCapture(pid); } catch {}
+      jog.classList.add('dragging');
+      e.preventDefault();
+    });
+    jog.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dy = e.clientY - originY;
+      const cap = jog.clientHeight * LIMIT;
+      thumb.style.transform = `translateY(${Math.max(-cap, Math.min(cap, dy))}px)`;
+      // Finger down = scroll back into history, matching the drag on the pane.
+      const ticks = Math.trunc(dy / STEP);
+      if (ticks !== lastTicks) {
+        const delta = ticks - lastTicks;
+        wheelCentre(delta > 0, Math.abs(delta));
+        lastTicks = ticks;
+      }
+    });
+    const stop = () => {
+      if (!dragging) return;
+      dragging = false; lastTicks = 0;
+      jog.classList.remove('dragging');
+      thumb.style.transform = '';
+      try { jog.releasePointerCapture(pid); } catch {}
+    };
+    // No pointerleave here: while the pointer is captured the browser fires
+    // boundary events at the capture target the moment the finger crosses the
+    // rail edge, which would end the drag exactly when it starts to be useful.
+    ['pointerup','pointercancel','lostpointercapture'].forEach(ev => jog.addEventListener(ev, stop));
+  })();
+
+  function sizeAndSend() {
+    try { fit.fit(); } catch {}
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({type: 'resize', cols: term.cols, rows: term.rows}));
+    }
+  }
+  function onViewportChange() { applyViewport(); sizeAndSend(); }
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('orientationchange', () => setTimeout(onViewportChange, 250));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onViewportChange);
+    window.visualViewport.addEventListener('scroll', applyViewport);
+  }
+
+  function setFont(n) {
+    fontSize = Math.min(FONT_MAX, Math.max(FONT_MIN, n));
+    localStorage.setItem(FONT_KEY, String(fontSize));
+    term.options.fontSize = fontSize;
+    sizeAndSend();
+  }
+  $('btn-font-up').addEventListener('click',   () => setFont(fontSize + 1));
+  $('btn-font-down').addEventListener('click', () => setFont(fontSize - 1));
+
+  // ---- connection ----
+  let ws = null;
+  let ctrlSticky = false;
+  let currentSession = null;
+  let retries = 0;
+  let retryTimer = null;
+  let deliberate = false;   // user asked to detach/kill, so do not reconnect
+
+  // The pill is the honest status. `kind` is the badge variant: live is ok,
+  // anything retrying is warn, anything not connected is danger.
+  function setConn(kind, label) {
+    if (window.g && g.status) { g.status(conn, {kind, label}); return; }
+    conn.className = 'badge badge-' + kind;
+    conn.textContent = label;
+  }
+
+  function setRemoteLabel() {
+    const btn = $('btn-remote');
+    const lbl = $('remote-label');
+    lbl.textContent = currentSession
+      ? `/remote-control ${currentSession.name}`
+      : '/remote-control';
+    btn.disabled = !currentSession;
+  }
+
+  function sendData(s) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'data', data: s}));
+  }
+
+  function clearRetry() {
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+  }
+
+  function scheduleReconnect() {
+    if (deliberate || !currentSession) return;
+    clearRetry();
+    retries += 1;
+    const wait = Math.min(1000 * Math.pow(1.7, retries - 1), 15000);
+    setConn('warn', `Retry ${Math.round(wait/1000)}s`);
+    retryTimer = setTimeout(() => {
+      if (currentSession) attach(currentSession.host, currentSession.name, true);
+    }, wait);
+  }
+
+  // A mobile terminal loses its socket constantly: the carrier rotates the
+  // source address, the cell hands over, iOS suspends a backgrounded tab. tmux
+  // survives all of it, so reattaching is cheap and the only thing that made
+  // this feel broken was that nothing ever tried.
+  function attach(host, name, isRetry) {
+    clearRetry();
+    deliberate = false;
+    if (ws) { try { ws.onclose = null; ws.close(); } catch {} ws = null; }
+    currentSession = {host, name};
+    setRemoteLabel();
+    setConn('warn', isRetry ? 'Reconnecting' : 'Connecting');
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const sock = new WebSocket(`${proto}://${location.host}/api/sessions/ws/${host}/${encodeURIComponent(name)}`);
+    ws = sock;
+    sock.binaryType = 'arraybuffer';
+    sock.onopen = () => {
+      if (ws !== sock) return;
+      retries = 0;
+      setConn('ok', 'Live');
+      // tmux repaints the whole pane on attach, so clearing first avoids the
+      // old frame showing through underneath the new one.
+      term.reset();
+      setTimeout(sizeAndSend, 50);
+    };
+    sock.onmessage = (e) => {
+      if (ws !== sock) return;
+      if (typeof e.data === 'string') term.write(e.data);
+      else term.write(new Uint8Array(e.data));
+    };
+    sock.onclose = () => {
+      if (ws !== sock) return;
+      if (deliberate) { setConn('danger', 'Detached'); return; }
+      setConn('warn', 'Dropped');
+      scheduleReconnect();
+    };
+    sock.onerror = () => { if (ws === sock) setConn('warn', 'Error'); };
+  }
+
+  function reconnectNow() {
+    if (deliberate || !currentSession) return;
+    if (ws && ws.readyState === 1) return;
+    clearRetry();
+    retries = 0;
+    attach(currentSession.host, currentSession.name, true);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') reconnectNow();
+  });
+  window.addEventListener('online', reconnectNow);
+  window.addEventListener('focus', reconnectNow);
+
+  async function loadSessions() {
+    let data;
+    try {
+      const r = await fetch('/api/sessions');
+      if (!r.ok) { term.writeln('\x1b[31mNot authenticated.\x1b[0m'); return []; }
+      data = await r.json();
+    } catch (e) {
+      term.writeln('\x1b[31mCould not load sessions: ' + e.message + '\x1b[0m');
+      return [];
+    }
+    // The host list is the server's SESSION_HOSTS, so the page names no host.
+    const hosts = Object.keys(data.hosts || {});
+    const keepHost = hostSel.value;
+    hostSel.replaceChildren(...hosts.map((h) => new Option(h, h)));
+    if (hosts.includes(keepHost)) hostSel.value = keepHost;
+    select.innerHTML = '';
+    const flat = [];
+    for (const host of hosts) {
+      const sessions = (data.hosts[host] || []).slice().sort(
+        (a, b) => (b.last_activity || 0) - (a.last_activity || 0)
+      );
+      if (sessions.length === 0) continue;
+      const grp = document.createElement('optgroup');
+      grp.label = host;
+      for (const s of sessions) {
+        const o = document.createElement('option');
+        o.value = `${host}/${s.name}`;
+        o.textContent = `${s.attached ? '• ' : '  '}${host}:${s.name}, ${ago(s.last_activity)}, ${s.windows}w`;
+        grp.appendChild(o);
+        flat.push({ ...s, host });
+      }
+      select.appendChild(grp);
+    }
+    if (flat.length === 0) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = 'No sessions';
+      select.appendChild(o);
+    }
+    return flat;
+  }
+
+  term.onData((d) => {
+    if (ctrlSticky && d.length === 1) {
+      const c = d.charCodeAt(0);
+      if (c >= 0x40 && c <= 0x7e) {
+        sendData(String.fromCharCode(c & 0x1f));
+        ctrlSticky = false;
+        btnCtrl.classList.remove('active');
+        btnCtrl.setAttribute('aria-pressed', 'false');
+        return;
+      }
+    }
+    sendData(d);
+  });
+
+  select.addEventListener('change', () => {
+    const v = select.value;
+    if (!v) return;
+    const [host, ...rest] = v.split('/');
+    retries = 0;
+    attach(host, rest.join('/'), false);
+  });
+
+  // ---- rail keys ----
+  $('btn-esc').addEventListener('click',  () => { sendData('\x1b'); term.focus(); });
+  $('btn-tab').addEventListener('click',  () => { sendData('\t');   term.focus(); });
+  $('btn-up').addEventListener('click',   () => { sendData('\x1b[A'); term.focus(); });
+  $('btn-down').addEventListener('click', () => { sendData('\x1b[B'); term.focus(); });
+  btnCtrl.addEventListener('click', () => {
+    ctrlSticky = !ctrlSticky;
+    btnCtrl.classList.toggle('active', ctrlSticky);
+    btnCtrl.setAttribute('aria-pressed', String(ctrlSticky));
+    term.focus();
+  });
+
+  function bindHold(btn, up) {
+    let timer = null;
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+    btn.addEventListener('click', (e) => { e.preventDefault(); wheelCentre(up, 3); });
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); stop();
+      timer = setInterval(() => wheelCentre(up, 3), 200);
+    });
+    ['pointerup','pointerleave','pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+  }
+  bindHold($('btn-scroll-up'), true);
+  bindHold($('btn-scroll-down'), false);
+
+  // ---- menu ----
+  // The nav drawer's own toggle sits in the shell's top bar, which this page
+  // hides; #btn-more opens the popover through popovertarget, so only the
+  // drawer needs wiring here.
+  $('btn-nav').addEventListener('click', () => {
+    if (window.toggleNav) toggleNav();
+  });
+
+  $('btn-new').addEventListener('click', async () => {
+    const host = hostSel.value;
+    if (!host) return;
+    const name = prompt(`New session name on ${host}:`, `s${Math.floor(Math.random()*1000)}`);
+    if (!name) return;
+    const r = await fetch('/api/sessions/new', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({host, name}),
+    });
+    if (!r.ok) {
+      toast({kind: 'danger', title: 'Session not started', desc: `${host}:${name} was refused (${r.status}).`});
+      return;
+    }
+    closeMenu();
+    await loadSessions();
+    select.value = `${host}/${name}`;
+    select.dispatchEvent(new Event('change'));
+  });
+
+  $('btn-claude').addEventListener('click', () => {
+    sendData('claude --dangerously-skip-permissions\r');
+    term.focus();
+  });
+
+  // Types the command but does not send it: the session name is the prefix,
+  // whatever you want to say about it follows.
+  $('btn-remote').addEventListener('click', () => {
+    if (!currentSession) return;
+    sendData(`/remote-control ${currentSession.name} `);
+    term.focus();
+  });
+
+  $('btn-detach').addEventListener('click', () => {
+    deliberate = true;
+    clearRetry();
+    if (ws) { try { ws.close(); } catch {} }
+    setConn('danger', 'Detached');
+  });
+
+  $('btn-kill').addEventListener('click', async () => {
+    if (!currentSession) return;
+    const {host, name} = currentSession;
+    if (!confirm(`Kill session ${host}:${name}? This is permanent.`)) return;
+    deliberate = true;
+    clearRetry();
+    if (ws) { try { ws.close(); } catch {} ws = null; }
+    const r = await fetch('/api/sessions/kill', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({host, name}),
+    });
+    if (!r.ok) {
+      toast({kind: 'danger', title: 'Session still running', desc: `tmux refused to kill ${host}:${name} (${r.status}).`});
+      return;
+    }
+    currentSession = null;
+    setConn('danger', 'Killed');
+    await loadSessions();
+    toast({kind: 'ok', title: 'Session killed', desc: `${host}:${name} is gone.`});
+  });
+
+  $('btn-purge').addEventListener('click', async () => {
+    if (!confirm('Kill all unattached sessions idle over 7 days?')) return;
+    const r = await fetch('/api/sessions/purge?idle_days=7', {method: 'POST'});
+    if (!r.ok) {
+      toast({kind: 'danger', title: 'Nothing purged', desc: `The purge was refused (${r.status}).`});
+      return;
+    }
+    const body = await r.json();
+    await loadSessions();
+    toast({kind: 'ok', title: 'Purge done', desc: `${body.count} idle session(s) killed.`});
+  });
+
+  // ---- microphone (Web Speech API) ----
+  let recog = null, micActive = false;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    btnMic.disabled = true;
+    btnMic.title = 'Speech recognition is not supported in this browser';
+  } else {
+    recog = new SR();
+    recog.lang = 'en-GB';
+    recog.continuous = true;
+    recog.interimResults = false;
+    recog.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) sendData(e.results[i][0].transcript.trim() + ' ');
+      }
+    };
+    recog.onend = () => { if (micActive) { try { recog.start(); } catch {} } };
+    // Choosing an item closes the popover, so the button's own active state is
+    // out of sight the moment it changes: the toast is what tells you the
+    // microphone is live.
+    btnMic.addEventListener('click', () => {
+      micActive = !micActive;
+      btnMic.classList.toggle('active', micActive);
+      btnMic.setAttribute('aria-pressed', String(micActive));
+      try { micActive ? recog.start() : recog.stop(); } catch {}
+      toast({title: micActive ? 'Voice input on' : 'Voice input off',
+             desc: micActive ? 'Speech is typed into the session.' : undefined});
+    });
+  }
+
+  // ---- initial load ----
+  setConn('danger', 'Idle');
+  setRemoteLabel();
+  await loadSessions();
+  const attachParam = new URLSearchParams(location.search).get('attach');
+  const opts = [...select.options].filter(o => o.value);
+  const wanted = attachParam && opts.find(o => o.value === attachParam);
+  const pick = wanted || opts[0];
+  if (pick) {
+    select.value = pick.value;
+    select.dispatchEvent(new Event('change'));
+  } else {
+    term.writeln('\x1b[2m(No tmux sessions. Open the menu, top right, to start one.)\x1b[0m');
+  }
+})();
+</script>

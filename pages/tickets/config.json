@@ -1,0 +1,12 @@
+{
+  "title": "Tickets",
+  "slug": "tickets",
+  "description": "Every g-admin ticket across every project that speaks the contract, in one place.",
+  "nav": true,
+  "order": 16,
+  "body_class": "tickets-page",
+  "nav_section": "g-core",
+  "nav_icon": "ticket",
+  "nav_label": "Tickets",
+  "gsys": true
+}

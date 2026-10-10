@@ -1,0 +1,735 @@
+<div class="page-head">
+  <h1>Calendar</h1>
+  <span class="badge badge-plain num" data-count>Loading</span>
+  <span class="spacer"></span>
+  <div class="month-nav">
+    <button class="btn btn-tertiary btn-sm" type="button" data-step="-1" aria-label="Previous month">
+      <i class="ph ph-caret-left"></i>
+    </button>
+    <span class="month-label num" data-month>Loading</span>
+    <button class="btn btn-tertiary btn-sm" type="button" data-step="1" aria-label="Next month">
+      <i class="ph ph-caret-right"></i>
+    </button>
+    <button class="btn btn-secondary btn-sm" type="button" data-today>Today</button>
+  </div>
+</div>
+<p class="page-sub">Dated todos from the brain, laid out by day. Undated work lives on the todos page.</p>
+
+<div class="cal-layout">
+  <div class="card cal-card">
+    <div class="tabs" role="tablist">
+      <button class="tab" type="button" role="tab" data-view="day" aria-selected="false">Day</button>
+      <button class="tab" type="button" role="tab" data-view="month" aria-selected="true">Month</button>
+      <button class="tab" type="button" role="tab" data-view="week" aria-selected="false">Week</button>
+      <button class="tab" type="button" role="tab" data-view="agenda" aria-selected="false">Agenda</button>
+    </div>
+
+    <div class="weekdays" data-weekdays aria-hidden="true">
+      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
+      <span>Fri</span><span>Sat</span><span>Sun</span>
+    </div>
+    <div class="grid" data-grid>
+      <p class="dim pad">Loading the month</p>
+    </div>
+
+    <div class="day-view" data-dayview hidden></div>
+    <div class="week" data-week hidden></div>
+    <div class="agenda" data-agenda hidden></div>
+  </div>
+
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-sub {
+    margin: var(--sp-1) 0 var(--sp-5);
+    color: var(--text-secondary); font-size: var(--font-size-ui);
+  }
+
+  .month-nav { display: flex; align-items: center; gap: var(--sp-2); }
+  /* The label holds its width so stepping through months never shifts the
+     buttons either side of it. */
+  .month-label { min-width: 132px; text-align: center; font-size: var(--font-size-ui); }
+
+  .cal-layout { display: block; }
+  /* Week and agenda list every item in full, so the day panel has nothing left
+     to add and the width is better spent on the columns. */
+  .cal-card { padding: var(--pad-card); }
+  /* Tabs run the full width of the card so the rule under them reads as one
+     band, the same way the todos table does. */
+  .cal-card .tabs {
+    margin: calc(-1 * var(--pad-card)) calc(-1 * var(--pad-card)) var(--sp-4);
+    padding: 0 var(--pad-card);
+  }
+
+  .weekdays, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .weekdays {
+    gap: var(--sp-2); margin-bottom: var(--sp-2);
+    color: var(--text-secondary); font-size: 11px;
+  }
+  .grid { gap: var(--sp-2); }
+  .grid .pad { grid-column: 1 / -1; padding: var(--sp-5); }
+
+  .day {
+    min-height: 104px; padding: var(--sp-2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    display: flex; flex-direction: column; gap: var(--sp-1);
+    text-align: left; cursor: pointer;
+    font: inherit; color: inherit;
+  }
+  .day:hover { border-color: var(--text-secondary); }
+  .day[aria-pressed="true"] { border-color: var(--accent-edge, var(--text-primary)); }
+  .day.outside { opacity: 0.45; }
+  .day .dnum {
+    font-size: 12px; font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: var(--sp-2);
+  }
+  /* The routine count sits on the date line, not in the cell body: a habit
+     that happens every day is a property of the day, and listing it in the
+     body pushed the work you actually have to read out of view. */
+  .day .dnum .routine { margin-left: auto; color: var(--text-placeholder); }
+  .day .dnum .routine::after { content: " routine"; }
+  .day.today .dnum .n { color: var(--text-primary); font-weight: 500; }
+  .day.today .dnum .n::after {
+    content: ""; display: inline-block; margin-left: 6px;
+    width: 6px; height: 6px; border-radius: var(--radius-full);
+    background: var(--accent-fill); vertical-align: middle;
+  }
+  @media (max-width: 1100px) {
+    /* Not enough room for the word at this size, the number still reads. */
+    .day .dnum .routine::after { content: ""; }
+  }
+
+  .chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; line-height: var(--lh-1, 16px);
+    color: var(--text-primary);
+    min-width: 0; overflow: hidden;
+  }
+  /* The label is the only part allowed to shrink, so a long title ellipses
+     instead of squeezing the dot and the time out of the chip. */
+  .chip .label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .chip .dot {
+    flex: none; width: 6px; height: 6px; border-radius: var(--radius-full);
+    background: var(--cat, var(--chart-6));
+  }
+  .chip.more { color: var(--text-secondary); padding-left: 12px; }
+
+  /* Week: seven columns that grow with their contents, so nothing truncates.
+     The month grid trades detail for shape; the week trades shape for detail. */
+  .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--sp-2); }
+  .wcol {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface-2); padding: var(--sp-2);
+    display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0;
+  }
+  .wcol.today { border-color: var(--accent-edge, var(--text-primary)); }
+  .wcol .whead {
+    display: flex; align-items: baseline; gap: var(--sp-2);
+    color: var(--text-secondary); font-size: 11px;
+    padding-bottom: var(--sp-2); border-bottom: 1px solid var(--border);
+  }
+  .wcol .whead .wd { color: var(--text-primary); }
+  .wcol .whead .dn { font-variant-numeric: tabular-nums; }
+  .wcol.today .whead .wd, .wcol.today .whead .dn { color: var(--text-primary); font-weight: 500; }
+  .witem {
+    display: flex; gap: 6px; align-items: flex-start;
+    font-size: 11px; line-height: var(--lh-1, 16px); min-width: 0;
+  }
+  .witem .dot {
+    flex: none; width: 6px; height: 6px; margin-top: 5px;
+    border-radius: var(--radius-full); background: var(--cat, var(--chart-6));
+  }
+  .witem a { color: var(--text-primary); text-decoration: none; min-width: 0; overflow-wrap: anywhere; }
+  .witem a:hover { text-decoration: underline; }
+  .witem .t { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .wcol .dim { font-size: 11px; }
+
+  /* Agenda: one flat run of days, empty ones left out. The phone view. */
+  .agenda .aday { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: var(--sp-3); }
+  .agenda .aday + .aday { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+  .agenda .adate { color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .agenda .aday.today .adate { color: var(--text-primary); font-weight: 500; }
+  .agenda .arow { display: flex; align-items: baseline; gap: var(--sp-2); padding: 3px 0; min-width: 0; }
+  .agenda .arow .t {
+    flex: none; width: 46px; color: var(--text-secondary);
+    font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .agenda .arow .dot {
+    flex: none; width: 6px; height: 6px; border-radius: var(--radius-full);
+    background: var(--cat, var(--chart-6)); align-self: center;
+  }
+  .agenda .arow a { color: var(--text-primary); text-decoration: none; font-size: 13px; overflow-wrap: anywhere; }
+  .agenda .arow a:hover { text-decoration: underline; }
+  .agenda .arow .cat { color: var(--text-secondary); font-size: 11px; }
+
+  /* The full day view. Rows are a fixed four-column grid so the star, the
+     time and the actions line up down the page and the eye only has to track
+     the titles. */
+  .day-view .dsec + .dsec { margin-top: var(--sp-6); }
+  .day-view h3 {
+    display: flex; align-items: center; gap: var(--sp-2);
+    margin: 0 0 var(--sp-3); font-size: 12px; font-weight: 500;
+    color: var(--text-secondary); text-transform: none;
+  }
+  .dsec-star h3 { color: var(--warn-text); }
+  .dsec-settled { opacity: 0.7; }
+
+  .drow {
+    display: grid;
+    grid-template-columns: var(--h-2) 92px minmax(0, 1fr) auto;
+    gap: var(--sp-3); align-items: start;
+    padding: var(--sp-3); border-top: 1px solid var(--border);
+    margin: 0 calc(-1 * var(--sp-3));
+  }
+  .dsec .drow:first-of-type { border-top: 0; }
+  .drow-when { display: flex; flex-direction: column; gap: 2px; }
+  .drow .dtime {
+    color: var(--text-secondary); font-size: 12px;
+    font-variant-numeric: tabular-nums; line-height: var(--lh-2, 20px);
+  }
+  .drow-main a {
+    color: var(--text-primary); text-decoration: none;
+    font-size: 14px; line-height: var(--lh-2, 20px); overflow-wrap: anywhere;
+  }
+  .drow-main a:hover { text-decoration: underline; }
+  .drow-meta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
+    margin-top: var(--sp-1); color: var(--text-secondary); font-size: 11px;
+  }
+  .drow-meta .cat { display: inline-flex; align-items: center; gap: 6px; }
+  .drow-meta .cat .dot {
+    width: 6px; height: 6px; border-radius: var(--radius-full);
+    background: var(--cat, var(--chart-6));
+  }
+  /* Actions hold their place rather than appearing on hover: a row that
+     changes shape under the cursor is a row you misclick. */
+  .drow-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+  /* The tinted ground disappears in light, where --surface-2 is nearly the
+     page. An edge carries the state in both themes. */
+  .drow.is-urgent {
+    background: var(--surface-2); border-radius: var(--radius-sm);
+    box-shadow: inset 2px 0 0 var(--warn-text);
+  }
+  .drow.is-vital .drow-main a { font-weight: 500; }
+  .drow.is-done .drow-main a, .drow.is-failed .drow-main a { text-decoration: line-through; }
+  .drow.is-done .drow-main a { color: var(--ok-text); }
+  .drow.is-failed .drow-main a { color: var(--danger-text); }
+
+  .star {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: var(--h-2); height: var(--h-2); padding: 0;
+    background: none; border: 0; cursor: pointer; font-size: 15px;
+    color: var(--text-placeholder);
+  }
+  .star:hover { color: var(--warn-text); }
+  .star.on { color: var(--warn-text); }
+
+  @media (max-width: 720px) {
+    .drow { grid-template-columns: var(--h-2) minmax(0, 1fr); }
+    .drow-when { grid-column: 2; flex-direction: row; gap: var(--sp-3); }
+    .drow-main, .drow-actions { grid-column: 2; }
+    .drow-actions { justify-content: flex-start; }
+  }
+
+  /* Three states worth seeing at a glance: ticked, failed, and carried over
+     from a day that has passed. Colour alone does not carry them, each also
+     changes shape (rule through, or a label). */
+  .is-done a, .is-done .label { color: var(--ok-text); text-decoration: line-through; }
+  .is-done .dot { background: var(--ok-text) !important; }
+  .is-failed a, .is-failed .label { color: var(--danger-text); text-decoration: line-through; }
+  .is-failed .dot { background: var(--danger-text) !important; }
+  .late { color: var(--warn-text); white-space: nowrap; }
+  /* Vital is not priority. It marks the things whose last warning comes
+     through at max ntfy priority, so it earns a mark you can find at a
+     glance without reading a row. Weight carries it where the mark is small. */
+  .vital-mark { color: var(--danger-text); font-weight: 500; }
+  .is-vital > a, .is-vital .label, .witem.is-vital a { font-weight: 500; }
+
+  .dim { color: var(--text-placeholder); }
+
+  @media (max-width: 900px) {
+    .day { min-height: 72px; }
+    .chip .label { display: none; }
+    /* Seven columns of anything are unreadable on a phone, so the week falls
+       back to a stack of days and keeps its full titles. */
+    .week { grid-template-columns: minmax(0, 1fr); }
+    .agenda .aday { grid-template-columns: minmax(0, 1fr); gap: var(--sp-1); }
+  }
+</style>
+
+<script>
+(async () => {
+  const API_BASE = 'https://api.brain.gabrielpenman.com';
+
+  // Categories map onto the chart ramp so a colour means the same thing on
+  // every surface that reads the brain.
+  const CAT_COLOR = {
+    study: 'var(--chart-1)', deadline: 'var(--chart-1)',
+    finance: 'var(--chart-2)',
+    family: 'var(--chart-3)', social: 'var(--chart-3)',
+    health: 'var(--chart-4)', chore: 'var(--chart-4)',
+    work: 'var(--chart-5)',
+    travel: 'var(--chart-6)', errand: 'var(--chart-6)', personal: 'var(--chart-6)',
+  };
+  const MONTHS = ['January','February','March','April','May','June','July',
+                  'August','September','October','November','December'];
+
+  const grid = document.querySelector('[data-grid]');
+  const monthLabel = document.querySelector('[data-month]');
+  const count = document.querySelector('[data-count]');
+  const dayTitle = document.querySelector('[data-day-title]');
+  const dayCount = document.querySelector('[data-day-count]');
+
+  const plain = (s) => (window.g && g.plain ? g.plain(s) : String(s || ''));
+  const esc = (s) => plain(s).replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const TODAY = iso(new Date());
+
+  const weekdays = document.querySelector('[data-weekdays]');
+  const weekEl = document.querySelector('[data-week]');
+  const dayViewEl = document.querySelector('[data-dayview]');
+  const agendaEl = document.querySelector('[data-agenda]');
+  const tabs = document.querySelectorAll('.tabs .tab');
+
+  // The three views differ only in the range they ask for and how they draw
+  // it, so one cursor and one fetch serve all of them.
+  const VIEWS = {
+    // One day, full width, grouped. The panel beside the month grid answers
+    // "what is on this date"; this answers "what am I doing now", which needs
+    // the room to separate what is urgent from what merely has a date.
+    day:   { step: 'day',   days: 1,  label: 'on this day', snap: false },
+    month: { step: 'month', days: 42, label: 'this month' },
+    week:  { step: 'week',  days: 7,  label: 'this week' },
+    // The agenda is a forward look, so it does not snap back to Monday: it
+    // starts on the day you are standing on.
+    agenda:{ step: 'week',  days: 28, label: 'in four weeks', snap: false },
+  };
+
+  let view = 'month';
+  let cursor = new Date();
+  cursor.setDate(1);
+  let selected = TODAY;
+  let byDay = new Map();
+
+  // Minutes to the words the reminder outlet will effectively say, so the page
+  // states its own behaviour rather than leaving you to guess when it pings.
+  function plural(n, word) { return `${n} ${word}${n === 1 ? '' : 's'}`; }
+  function rung(min) {
+    if (min < 60) return `${min} min`;
+    if (min < 1440) return plural(Math.round(min/60), 'hour');
+    if (min < 10080) return plural(Math.round(min/1440), 'day');
+    return plural(Math.round(min/10080), 'week');
+  }
+  // The ladder arrives already trimmed for all-day and recurrence, so this
+  // only words it. Re-filtering here is how the page ends up promising a
+  // schedule the outlet does not fire.
+  function rungWords(m) { return m === 0 ? 'on the day' : rung(m) + ' before'; }
+  function ladderFull(item) {
+    const l = item.ladder || [];
+    return l.length ? 'Pings ' + l.map(rungWords).join(', ') : 'No reminder set';
+  }
+  // Short form for the row, full list in the tooltip. The two facts worth
+  // reading at a glance are how many warnings there are and when the last one
+  // lands, because the last one is the minimum notice to act on.
+  function ladderText(item) {
+    const l = item.ladder || [];
+    if (!l.length) return 'No reminder set';
+    if (l.length === 1) return '1 reminder, ' + rungWords(l[0]);
+    return `${l.length} reminders, last ${rungWords(l[l.length - 1])}`;
+  }
+
+  const addDays = (d, n) => { const c = new Date(d); c.setDate(d.getDate() + n); return c; };
+  // Weeks start on Monday, so Sunday (getDay 0) has to fall at the end.
+  const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
+
+  function range() {
+    const spec = VIEWS[view];
+    const start = view === 'month'
+      ? mondayOf(new Date(cursor.getFullYear(), cursor.getMonth(), 1))
+      : (spec.snap === false ? new Date(cursor) : mondayOf(cursor));
+    return { start, end: addDays(start, spec.days - 1) };
+  }
+
+  function rangeLabel() {
+    const { start, end } = range();
+    if (view === 'month') return `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`;
+    if (view === 'day') {
+      const k = iso(start);
+      const tomorrow = iso(addDays(new Date(), 1));
+      if (k === TODAY) return 'Today';
+      if (k === tomorrow) return 'Tomorrow';
+      return start.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    const fmt = (d, withYear) => d.toLocaleDateString('en-GB',
+      { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) });
+    return `${fmt(start, false)} to ${fmt(end, end.getFullYear() !== start.getFullYear())}`;
+  }
+
+  function itemsOn(key) { return byDay.get(key) || []; }
+
+  // A list that shows everything reads as a timeline, so week and agenda sort
+  // by clock. The API's starred-and-vital-first order is for the views that
+  // truncate, where the top of the cell is all you get.
+  function chronological(items) {
+    return items.slice().sort((a, b) => {
+      if (!!a.time !== !!b.time) return a.time ? -1 : 1;
+      if (a.time && b.time && a.time !== b.time) return a.time.localeCompare(b.time);
+      return a.title.localeCompare(b.title);
+    });
+  }
+
+  function dotStyle(it) {
+    return `--cat:${CAT_COLOR[it.category] || 'var(--chart-6)'}`;
+  }
+  function stateClass(it) {
+    return it.done ? ' is-done' : it.failed ? ' is-failed' : '';
+  }
+  const vitalMark = (it) => it.vital ? '<span class="vital-mark">!</span> ' : '';
+
+  function starBtn(i, on) {
+    return `<button class="star${on ? ' on' : ''}" type="button" data-act="star" data-i="${i}"
+            aria-pressed="${on}" data-tip="${on ? 'Remove the star' : 'Star as urgent'}">
+            <i class="ph ph-star"></i></button>`;
+  }
+
+  // The API already orders a day starred, then vital, then by time. This only
+  // adds the one thing a list view wants that a calendar cell does not:
+  // carried-over work ahead of work that is merely scheduled, because late
+  // work is the kind that stops getting looked at.
+  function triage(items) {
+    return items.slice().sort((a, b) => {
+      if (!!b.urgent !== !!a.urgent) return b.urgent ? 1 : -1;
+      if (!!b.vital !== !!a.vital) return b.vital ? 1 : -1;
+      if (!!b.late_days !== !!a.late_days) return b.late_days ? 1 : -1;
+      if (!!a.time !== !!b.time) return a.time ? -1 : 1;
+      if (a.time && b.time && a.time !== b.time) return a.time.localeCompare(b.time);
+      return a.title.localeCompare(b.title);
+    });
+  }
+  function lateTag(it) {
+    if (!it.late_days) return '';
+    const d = it.late_days;
+    return `<span class="late">${d === 1 ? '1 day late' : d + ' days late'}</span>`;
+  }
+
+  function renderGrid() {
+    const { start } = range();
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = iso(d);
+      const items = byDay.get(key) || [];
+      const outside = d.getMonth() !== cursor.getMonth();
+      // A month grid should show what is different about a day. Daily habits
+      // are the same every day, so listing them fills every cell with the one
+      // thing you already know and truncates the work you do not. They are
+      // counted instead.
+      const routine = items.filter(it => it.recurring && !it.urgent && !it.vital);
+      const notable = items.filter(it => !routine.includes(it));
+      const shown = notable.slice(0, 3).map(it => `
+        <span class="chip${stateClass(it)}" style="--cat:${CAT_COLOR[it.category] || 'var(--chart-6)'}">
+          <span class="dot"></span>
+          <span class="label">${vitalMark(it)}${esc(it.title)}</span>
+        </span>`).join('');
+      const extra = notable.length - Math.min(notable.length, 3);
+      cells.push(`
+        <button type="button" class="day${outside ? ' outside' : ''}${key === TODAY ? ' today' : ''}"
+                data-day="${key}" aria-pressed="${key === selected}">
+          <span class="dnum">
+            <span class="n">${d.getDate()}</span>
+            ${routine.length ? `<span class="routine">${routine.length}</span>` : ''}
+          </span>
+          ${shown}${extra ? `<span class="chip more">${extra} more</span>` : ''}
+        </button>`);
+    }
+    grid.innerHTML = cells.join('');
+  }
+
+  function renderWeek() {
+    const { start } = range();
+    const cols = [];
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(start, i);
+      const key = iso(d);
+      const items = chronological(itemsOn(key));
+      const body = items.length
+        ? items.map(it => `
+            <span class="witem${stateClass(it)}" style="${dotStyle(it)}">
+              <span class="dot"></span>
+              <a href="/note/${esc(it.permalink)}">${it.time ? `<span class="t">${esc(it.time)}</span> ` : ''}${vitalMark(it)}${esc(it.title)}</a>
+            </span>`).join('')
+        : '<span class="dim">Clear</span>';
+      cols.push(`
+        <div class="wcol${key === TODAY ? ' today' : ''}">
+          <div class="whead">
+            <span class="wd">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+            <span class="dn">${d.getDate()}</span>
+          </div>
+          ${body}
+        </div>`);
+    }
+    weekEl.innerHTML = cols.join('');
+  }
+
+  function dayRow(it, i) {
+    const reopen = `<button class="btn btn-tertiary btn-sm" type="button" data-act="reopen" data-i="${i}">Reopen</button>`;
+    const move = it.recurring ? '' : `
+      <button class="btn btn-tertiary btn-sm" type="button" data-act="tomorrow" data-i="${i}">Tomorrow</button>
+      <button class="btn btn-tertiary btn-sm" type="button" data-act="nextweek" data-i="${i}">Next week</button>
+      <button class="btn btn-tertiary btn-sm" type="button" data-act="drop" data-i="${i}">Drop it</button>`;
+    const actions = it.done ? reopen
+      : it.failed ? reopen + move
+      : `<button class="btn btn-secondary btn-sm" type="button" data-act="done" data-i="${i}">Done</button>
+         <button class="btn btn-tertiary btn-sm" type="button" data-act="failed" data-i="${i}">Did not happen</button>
+         ${move}`;
+    return `
+      <div class="drow${stateClass(it)}${it.urgent ? ' is-urgent' : ''}${it.vital ? ' is-vital' : ''}"
+           style="${dotStyle(it)}">
+        <div class="drow-star">${starBtn(i, it.urgent)}</div>
+        <div class="drow-when">
+          <span class="dtime">${it.time ? esc(it.time) : 'All day'}</span>
+          ${it.late_days ? `<span class="late">${it.late_days === 1 ? '1 day late' : it.late_days + ' days late'}</span>` : ''}
+        </div>
+        <div class="drow-main">
+          <a href="/note/${esc(it.permalink)}">${vitalMark(it)}${esc(it.title)}</a>
+          <div class="drow-meta">
+            ${it.category ? `<span class="cat"><span class="dot"></span>${esc(it.category)}</span>` : ''}
+            <span data-tip="${esc(ladderFull(it))}">${esc(ladderText(it))}</span>
+            ${it.recurring ? '<span>Repeats</span>' : ''}
+            ${it.vital ? '<span class="vital-mark">Vital</span>' : ''}
+          </div>
+        </div>
+        <div class="drow-actions">${actions}</div>
+      </div>`;
+  }
+
+  function renderDayView() {
+    const { start } = range();
+    const all = itemsOn(iso(start));
+    const live = triage(all.filter(it => !it.done && !it.failed));
+    const settled = triage(all.filter(it => it.done || it.failed));
+    const idx = (it) => all.indexOf(it);
+    const starred = live.filter(it => it.urgent);
+    const rest = live.filter(it => !it.urgent);
+
+    if (!all.length) {
+      dayViewEl.innerHTML = '<p class="dim">Nothing on this day.</p>';
+      return;
+    }
+    const section = (title, rows, extra) => rows.length ? `
+      <section class="dsec${extra || ''}">
+        <h3>${title}<span class="badge badge-plain num">${rows.length}</span></h3>
+        ${rows.map(it => dayRow(it, idx(it))).join('')}
+      </section>` : '';
+
+    dayViewEl.innerHTML =
+      section('Starred', starred, ' dsec-star') +
+      section('To do', rest) +
+      section('Settled', settled, ' dsec-settled');
+  }
+
+  function renderAgenda() {
+    const { start } = range();
+    const days = [];
+    for (let i = 0; i < VIEWS.agenda.days; i++) {
+      const d = addDays(start, i);
+      const key = iso(d);
+      const items = chronological(itemsOn(key));
+      if (!items.length) continue;
+      days.push(`
+        <div class="aday${key === TODAY ? ' today' : ''}">
+          <div class="adate">${key === TODAY ? 'Today' : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+          <div>
+            ${items.map(it => `
+              <div class="arow${stateClass(it)}" style="${dotStyle(it)}">
+                <span class="t">${it.time ? esc(it.time) : 'All day'}</span>
+                <span class="dot"></span>
+                <a href="/note/${esc(it.permalink)}">${vitalMark(it)}${esc(it.title)}</a>
+                ${it.category ? `<span class="cat">${esc(it.category)}</span>` : ''}
+                ${lateTag(it)}
+              </div>`).join('')}
+          </div>
+        </div>`);
+    }
+    agendaEl.innerHTML = days.length
+      ? days.join('')
+      : '<p class="dim">Nothing dated in this stretch.</p>';
+  }
+
+  function renderAgenda() {
+    const { start } = range();
+    const days = [];
+    for (let i = 0; i < VIEWS.agenda.days; i++) {
+      const d = addDays(start, i);
+      const key = iso(d);
+      const items = chronological(itemsOn(key));
+      if (!items.length) continue;
+      days.push(`
+        <div class="aday${key === TODAY ? ' today' : ''}">
+          <div class="adate">${key === TODAY ? 'Today' : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+          <div>
+            ${items.map(it => `
+              <div class="arow${stateClass(it)}" style="${dotStyle(it)}">
+                <span class="t">${it.time ? esc(it.time) : 'All day'}</span>
+                <span class="dot"></span>
+                <a href="/note/${esc(it.permalink)}">${vitalMark(it)}${esc(it.title)}</a>
+                ${it.category ? `<span class="cat">${esc(it.category)}</span>` : ''}
+                ${lateTag(it)}
+              </div>`).join('')}
+          </div>
+        </div>`);
+    }
+    agendaEl.innerHTML = days.length
+      ? days.join('')
+      : '<p class="dim">Nothing dated in this stretch.</p>';
+  }
+
+  function paint() {
+    grid.toggleAttribute('hidden', view !== 'month');
+    weekdays.toggleAttribute('hidden', view !== 'month');
+    weekEl.toggleAttribute('hidden', view !== 'week');
+    agendaEl.toggleAttribute('hidden', view !== 'agenda');
+    dayViewEl.toggleAttribute('hidden', view !== 'day');
+    monthLabel.textContent = rangeLabel();
+    if (view === 'month') renderGrid();
+    else if (view === 'week') renderWeek();
+    else if (view === 'day') renderDayView();
+    else renderAgenda();
+  }
+
+  async function load() {
+    const { start, end } = range();
+    grid.innerHTML = '<p class="dim pad">Loading</p>';
+    try {
+      const occRes = await fetch(
+        `${API_BASE}/api/todos/calendar?date_from=${iso(start)}&date_to=${iso(end)}`);
+      if (!occRes.ok) throw new Error(`calendar ${occRes.status}`);
+      const occ = await occRes.json();
+      byDay = new Map();
+      occ.forEach(it => {
+        if (!byDay.has(it.date)) byDay.set(it.date, []);
+        byDay.get(it.date).push(it);
+      });
+      const outstanding = occ.filter(o => !o.done && !o.failed).length;
+      count.textContent = `${outstanding} open ${VIEWS[view].label}`;
+      paint();
+    } catch (e) {
+      grid.innerHTML = `<p class="dim pad">The brain API did not answer (${esc(e.message)}). Reload to try again.</p>`;
+      count.textContent = 'Unavailable';
+    }
+  }
+
+  grid.addEventListener('click', (e) => {
+    const cell = e.target.closest('[data-day]');
+    if (!cell) return;
+    selected = cell.dataset.day;
+    setView('day', new Date(selected + 'T12:00:00'));
+  });
+
+  const ACTION_WORDS = {
+    done: 'Marked done', failed: 'Marked as did not happen',
+    reopen: 'Reopened', tomorrow: 'Moved to tomorrow', nextweek: 'Moved to next week',
+    drop: 'Dropped', star: 'Starred as urgent', unstar: 'Star removed',
+  };
+
+  function patchFor(act, it) {
+    const plusDays = (n) => {
+      const d = new Date(); d.setDate(d.getDate() + n); return iso(d);
+    };
+    if (act === 'tomorrow') return { reschedule_to: plusDays(1) };
+    if (act === 'nextweek') return { reschedule_to: plusDays(7) };
+    if (act === 'drop') return { status: 'cancelled' };
+    if (act === 'star') return { urgent: !it.urgent };
+    if (it.recurring) {
+      if (act === 'done') return { done_date: it.date };
+      if (act === 'failed') return { failed_date: it.date };
+      return { undone_date: it.date, unfailed_date: it.date };
+    }
+    if (act === 'done') return { status: 'done' };
+    if (act === 'failed') return { status: 'failed' };
+    return { status: 'open' };
+  }
+
+  async function onAction(e, dayKey) {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const it = (byDay.get(dayKey) || [])[Number(btn.dataset.i)];
+    if (!it) return;
+    const act = btn.dataset.act;
+    btn.disabled = true;
+    try {
+      const r = await fetch(`${API_BASE}/api/todos/${encodeURIComponent(it.slug)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchFor(act, it)),
+      });
+      if (!r.ok) throw new Error(`${r.status}`);
+      await load();
+      const word = act === 'star' && it.urgent ? ACTION_WORDS.unstar : ACTION_WORDS[act];
+      g.toast({ title: word, desc: it.title, kind: 'ok' });
+    } catch (err) {
+      btn.disabled = false;
+      g.toast({
+        title: 'The change did not save',
+        desc: `The brain API refused it (${err.message}). The todo is unchanged, try again.`,
+        kind: 'danger',
+      });
+    }
+  }
+
+  dayViewEl.addEventListener('click', (e) => onAction(e, iso(range().start)));
+
+  function setView(next, at) {
+    // Carry the cursor across, so switching from March to the week view lands
+    // in March. The exception is a range that already contains today: there
+    // the useful day is today, not whichever Monday the old range started on.
+    const now = new Date();
+    const { start, end } = range();
+    const holdsToday = !at && now >= start && now <= addDays(end, 1);
+    const anchor = at ? new Date(at) : holdsToday ? now : new Date(cursor);
+    view = next;
+    // A week can straddle two months. Its Thursday decides which one it
+    // belongs to, the same rule ISO weeks use.
+    cursor = view === 'month'
+      ? (() => { const th = addDays(mondayOf(anchor), 3);
+                 return new Date(th.getFullYear(), th.getMonth(), 1); })()
+      : (VIEWS[view].snap === false ? anchor : mondayOf(anchor));
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === view)));
+    load();
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.view !== view) setView(tab.dataset.view);
+    });
+  });
+
+  document.querySelectorAll('[data-step]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const n = Number(btn.dataset.step);
+      const stride = { month: 0, day: 1, week: 7, agenda: 28 };
+      cursor = VIEWS[view].step === 'month'
+        ? new Date(cursor.getFullYear(), cursor.getMonth() + n, 1)
+        : addDays(cursor, n * stride[view]);
+      load();
+    });
+  });
+  document.querySelector('[data-today]').addEventListener('click', () => {
+    const now = new Date();
+    cursor = view === 'month' ? new Date(now.getFullYear(), now.getMonth(), 1)
+           : VIEWS[view].snap === false ? now : mondayOf(now);
+    selected = TODAY;
+    load();
+  });
+
+  await load();
+})();
+</script>

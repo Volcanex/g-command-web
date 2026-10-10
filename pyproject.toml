@@ -1,0 +1,9 @@
+[project]
+name = "g-command-web"
+version = "0.1.0"
+description = "Command center: the G-System web UI for ops, Brain views and service health"
+
+[tool.gcore]
+depends = []
+starter = "gseed-app"
+design = "g-system@1.6.0"

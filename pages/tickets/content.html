@@ -1,0 +1,431 @@
+<div class="page-head">
+  <h1>Tickets</h1>
+  <span class="badge badge-plain num" id="tix-count">Loading</span>
+  <span class="spacer"></span>
+  <span class="tix-checked" id="tix-checked"></span>
+  <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="tix-refresh"
+          aria-label="Refresh tickets" data-tip="Refresh tickets"></button>
+</div>
+<p class="page-sub">Every g-admin ticket across every project that speaks the contract. Pull a brief, hand it to an agent, mark it baked once the change lands.</p>
+
+<div id="tix-projects" class="tix-projects" hidden></div>
+
+<div class="card tix-card">
+  <div class="toolbar">
+    <label class="tb-field">
+      <span class="tb-label">Project</span>
+      <span class="select-wrap">
+        <select class="select" id="tix-f-project"><option value="">All projects</option></select>
+      </span>
+    </label>
+    <label class="tb-field">
+      <span class="tb-label">Status</span>
+      <span class="select-wrap">
+        <select class="select" id="tix-f-status">
+          <option value="">All statuses</option>
+          <option value="open">Open</option>
+          <option value="baked">Baked</option>
+          <option value="dismissed">Dismissed</option>
+        </select>
+      </span>
+    </label>
+    <label class="tb-field">
+      <span class="tb-label">Severity</span>
+      <span class="select-wrap">
+        <select class="select" id="tix-f-severity">
+          <option value="">All severities</option>
+          <option value="critical">Critical</option>
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+          <option value="polish">Polish</option>
+        </select>
+      </span>
+    </label>
+  </div>
+
+  <div id="tix-degraded" class="tix-degraded" hidden></div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Project</th><th>Kind</th><th>Severity</th><th>Page</th><th>Note</th>
+          <th>Status</th><th class="r">Updated</th>
+        </tr>
+      </thead>
+      <tbody id="tix-rows">
+        <tr><td colspan="7" class="muted">Loading tickets</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<dialog class="dlg tix-dlg" id="tix-dlg" aria-labelledby="tix-dlg-title">
+  <div class="dlg-body">
+    <div class="tix-dlg-head">
+      <span class="dlg-title" id="tix-dlg-title">Ticket</span>
+      <span class="badge badge-plain" id="tix-dlg-status"></span>
+      <span class="badge badge-plain" id="tix-dlg-severity"></span>
+      <span class="spacer"></span>
+      <button class="btn btn-secondary btn-sm copy-btn" id="tix-dlg-copy" data-copy=""><span class="copy-label">Copy brief</span></button>
+    </div>
+    <article class="prose tix-brief" id="tix-dlg-brief"><p class="muted">Loading brief</p></article>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn btn-secondary" id="tix-dlg-close">Close</button>
+    <button class="btn btn-secondary" id="tix-dlg-dismiss">Dismiss</button>
+    <button class="btn btn-primary" id="tix-dlg-bake">Mark baked</button>
+  </div>
+</dialog>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .tix-checked {
+    font-size: 12px; color: var(--text-placeholder);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .page-sub {
+    margin: var(--sp-1) 0 var(--sp-5);
+    color: var(--text-secondary); font-size: var(--font-size-ui);
+  }
+
+  .tix-projects {
+    display: flex; flex-wrap: wrap; gap: var(--sp-2);
+    margin-bottom: var(--sp-4);
+  }
+  .tix-chip {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--border); border-radius: var(--radius-card);
+    background: var(--surface); cursor: pointer; font-size: 12.5px;
+  }
+  .tix-chip:hover { border-color: var(--border-strong); }
+  .tix-chip[aria-pressed="true"] { border-color: var(--accent-edge); background: var(--accent-fill-subtle, var(--surface)); }
+  .tix-chip .chip-name { font-family: var(--font-mono); color: var(--text-primary); }
+  .tix-chip .badge { font-variant-numeric: tabular-nums; }
+
+  .tix-card { padding: var(--pad-card); }
+  .toolbar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding-bottom: var(--sp-3); }
+  .tb-field { display: flex; align-items: center; gap: var(--sp-2); }
+  .tb-label { font-size: 12px; color: var(--text-secondary); }
+  .tb-field .select-wrap { min-width: 150px; }
+
+  .tix-card .table-wrap { margin: 0 calc(-1 * var(--pad-card)); }
+  .tix-card .table th:first-child, .tix-card .table td:first-child { padding-left: var(--pad-card); }
+  .tix-card .table th:last-child, .tix-card .table td:last-child { padding-right: var(--pad-card); }
+  .table td.proj { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); }
+  .table td.updated { color: var(--text-secondary); white-space: nowrap; }
+  .table td.note { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .table td.page-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 12px; }
+  .table tr.tix-row { cursor: pointer; }
+  .muted { color: var(--text-secondary); }
+
+  .tix-degraded {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) 0; color: var(--warn-text); font-size: 12px;
+  }
+  .tix-degraded i { font-size: 15px; }
+
+  .tix-dlg { width: min(640px, 92vw); }
+  .tix-dlg-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+  .tix-dlg-head .spacer { flex: 1; }
+  .tix-brief { max-height: 50vh; overflow-y: auto; }
+  .tix-brief h1 { font-size: 16px; }
+  .tix-brief h2 { font-size: 14px; }
+  .tix-brief h3 { font-size: 13px; }
+
+  @media (max-width: 720px) {
+    .table td.page-cell { display: none; }
+    .table td.note { max-width: 160px; }
+  }
+</style>
+
+<script>
+(async () => {
+  const rowsEl = document.getElementById('tix-rows');
+  const countEl = document.getElementById('tix-count');
+  const checkedEl = document.getElementById('tix-checked');
+  const refreshBtn = document.getElementById('tix-refresh');
+  const projectsEl = document.getElementById('tix-projects');
+  const degradedEl = document.getElementById('tix-degraded');
+  const fProject = document.getElementById('tix-f-project');
+  const fStatus = document.getElementById('tix-f-status');
+  const fSeverity = document.getElementById('tix-f-severity');
+
+  const dlg = document.getElementById('tix-dlg');
+  const dlgTitle = document.getElementById('tix-dlg-title');
+  const dlgStatus = document.getElementById('tix-dlg-status');
+  const dlgSeverity = document.getElementById('tix-dlg-severity');
+  const dlgBrief = document.getElementById('tix-dlg-brief');
+  const dlgCopy = document.getElementById('tix-dlg-copy');
+  const dlgClose = document.getElementById('tix-dlg-close');
+  const dlgDismiss = document.getElementById('tix-dlg-dismiss');
+  const dlgBake = document.getElementById('tix-dlg-bake');
+
+  const STATUS_BADGE = {
+    open: 'badge-warn', baked: 'badge-ok', dismissed: 'badge-plain',
+  };
+  const SEVERITY_BADGE = {
+    critical: 'badge-danger', major: 'badge-warn', minor: 'badge-info', polish: 'badge-plain',
+  };
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+  function sentence(s) {
+    s = String(s ?? '');
+    return s ? s[0].toUpperCase() + s.slice(1) : s;
+  }
+  function plain(s) {
+    if (window.g && g.plain) return g.plain(s);
+    return String(s ?? '').replace(/[*`_]/g, '');
+  }
+  // Minimal, safe markdown for the brief: escape first, then format the
+  // escaped string. Same approach as the blog page's editor preview.
+  function mdToHtml(s) {
+    const lines = escapeHtml(s).split('\n');
+    const out = [];
+    let inList = false;
+    for (let line of lines) {
+      const h = line.match(/^(#{1,3})\s+(.*)$/);
+      const li = line.match(/^[-*]\s+(.*)$/);
+      if (h) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        const n = h[1].length;
+        out.push(`<h${n}>${inline(h[2])}</h${n}>`);
+      } else if (li) {
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push(`<li>${inline(li[1])}</li>`);
+      } else {
+        if (inList) { out.push('</ul>'); inList = false; }
+        if (line.trim() === '') out.push('<br>');
+        else out.push(`<p>${inline(line)}</p>`);
+      }
+    }
+    if (inList) out.push('</ul>');
+    return out.join('\n');
+  }
+  function inline(h) {
+    h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return h;
+  }
+
+  function toast(opts) {
+    if (window.g && g.toast) return g.toast(opts);
+    return { update() {}, dismiss() {} };
+  }
+
+  if (document.readyState === 'loading') {
+    await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+
+  let all = [];       // every ticket from the last unfiltered load
+  let projects = [];  // every project the roster currently knows about
+  let degraded = [];
+  let selected = null; // { project, id } of the ticket open in the dialog
+
+  async function api(qs) {
+    const r = await fetch('/api/gadmin_panel/tickets' + (qs ? `?${qs}` : ''), { credentials: 'same-origin' });
+    if (!r.ok) throw new Error(`tickets ${r.status}`);
+    return r.json();
+  }
+
+  function ticketKey(t) { return `${t.project}::${t.id}`; }
+
+  function renderProjects() {
+    const counts = {};
+    for (const p of projects) counts[p] = { open: 0, baked: 0, dismissed: 0 };
+    for (const t of all) {
+      if (!counts[t.project]) counts[t.project] = { open: 0, baked: 0, dismissed: 0 };
+      const k = STATUS_BADGE[t.status] ? t.status : 'open';
+      counts[t.project][k] = (counts[t.project][k] || 0) + 1;
+    }
+    const ids = Object.keys(counts).sort();
+    projectsEl.hidden = ids.length === 0;
+    projectsEl.innerHTML = ids.map(pid => {
+      if (degraded.includes(pid)) {
+        return `<button class="tix-chip" data-chip-project="${escapeHtml(pid)}" aria-pressed="${fProject.value === pid}">
+          <span class="chip-name">${escapeHtml(pid)}</span>
+          <span class="badge badge-danger">Down</span>
+        </button>`;
+      }
+      const c = counts[pid];
+      return `<button class="tix-chip" data-chip-project="${escapeHtml(pid)}" aria-pressed="${fProject.value === pid}">
+        <span class="chip-name">${escapeHtml(pid)}</span>
+        <span class="badge badge-warn num">${c.open} open</span>
+        <span class="badge badge-ok num">${c.baked} baked</span>
+      </button>`;
+    }).join('');
+  }
+
+  function renderDegraded() {
+    degradedEl.hidden = degraded.length === 0;
+    if (degraded.length) {
+      degradedEl.innerHTML = `<i class="ph ph-warning-diamond"></i>
+        <span>${degraded.length === 1 ? 'One project is' : `${degraded.length} projects are`} unreachable right now (${degraded.map(escapeHtml).join(', ')}). Their tickets are left out until the next check.</span>`;
+    }
+  }
+
+  function filtered() {
+    return all.filter(t => {
+      if (fProject.value && t.project !== fProject.value) return false;
+      if (fStatus.value && t.status !== fStatus.value) return false;
+      if (fSeverity.value && t.severity !== fSeverity.value) return false;
+      return true;
+    });
+  }
+
+  function renderRows() {
+    const rows = filtered();
+    countEl.textContent = `${rows.length} of ${all.length}`;
+    if (!rows.length) {
+      rowsEl.innerHTML = `<tr><td colspan="7" class="muted">No tickets match these filters.</td></tr>`;
+      return;
+    }
+    rowsEl.innerHTML = rows.map(t => {
+      const page = t.page || {};
+      const updated = (t.updated_at || t.created_at || '').replace('T', ' ').slice(0, 16);
+      return `<tr class="tix-row" data-key="${escapeHtml(ticketKey(t))}">
+        <td class="proj">${escapeHtml(t.project)}</td>
+        <td>${escapeHtml(sentence(t.kind))}</td>
+        <td><span class="badge ${SEVERITY_BADGE[t.severity] || 'badge-plain'}">${escapeHtml(sentence(t.severity))}</span></td>
+        <td class="page-cell" title="${escapeHtml(page.path || '')}">${escapeHtml(page.title || page.path || '')}</td>
+        <td class="note" title="${escapeHtml(plain(t.note))}">${escapeHtml(plain(t.note)) || '<span class="muted">No note</span>'}</td>
+        <td><span class="badge ${STATUS_BADGE[t.status] || 'badge-plain'}">${escapeHtml(sentence(t.status))}</span></td>
+        <td class="r updated">${escapeHtml(updated)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderAll() {
+    renderProjects();
+    renderDegraded();
+    renderRows();
+  }
+
+  async function load() {
+    checkedEl.textContent = 'Fetching tickets';
+    try {
+      const data = await api('');
+      all = data.tickets || [];
+      projects = data.projects || [];
+      degraded = data.degraded || [];
+      const opts = ['<option value="">All projects</option>']
+        .concat(projects.slice().sort().map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`));
+      const prev = fProject.value;
+      fProject.innerHTML = opts.join('');
+      fProject.value = prev;
+      renderAll();
+      checkedEl.textContent = `Checked ${new Date().toLocaleTimeString()}`;
+    } catch (e) {
+      rowsEl.innerHTML = `<tr><td colspan="7" class="muted">Tickets did not load (${escapeHtml(e.message)}). Try refreshing.</td></tr>`;
+      checkedEl.textContent = '';
+      toast({ title: 'Could not load tickets', desc: e.message, kind: 'danger' });
+    }
+  }
+
+  refreshBtn.addEventListener('click', () => load());
+  [fProject, fStatus, fSeverity].forEach(el => el.addEventListener('change', () => { renderProjects(); renderRows(); }));
+  projectsEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-chip-project]');
+    if (!chip) return;
+    const pid = chip.dataset.chipProject;
+    fProject.value = fProject.value === pid ? '' : pid;
+    renderProjects();
+    renderRows();
+  });
+
+  // ---- detail dialog ----
+
+  function findTicket(key) { return all.find(t => ticketKey(t) === key); }
+
+  async function openDialog(t) {
+    selected = { project: t.project, id: t.id };
+    dlgTitle.textContent = `${t.project}: ${plain(t.page?.title) || plain(t.note).slice(0, 60) || 'ticket'}`;
+    dlgStatus.className = `badge ${STATUS_BADGE[t.status] || 'badge-plain'}`;
+    dlgStatus.textContent = sentence(t.status);
+    dlgSeverity.className = `badge ${SEVERITY_BADGE[t.severity] || 'badge-plain'}`;
+    dlgSeverity.textContent = sentence(t.severity);
+    dlgBrief.innerHTML = '<p class="muted">Loading brief</p>';
+    dlgCopy.dataset.copy = '';
+    dlg.showModal();
+    try {
+      const r = await fetch(`/api/gadmin_panel/tickets/${encodeURIComponent(t.project)}/${encodeURIComponent(t.id)}/brief`, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error(`brief ${r.status}`);
+      const text = await r.text();
+      dlgBrief.innerHTML = mdToHtml(text);
+      dlgCopy.dataset.copy = text;
+    } catch (e) {
+      dlgBrief.innerHTML = `<p class="muted">The brief did not load (${escapeHtml(e.message)}). The project may be unreachable right now.</p>`;
+    }
+  }
+
+  rowsEl.addEventListener('click', (e) => {
+    const row = e.target.closest('.tix-row');
+    if (!row) return;
+    const t = findTicket(row.dataset.key);
+    if (t) openDialog(t);
+  });
+
+  dlgClose.addEventListener('click', () => dlg.close());
+
+  async function patchStatus(status) {
+    if (!selected) return;
+    const btn = status === 'baked' ? dlgBake : dlgDismiss;
+    btn.disabled = true;
+    try {
+      const r = await fetch(`/api/gadmin_panel/tickets/${encodeURIComponent(selected.project)}/${encodeURIComponent(selected.id)}`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.detail || `HTTP ${r.status}`);
+      }
+      const t = findTicket(`${selected.project}::${selected.id}`);
+      if (t) t.status = status;
+      renderAll();
+      dlg.close();
+      toast({ title: status === 'baked' ? 'Ticket marked baked' : 'Ticket dismissed', kind: 'ok' });
+    } catch (e) {
+      toast({ title: 'Could not update ticket', desc: e.message, kind: 'danger' });
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  dlgBake.addEventListener('click', () => patchStatus('baked'));
+  dlgDismiss.addEventListener('click', () => patchStatus('dismissed'));
+
+  await load();
+
+  // Deep link: /tickets?project=<id>&id=<ticket> filters to that project and
+  // opens the ticket, so the desktop app can jump straight to one.
+  const link = new URLSearchParams(location.search);
+  const linkProject = link.get('project');
+  const linkId = link.get('id');
+  if (linkProject && projects.includes(linkProject)) {
+    fProject.value = linkProject;
+    renderProjects();
+    renderRows();
+  }
+  if (linkProject && linkId) {
+    const t = findTicket(`${linkProject}::${linkId}`);
+    if (t) openDialog(t);
+    else toast({
+      title: 'Ticket not found',
+      desc: `${escapeHtml(linkProject)} has no ticket ${escapeHtml(linkId)}, or the project is unreachable right now. Showing the tickets that loaded.`,
+      kind: 'danger',
+    });
+  }
+})();
+</script>

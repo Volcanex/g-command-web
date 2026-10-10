@@ -1,0 +1,12 @@
+{
+  "title": "Lineage",
+  "slug": "lineage",
+  "description": "Layer 4: starter and design language provenance across repos.",
+  "nav": true,
+  "order": 35,
+  "body_class": "lineage-page",
+  "nav_section": "Brain",
+  "nav_icon": "tree-structure",
+  "nav_label": "Lineage",
+  "gsys": true
+}

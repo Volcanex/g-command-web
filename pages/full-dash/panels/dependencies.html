@@ -1,0 +1,89 @@
+<section class="card fd-panel" id="fd-dependencies">
+  <header class="fd-panel-head">
+    <i class="ph ph-plugs-connected"></i>
+    <h2 class="card-title">Dependencies</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/system" data-tip="Open system" aria-label="Open system"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-dependencies { --row-h: 30px; }
+  #fd-dependencies .fd-body { max-height: 540px; overflow-y: auto; }
+  #fd-dependencies .fdd-id { width: 36%; }
+  #fd-dependencies .fdd-detail { color: var(--text-secondary); }
+  #fd-dependencies .fdd-state { width: 86px; }
+  #fd-dependencies [data-meta] .fdd-warn { color: var(--warn-text); }
+  #fd-dependencies [data-meta] .fdd-down { color: var(--danger-text); }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-dependencies');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var CRIT_ORDER = ['vital', 'important', 'nice'];
+  var CRIT_LABEL = { vital: 'Vital', important: 'Important', nice: 'Nice to have' };
+  var STATE_RANK = { down: 0, warn: 1, unknown: 2, up: 3 };
+  var BADGE = { up: 'badge-ok', warn: 'badge-warn', down: 'badge-danger', unknown: 'badge-plain' };
+  var STATE_LABEL = { up: 'Up', warn: 'Warn', down: 'Down', unknown: 'Unknown' };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function render(data) {
+    var deps = data.dependencies || [];
+    var counts = { up: 0, warn: 0, down: 0, unknown: 0 };
+    deps.forEach(function (d) { if (counts[d.state] !== undefined) counts[d.state]++; });
+    var warnPart = counts.warn + ' warn';
+    if (counts.warn > 0) warnPart = '<span class="fdd-warn">' + warnPart + '</span>';
+    var downPart = counts.down + ' down';
+    if (counts.down > 0) downPart = '<span class="fdd-down">' + downPart + '</span>';
+    meta.innerHTML = counts.up + ' up, ' + warnPart + ', ' + downPart +
+      ', ' + counts.unknown + ' unknown';
+    meta.title = counts.up + ' up, ' + counts.warn + ' warn, ' + counts.down +
+      ' down, ' + counts.unknown + ' unknown';
+
+    var byCrit = {};
+    deps.forEach(function (d) {
+      var c = CRIT_ORDER.indexOf(d.criticality) >= 0 ? d.criticality : 'nice';
+      (byCrit[c] = byCrit[c] || []).push(d);
+    });
+
+    var html = '';
+    CRIT_ORDER.forEach(function (crit) {
+      var group = byCrit[crit];
+      if (!group || !group.length) return;
+      group.sort(function (a, b) {
+        var ra = STATE_RANK[a.state] !== undefined ? STATE_RANK[a.state] : 2;
+        var rb = STATE_RANK[b.state] !== undefined ? STATE_RANK[b.state] : 2;
+        return ra - rb;
+      });
+      html += '<div class="fd-group">' +
+        '<div class="fd-group-label">' + esc(CRIT_LABEL[crit]) + '</div>' +
+        '<div class="table-wrap"><table class="table"><tbody>';
+      group.forEach(function (d) {
+        var state = STATE_RANK[d.state] !== undefined ? d.state : 'unknown';
+        html += '<tr title="' + esc((d.provider || '') + ': ' + (d.detail || '')) + '">' +
+          '<td class="fdd-id">' + esc(d.id) + '</td>' +
+          '<td class="fdd-detail">' + esc(d.detail || '') + '</td>' +
+          '<td class="r fdd-state"><span class="badge ' + BADGE[state] + '">' +
+            esc(STATE_LABEL[state]) + '</span></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div></div>';
+    });
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/status', { ttl: 30000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Dependency health unavailable. The panel retries every minute.',
+          (e && e.message) || e);
+      });
+  }, 60000);
+})();</script>

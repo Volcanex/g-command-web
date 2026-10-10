@@ -1,0 +1,308 @@
+<div class="page-head">
+  <h1>Upload</h1>
+  <span class="badge badge-plain" data-count>Loading</span>
+  <span class="spacer"></span>
+  <span class="badge badge-plain" data-free hidden></span>
+</div>
+<p class="page-sub">Drop files straight onto the server. They land in <code data-dir>…</code>.</p>
+
+<div class="g-dropzone" data-drop>
+  <div class="g-dropzone-prompt">
+    <input type="file" multiple data-picker aria-label="Choose files to upload">
+    <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,136v64a16,16,0,0,1-16,16H32a16,16,0,0,1-16-16V136a16,16,0,0,1,16-16H72a8,8,0,0,1,0,16H32v64H224V136H184a8,8,0,0,1,0-16h40A16,16,0,0,1,240,136ZM85.66,77.66,120,43.31V128a8,8,0,0,0,16,0V43.31l34.34,34.35a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,85.66,77.66Z"/></svg>
+    <span class="g-dropzone-title">Drop files here</span>
+    <span class="g-dropzone-hint">Or click to choose, several at a time is fine</span>
+  </div>
+</div>
+
+<div class="card up-panel" data-queue hidden>
+  <div class="panel-head">
+    <span class="card-title">Uploading</span>
+    <span class="spacer"></span>
+    <span class="up-dim" data-queue-note></span>
+  </div>
+  <div data-queue-rows></div>
+</div>
+
+<div class="card up-panel">
+  <div class="panel-head">
+    <span class="card-title">On the box</span>
+    <span class="spacer"></span>
+    <span class="up-dim">Newest first</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="r">Size</th>
+          <th>Added</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody data-rows>
+        <tr><td colspan="4" class="up-dim">Loading</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-head .badge { font-variant-numeric: tabular-nums; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+
+  .g-dropzone { margin-bottom: var(--sp-4); }
+
+  .up-panel { margin-bottom: var(--sp-4); padding-bottom: 4px; }
+  .up-panel .panel-head { display: flex; align-items: center; gap: 10px; padding-bottom: var(--sp-3); }
+  .up-panel .panel-head .spacer { flex: 1; }
+  .up-dim { font-size: 12px; color: var(--text-placeholder); font-variant-numeric: tabular-nums; }
+
+  .up-row {
+    display: grid;
+    /* the readout column is auto so a full "rate, eta" line never rides
+       back over the bar; the name column takes the squeeze instead */
+    grid-template-columns: minmax(0, 1fr) 160px auto;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--font-size-ui);
+  }
+  .up-row:last-child { border-bottom: none; }
+  .up-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .up-row .progress-readout { justify-self: end; }
+  .up-row.err .g-progress-fill { background: var(--danger-text); }
+  .up-row.err .progress-readout { color: var(--danger-text); }
+
+  .table td.name { max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .table td.when { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .table td.act { text-align: right; }
+
+  @media (max-width: 720px) {
+    .up-row { grid-template-columns: minmax(0, 1fr) 96px; }
+    .up-row .progress-readout { grid-column: 1 / -1; justify-self: start; }
+    .table td.name { max-width: 200px; }
+  }
+</style>
+
+<script>
+(function () {
+  var API = '/api/upload';
+  var zone = document.querySelector('[data-drop]');
+  var picker = zone.querySelector('[data-picker]');
+  var queue = document.querySelector('[data-queue]');
+  var queueRows = document.querySelector('[data-queue-rows]');
+  var queueNote = document.querySelector('[data-queue-note]');
+  var tbody = document.querySelector('[data-rows]');
+  var countEl = document.querySelector('[data-count]');
+  var freeEl = document.querySelector('[data-free]');
+  var dirEl = document.querySelector('[data-dir]');
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function bytes(n) { return n == null ? 'Unknown' : g.bytes(n); }
+
+  function fmtWhen(epoch) {
+    return new Date(epoch * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  function render(data) {
+    dirEl.textContent = data.dir || '';
+    freeEl.hidden = data.free_bytes == null;
+    freeEl.textContent = data.free_bytes == null ? '' : bytes(data.free_bytes) + ' free on disk';
+    var files = data.files || [];
+    var total = files.reduce(function (a, f) { return a + f.size; }, 0);
+    countEl.textContent = files.length
+      ? files.length + (files.length === 1 ? ' file, ' : ' files, ') + bytes(total)
+      : 'Empty';
+    if (!files.length) {
+      tbody.innerHTML = '<tr><td colspan="4"><div class="empty">'
+        + '<span class="e-title">Nothing uploaded yet</span>'
+        + '<span class="e-desc">Drop a file above and it lands here.</span></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = files.map(function (f) {
+      return '<tr>'
+        + '<td class="name"><a href="' + API + '/file/' + encodeURIComponent(f.name) + '" download>' + esc(f.name) + '</a></td>'
+        + '<td class="r">' + bytes(f.size) + '</td>'
+        + '<td class="when">' + esc(fmtWhen(f.mtime)) + '</td>'
+        + '<td class="act"><button class="btn btn-tertiary btn-sm btn-icon hold-btn" data-hold-ms="900"'
+        + ' data-tip="Hold to delete" data-del="' + esc(f.name)
+        + '" aria-label="Hold to delete ' + esc(f.name) + '"></button></td>'
+        + '</tr>';
+    }).join('');
+    g.init(tbody);
+  }
+
+  function refresh() {
+    return fetch(API + '/list').then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(render).catch(function (e) {
+      tbody.innerHTML = '<tr><td colspan="4" class="up-dim">Could not read the file list ('
+        + esc(e.message) + '). The page reloads it on the next upload.</td></tr>';
+    });
+  }
+
+  function queueRow(file) {
+    var row = document.createElement('div');
+    row.className = 'up-row progress-row';
+    row.innerHTML = '<span class="up-name"></span><span class="g-progress" role="progressbar"></span>'
+      + '<span class="progress-readout"></span>';
+    row.querySelector('.up-name').textContent = file.name;
+    row.querySelector('.g-progress').setAttribute('aria-label', 'Uploading ' + file.name);
+    queueRows.appendChild(row);
+    return row;
+  }
+
+  function failure(status) {
+    if (status === 413) return 'Too big for the server';
+    if (!status) return 'Connection lost';
+    return 'Rejected, status ' + status;
+  }
+
+  // XHR rather than fetch: it is the only way to get upload progress.
+  function send(file, row, onChunk) {
+    return new Promise(function (resolve) {
+      var bar = row.querySelector('.g-progress');
+      var readout = row.querySelector('.progress-readout');
+      var started = Date.now();
+      var fd = new FormData();
+      fd.append('files', file, file.name);
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', API + '/files');
+      xhr.upload.addEventListener('progress', function (e) {
+        if (!e.lengthComputable) return;
+        var secs = (Date.now() - started) / 1000;
+        var rate = secs > 0.4 ? e.loaded / secs : 0;
+        var parts = [g.bytes(e.loaded) + ' of ' + g.bytes(e.total)];
+        if (rate) {
+          parts.push(g.rate(rate));
+          if (e.loaded < e.total) parts.push(g.eta((e.total - e.loaded) / rate));
+        }
+        g.progress(bar, e.loaded / e.total, parts);
+        onChunk(e.loaded);
+      });
+      xhr.addEventListener('load', function () {
+        var ok = xhr.status >= 200 && xhr.status < 300;
+        if (ok) {
+          g.progress(bar, 1, ['Done', g.bytes(file.size)]);
+          onChunk(file.size);
+        } else {
+          row.classList.add('err');
+          readout.textContent = failure(xhr.status);
+        }
+        resolve(ok);
+      });
+      xhr.addEventListener('error', function () {
+        row.classList.add('err');
+        readout.textContent = failure(0);
+        resolve(false);
+      });
+      xhr.send(fd);
+    });
+  }
+
+  function clearPicker() {
+    picker.files = new DataTransfer().files;
+    picker.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  var busy = false;
+
+  async function upload(fileList) {
+    var files = Array.from(fileList);
+    if (!files.length) return;
+    if (busy) {
+      g.toast({ title: 'Still uploading', desc: 'Wait for the current batch to finish, then drop these again.' });
+      return;
+    }
+    busy = true;
+    clearPicker();
+    queueRows.textContent = '';
+    queue.hidden = false;
+
+    var totalBytes = files.reduce(function (a, f) { return a + f.size; }, 0);
+    // File names go in the queue rows, never in the toast: the toast writes
+    // its title as HTML and a browser file name is not sanitised.
+    var label = files.length + (files.length === 1 ? ' file' : ' files');
+    queueNote.textContent = label + ', ' + g.bytes(totalBytes);
+    var toast = g.toast({
+      kind: 'loading',
+      title: 'Uploading ' + label,
+      desc: g.bytes(totalBytes) + ' to go',
+      progress: 0
+    });
+
+    var doneBytes = 0, failed = 0;
+    // Serial, not parallel: one big file at a time keeps the progress bars
+    // honest and does not thrash a 4-core box.
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      var base = doneBytes;
+      var row = queueRow(file);
+      var ok = await send(file, row, function (loaded) {
+        var p = totalBytes ? (base + loaded) / totalBytes : 1;
+        toast.update({ desc: g.bytes(base + loaded) + ' of ' + g.bytes(totalBytes), progress: p });
+      });
+      if (!ok) failed++;
+      doneBytes += file.size;
+    }
+
+    if (failed) {
+      toast.update({
+        kind: 'danger',
+        title: failed === files.length ? 'Upload failed' : 'Some files did not upload',
+        desc: failed + ' of ' + files.length + (failed === 1 ? ' file failed. ' : ' files failed. ') + 'Try those again.',
+        progress: null
+      });
+    } else {
+      toast.update({
+        kind: 'ok',
+        title: 'Uploaded ' + label,
+        desc: g.bytes(totalBytes) + ' now on h',
+        progress: null
+      });
+    }
+    busy = false;
+    refresh();
+  }
+
+  // The dropzone owns the file input, so a pick and a drop both arrive here.
+  zone.addEventListener('files', function (e) { upload(e.detail.files); });
+
+  // Stop a stray drop elsewhere on the page from navigating away.
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  tbody.addEventListener('hold-complete', function (e) {
+    var btn = e.target.closest('[data-del]');
+    if (!btn) return;
+    var name = btn.dataset.del;
+    btn.disabled = true;
+    fetch(API + '/file/' + encodeURIComponent(name), { method: 'DELETE' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      g.toast({ kind: 'ok', title: 'Deleted ' + name });
+    }).catch(function (err) {
+      btn.disabled = false;
+      g.toast({ kind: 'danger', title: 'Could not delete ' + name, desc: err.message + '. The file is still on the box.' });
+    }).then(refresh);
+  });
+
+  // g-ui.js is deferred, so g.bytes and friends only exist once the document
+  // has parsed. Every other call site here is behind a user action.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', refresh, { once: true });
+  } else {
+    refresh();
+  }
+})();
+</script>

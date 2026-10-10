@@ -1,0 +1,11 @@
+{
+  "title": "Notes",
+  "slug": "notes",
+  "description": "All notes in the brain.",
+  "nav": true,
+  "order": 20,
+  "nav_section": "Brain",
+  "nav_icon": "list-bullets",
+  "nav_label": "Notes",
+  "gsys": true
+}

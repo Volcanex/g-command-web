@@ -1,0 +1,12 @@
+{
+  "title": "Workspaces",
+  "slug": "drive",
+  "description": "Pick a workspace and jump into a session.",
+  "nav": true,
+  "order": 4,
+  "body_class": "drive-page",
+  "nav_section": "Drive",
+  "nav_icon": "squares-four",
+  "nav_label": "Workspaces",
+  "gsys": true
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Voice",
+  "slug": "voice",
+  "description": "Chat with the brain through the Voice agent, in the browser.",
+  "nav": true,
+  "order": 21,
+  "nav_section": "Brain",
+  "nav_icon": "chat-circle",
+  "nav_label": "Voice",
+  "gsys": true
+}

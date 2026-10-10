@@ -1,0 +1,353 @@
+<div class="page-head">
+  <h1>System</h1>
+  <span class="badge badge-plain" id="sys-overall">Checking</span>
+  <span class="spacer"></span>
+  <span class="sys-checked" id="sys-checked">Fetching status</span>
+  <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="sys-refresh"
+          aria-label="Refresh status" data-tip="Refresh status"></button>
+</div>
+<p class="sys-sub">Live topology and service health. Topology from the instance manifest, state from the brain status index.</p>
+
+<div id="sys-root"><p class="sys-meta">Loading…</p></div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .page-head h1 { font-size: 18px; }
+  .page-head .spacer { flex: 1; }
+  .sys-checked {
+    font-size: 12px; color: var(--text-placeholder);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .sys-sub {
+    margin-top: var(--sp-1);
+    font-size: var(--font-size-ui); color: var(--text-secondary);
+  }
+  #sys-root {
+    display: flex; flex-direction: column; gap: var(--sp-5);
+    margin-top: var(--sp-5);
+  }
+  .sys-meta { font-size: 12px; color: var(--text-placeholder); }
+
+  .sec-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+  .sec-head .card-title { font-size: 15px; }
+  .sec-head .spacer { flex: 1; }
+  .sec-note { font-size: 12px; color: var(--text-placeholder); font-variant-numeric: tabular-nums; }
+
+  .panel { padding: var(--sp-2) var(--pad-card); }
+  .panel-head { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0 var(--sp-1); }
+  .panel-head .spacer { flex: 1; }
+
+  /* hosts */
+  .sys-hosts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--sp-3);
+  }
+  .host-card { display: flex; flex-direction: column; gap: var(--sp-1); }
+  .host-card-head { display: flex; align-items: baseline; gap: var(--sp-2); }
+  .host-id { font-family: var(--font-mono); font-size: 15px; font-weight: 500; }
+  .host-aliases {
+    font-size: 12px; color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .host-meta { font-size: 12px; color: var(--text-placeholder); line-height: 1.7; }
+  .host-meta .addr { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* service and dependency tables */
+  .table .id { font-family: var(--font-mono); font-size: 12.5px; }
+  .table .dim { color: var(--text-secondary); font-size: 12px; }
+  .table td.detail {
+    max-width: 15rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .table td.state { text-align: right; }
+  .table td.state .badge { vertical-align: middle; }
+
+  /* G-System repo tree */
+  .sys-tree { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.9; }
+  .tree-row { display: flex; align-items: baseline; gap: var(--sp-2); }
+  .tree-prefix { color: var(--text-placeholder); white-space: pre; }
+  .tree-id a { text-decoration: none; }
+  .tree-id a:hover { text-decoration: underline; }
+  .tree-desc { font-family: var(--font-ui); font-size: 12px; color: var(--text-secondary); }
+
+  @media (max-width: 720px) {
+    .table th, .table td { white-space: nowrap; }
+    .sys-tree { overflow-x: auto; }
+  }
+</style>
+
+<script>
+(async () => {
+  const root = document.getElementById('sys-root');
+  const overall = document.getElementById('sys-overall');
+  const checked = document.getElementById('sys-checked');
+  const refreshBtn = document.getElementById('sys-refresh');
+  const STATUS_URL = BRAIN_API + '/api/status';
+  const POLL_MS = 60_000;
+
+  const STATE_BADGE = {
+    up: { kind: 'ok', label: 'Up' },
+    down: { kind: 'danger', label: 'Down' },
+    warn: { kind: 'warn', label: 'Warn' },
+    unknown: { kind: 'plain', label: 'Unknown' },
+  };
+  const badgeFor = state => STATE_BADGE[state] || STATE_BADGE.unknown;
+
+  // g-ui.js is deferred, so wait for it before calling g.status / g.toast
+  if (document.readyState === 'loading') {
+    await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+
+  // ── initial load: manifest + status ───────────
+  let manifest;
+  try {
+    const r = await fetch('/api/gcore');
+    if (!r.ok) throw new Error(`gcore ${r.status}`);
+    manifest = (await r.json()).manifest;
+  } catch (e) {
+    root.innerHTML = `<div class="card empty">
+      <span class="e-title">Topology unavailable</span>
+      <span class="e-desc">The manifest did not load (${e.message}). Reload the page once g-command-web can read the manifest.</span>
+    </div>`;
+    g.status(overall, { kind: 'danger', label: 'No manifest' });
+    checked.textContent = '';
+    return;
+  }
+
+  root.innerHTML = '';
+
+  // ── HOSTS ─────────────────────────────────────
+  const hostsSection = document.createElement('section');
+  hostsSection.innerHTML = `<div class="sec-head">
+    <span class="card-title">Hosts</span>
+    <span class="badge badge-plain">${(manifest.hosts || []).length}</span>
+  </div>`;
+
+  const hostsGrid = document.createElement('div');
+  hostsGrid.className = 'sys-hosts';
+  for (const h of (manifest.hosts || [])) {
+    const aliases = h.aliases.slice(1).join(', ');
+    const card = document.createElement('div');
+    card.className = 'card host-card';
+    card.innerHTML = `
+      <div class="host-card-head">
+        <span class="host-id">${h.id}</span>
+        <span class="host-aliases" title="${aliases}">${aliases}</span>
+      </div>
+      <div class="host-meta">
+        <span class="addr">${h.hostname}</span><br>
+        ${h.provider}<br>
+        User ${h.user}${h.workspace ? `, workspace ${h.workspace}` : ''}
+      </div>`;
+    hostsGrid.appendChild(card);
+  }
+  hostsSection.appendChild(hostsGrid);
+  root.appendChild(hostsSection);
+
+  // ── SERVICES (skeleton, badges filled by refreshStatus) ─
+  const services = manifest.services || [];
+  const byHost = {};
+  for (const s of services) {
+    (byHost[s.host || '?'] = byHost[s.host || '?'] || []).push(s);
+  }
+
+  const svcCard = document.createElement('div');
+  svcCard.className = 'card panel';
+  svcCard.innerHTML = `
+    <div class="panel-head">
+      <span class="card-title">Services</span>
+      <span class="badge badge-plain">${services.length}</span>
+      <span class="spacer"></span>
+      <span class="sec-note" id="svc-summary">Loading…</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Service</th><th>Host</th><th>Address</th><th>Check</th><th class="r">Status</th></tr>
+        </thead>
+        <tbody id="svc-body"></tbody>
+      </table>
+    </div>`;
+  const svcSummary = svcCard.querySelector('#svc-summary');
+  const svcBody = svcCard.querySelector('#svc-body');
+
+  for (const [host, svcs] of Object.entries(byHost)) {
+    for (const s of svcs) {
+      const row = document.createElement('tr');
+      row.dataset.svcId = s.id;
+      row.innerHTML = `
+        <td class="id">${s.id}</td>
+        <td class="dim">${host}</td>
+        <td class="dim">${s.domain || (s.port ? ':' + s.port : '')}</td>
+        <td class="dim detail">…</td>
+        <td class="state"><span class="badge badge-plain">Unknown</span></td>`;
+      svcBody.appendChild(row);
+    }
+  }
+  root.appendChild(svcCard);
+
+  // ── DEPENDENCIES (skeleton, state filled by refreshStatus) ─
+  const deps = manifest.dependencies || [];
+  const CRIT_ORDER = ['vital', 'important', 'nice'];
+  const byCrit = {};
+  for (const d of deps) {
+    const c = CRIT_ORDER.includes(d.criticality) ? d.criticality : 'nice';
+    (byCrit[c] = byCrit[c] || []).push(d);
+  }
+
+  const depCard = document.createElement('div');
+  depCard.className = 'card panel';
+  depCard.innerHTML = `
+    <div class="panel-head">
+      <span class="card-title">Dependencies</span>
+      <span class="badge badge-plain">${deps.length}</span>
+      <span class="spacer"></span>
+      <span class="sec-note" id="dep-summary">Loading…</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Dependency</th><th>Provider</th><th>Criticality</th><th>Check</th><th class="r">Status</th></tr>
+        </thead>
+        <tbody id="dep-body"></tbody>
+      </table>
+    </div>`;
+  const depSummary = depCard.querySelector('#dep-summary');
+  const depBody = depCard.querySelector('#dep-body');
+
+  for (const crit of CRIT_ORDER) {
+    const group = byCrit[crit];
+    if (!group || !group.length) continue;
+    for (const d of group) {
+      const row = document.createElement('tr');
+      row.dataset.depId = d.id;
+      row.innerHTML = `
+        <td class="id">${d.id}</td>
+        <td class="dim">${d.provider || ''}</td>
+        <td class="dim">${crit.charAt(0).toUpperCase() + crit.slice(1)}</td>
+        <td class="dim detail">…</td>
+        <td class="state"><span class="badge badge-plain">Unknown</span></td>`;
+      depBody.appendChild(row);
+    }
+  }
+  root.appendChild(depCard);
+
+  // ── G-SYSTEM REPOS (inheritance tree) ─────────
+  const system = manifest.system || [];
+  const byId = Object.fromEntries(system.map(r => [r.id, r]));
+  const children = {};
+  for (const r of system) {
+    for (const parent of (r.inherits_from || [])) {
+      (children[parent] = children[parent] || []).push(r.id);
+    }
+  }
+  const roots = system.filter(r => !r.inherits_from || r.inherits_from.length === 0);
+
+  const repoCard = document.createElement('div');
+  repoCard.className = 'card panel';
+  repoCard.innerHTML = `
+    <div class="panel-head">
+      <span class="card-title">G-System repos</span>
+      <span class="badge badge-plain">${system.length}</span>
+      <span class="spacer"></span>
+      <span class="sec-note">Inheritance</span>
+    </div>`;
+  const treeEl = document.createElement('div');
+  treeEl.className = 'sys-tree';
+
+  function renderNode(id, prefix, isLast) {
+    const r = byId[id];
+    if (!r) return;
+    const connector = prefix ? (isLast ? '└── ' : '├── ') : '';
+    const row = document.createElement('div');
+    row.className = 'tree-row';
+    row.innerHTML = `
+      <span class="tree-prefix">${prefix}${connector}</span>
+      <span class="tree-id"><a href="${r.url}" target="_blank" rel="noopener">${r.id}</a></span>
+      <span class="tree-desc">${r.description}</span>`;
+    treeEl.appendChild(row);
+    const kids = children[id] || [];
+    const childPrefix = prefix + (isLast ? '    ' : '│   ');
+    kids.forEach((kid, i) => renderNode(kid, childPrefix, i === kids.length - 1));
+  }
+  roots.forEach((r, i) => renderNode(r.id, '', i === roots.length - 1));
+  repoCard.appendChild(treeEl);
+  root.appendChild(repoCard);
+
+  // ── STATUS FOOTER (patched by refreshStatus) ──
+  const footer = document.createElement('p');
+  footer.className = 'sys-meta';
+  footer.textContent = 'Fetching status…';
+  root.appendChild(footer);
+
+  // ── refreshStatus: patches badges only, no re-render ──
+  async function refreshStatus(manual) {
+    let snap;
+    try {
+      const r = await fetch(STATUS_URL);
+      if (!r.ok) throw new Error(r.status);
+      snap = await r.json();
+    } catch {
+      svcSummary.textContent = 'Status unavailable';
+      depSummary.textContent = 'Status unavailable';
+      g.status(overall, { kind: 'warn', label: 'Status unavailable' });
+      checked.textContent = `Last attempt ${new Date().toLocaleTimeString()}`;
+      footer.textContent = 'The brain status index did not answer. Retrying every minute.';
+      if (manual) g.toast({
+        title: 'Status unavailable',
+        desc: 'The brain status index did not answer. The page keeps retrying every minute.',
+        kind: 'danger',
+      });
+      return;
+    }
+
+    const stateMap = {};
+    for (const s of snap.services) stateMap[s.id] = s;
+
+    for (const row of root.querySelectorAll('[data-svc-id]')) {
+      const s = stateMap[row.dataset.svcId];
+      const state = (s && s.state) || 'unknown';
+      const b = badgeFor(state);
+      const detail = row.querySelector('.detail');
+      g.status(row.querySelector('.badge'), b);
+      detail.textContent = (s && s.detail) || '';
+      if (s && s.detail) detail.title = s.detail;
+    }
+
+    // ── dependencies ──
+    const depMap = {};
+    for (const d of (snap.dependencies || [])) depMap[d.id] = d;
+
+    for (const row of root.querySelectorAll('[data-dep-id]')) {
+      const d = depMap[row.dataset.depId];
+      const state = (d && d.state) || 'unknown';
+      const detail = row.querySelector('.detail');
+      g.status(row.querySelector('.badge'), badgeFor(state));
+      detail.textContent = (d && d.detail) || '';
+      if (d && d.detail) detail.title = d.detail;
+    }
+
+    const dv = Object.values(depMap);
+    const dCount = st => dv.filter(d => d.state === st).length;
+    depSummary.textContent =
+      `${dCount('up')} up, ${dCount('warn')} warn, ${dCount('down')} down, ${dCount('unknown')} unknown`;
+
+    const s = snap.summary;
+    const age = Math.round((Date.now() - new Date(snap.checked_at)) / 60000);
+    svcSummary.textContent = `${s.up} up, ${s.down} down, ${s.unknown} unknown`;
+    checked.textContent = `Checked ${age}m ago`;
+    g.status(overall, s.down
+      ? { kind: 'danger', label: `${s.down} of ${s.total} down` }
+      : { kind: 'ok', label: 'All services up' });
+    footer.textContent = `Status from the brain L5 index, refreshed ${new Date().toLocaleTimeString()}.`;
+    if (manual) g.toast({ title: 'Status refreshed', kind: 'ok' });
+  }
+
+  refreshBtn.addEventListener('click', () => refreshStatus(true));
+
+  // initial status fetch + start polling
+  await refreshStatus();
+  setInterval(refreshStatus, POLL_MS);
+})();
+</script>

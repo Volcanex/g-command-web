@@ -1,0 +1,253 @@
+<div class="page-head">
+  <h1>Hours</h1>
+  <span class="badge badge-plain">This week</span>
+</div>
+<p class="page-sub">What you and your agents did this week, reconstructed from Claude Code session logs across every host.</p>
+
+<div id="hours-root"><p class="dim">Loading</p></div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
+
+  .hr-stale {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3);
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .hr-stale.warn { border-color: var(--warn); color: var(--warn-text); }
+
+  /* headline stats, the kit's stat-card pattern */
+  .hr-head {
+    display: flex; flex-wrap: wrap; gap: var(--sp-5); align-items: flex-end;
+    border: 1px solid var(--card-border); border-radius: var(--radius-card);
+    background: var(--card-bg);
+    padding: var(--pad-card);
+    margin: var(--sp-3) 0;
+  }
+  .hr-big {
+    font-size: 28px; line-height: .95;
+    font-weight: 500; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .hr-big-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+  .hr-side { display: flex; gap: var(--sp-5); flex-wrap: wrap; margin-left: auto; }
+  .hr-side > div { display: flex; flex-direction: column; gap: 2px; }
+  .hr-n { font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .hr-l { font-size: 12px; color: var(--text-secondary); }
+
+  .hr-sec {
+    font-size: 12px; font-weight: 500; color: var(--text-placeholder);
+    border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px;
+    margin: var(--sp-5) 0 var(--sp-2);
+  }
+  .hr-note {
+    font-size: 12px; color: var(--text-secondary);
+    border-left: 2px solid var(--border); padding-left: var(--sp-2);
+    margin-top: var(--sp-2); max-width: 62ch; line-height: 1.7;
+  }
+  .hr-note b { color: var(--text-primary); font-weight: 500; }
+
+  /* ranked bars */
+  .hr-bars { display: flex; flex-direction: column; gap: 7px; margin: var(--sp-3) 0; }
+  .hr-bar {
+    display: grid; grid-template-columns: 148px 1fr 78px; gap: var(--sp-2);
+    align-items: center; font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .hr-bar .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hr-tr { position: relative; height: 15px; background: var(--well-bg); border-radius: 3px; overflow: hidden; }
+  .hr-fl { position: absolute; inset: 0 auto 0 0; border-radius: 0 3px 3px 0; }
+  .hr-fl.you { background: var(--chart-1); }
+  .hr-fl.bot { background: var(--text-placeholder); }
+  .hr-bar .vl { text-align: right; font-weight: 500; }
+
+  /* day columns: you vs agents, side by side */
+  .hr-days {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--sp-2);
+    align-items: end; margin: var(--sp-3) 0;
+  }
+  .hr-day { display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; }
+  .hr-pair { display: flex; align-items: flex-end; justify-content: center; gap: 3px; height: 140px; }
+  .hr-stick { width: 46%; max-width: 26px; border-radius: 3px 3px 0 0; min-height: 1px; }
+  .hr-stick.you { background: var(--chart-1); }
+  .hr-stick.bot { background: var(--text-placeholder); }
+  .hr-dl {
+    text-align: center; font-size: 12px;
+    color: var(--text-secondary); border-top: 1px solid var(--border-subtle); padding-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hr-dl b { display: block; color: var(--text-primary); font-weight: 500; }
+  .hr-key { display: flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  .hr-key i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }
+  .hr-key .you { background: var(--chart-1); }
+  .hr-key .bot { background: var(--text-placeholder); }
+
+  /* tables */
+  .hr-tw {
+    overflow-x: auto;
+    border: 1px solid var(--card-border); border-radius: var(--radius-card);
+    background: var(--card-bg);
+    margin: var(--sp-3) 0;
+  }
+  .hr-tw table { border-collapse: collapse; width: 100%; min-width: 540px; }
+  .hr-tw th, .hr-tw td {
+    padding: 6px var(--sp-2); text-align: right; white-space: nowrap;
+    border-bottom: 1px solid var(--border-subtle); font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hr-tw th:first-child, .hr-tw td:first-child { text-align: left; }
+  .hr-tw th { color: var(--text-secondary); font-weight: 500; }
+  .hr-tw tbody tr:last-child td { border-bottom: none; }
+  .hr-tw tr.tot td { font-weight: 500; background: var(--surface-2); }
+
+  @media (max-width: 640px) {
+    .hr-bar { grid-template-columns: 100px 1fr 64px; }
+    .hr-days { grid-template-columns: repeat(4, 1fr); }
+    .hr-side { margin-left: 0; }
+  }
+</style>
+
+<script>
+(function () {
+  var DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var root = document.getElementById('hours-root');
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function tok(n) {
+    if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return Math.round(n/1e3) + 'K';
+    return String(n);
+  }
+  function ago(iso) {
+    var mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 60) return mins + 'm ago';
+    if (mins < 1440) return Math.round(mins/60) + 'h ago';
+    return Math.round(mins/1440) + 'd ago';
+  }
+
+  function render(p) {
+    var lev = p.presence_total ? p.agent_total / p.presence_total : 0;
+    var h = '';
+
+    if (p.generated_at) {
+      var stale = (Date.now() - new Date(p.generated_at).getTime()) > 6*3600*1000;
+      h += '<div class="hr-stale' + (stale ? ' warn' : '') + '">Snapshot ' + esc(ago(p.generated_at)) +
+           (stale ? ', stale, the refresh timer may not be running' : '') +
+           (p.errors && p.errors.length ? ', hosts skipped: ' + esc(p.errors.join('; ')) : '') +
+           '</div>';
+    }
+
+    h += '<div class="hr-head"><div>' +
+           '<div class="hr-big">' + p.presence_total.toFixed(1) + 'h</div>' +
+           '<div class="hr-big-sub">At the desk, week of ' + esc(p.week_start) + '</div>' +
+         '</div><div class="hr-side">' +
+           '<div><span class="hr-n">' + p.agent_total.toFixed(1) + 'h</span><span class="hr-l">Agents ran</span></div>' +
+           '<div><span class="hr-n">' + lev.toFixed(2) + '&times;</span><span class="hr-l">Leverage</span></div>' +
+           '<div><span class="hr-n">' + p.turns_total + '</span><span class="hr-l">Prompts</span></div>' +
+           '<div><span class="hr-n">' + tok(p.ctx_total || 0) + '</span><span class="hr-l">Context</span></div>' +
+         '</div></div>';
+
+    // ranked projects: one series, so one colour; identity is the label
+    var maxh = Math.max.apply(null, p.projects.map(function (r) { return r.hours; }).concat([1]));
+    h += '<div class="hr-sec">Where the time went</div>';
+    h += '<p class="hr-note">Union of the working timeline: parallel sessions do not add up, ' +
+         'because you can only be in one place at once. Each gap between prompts is charged to ' +
+         'whichever project opened it.</p><div class="hr-bars">';
+    p.projects.forEach(function (r) {
+      var w = Math.max(r.hours / maxh * 100, 0.6);
+      h += '<div class="hr-bar"><span class="nm">' + esc(r.name) + '</span>' +
+           '<span class="hr-tr"><span class="hr-fl you" style="width:' + w.toFixed(1) + '%"></span></span>' +
+           '<span class="vl">' + r.hours.toFixed(2) + 'h</span></div>';
+    });
+    h += '</div>';
+
+    // by day: your time against machine time
+    var maxd = 1;
+    p.days.forEach(function (d, i) {
+      var a = p.presence[d] || 0;
+      var b = p.projects.reduce(function (s, r) { return s + (r.per_day_agent ? r.per_day_agent[i] : 0); }, 0);
+      maxd = Math.max(maxd, a, b);
+    });
+    h += '<div class="hr-sec">By day</div><div class="hr-days">';
+    p.days.forEach(function (d, i) {
+      var you = p.presence[d] || 0;
+      var bot = p.projects.reduce(function (s, r) { return s + (r.per_day_agent ? r.per_day_agent[i] : 0); }, 0);
+      h += '<div class="hr-day"><div class="hr-pair">' +
+             '<span class="hr-stick you" style="height:' + (you/maxd*140).toFixed(1) + 'px"></span>' +
+             '<span class="hr-stick bot" style="height:' + (bot/maxd*140).toFixed(1) + 'px"></span>' +
+           '</div><div class="hr-dl"><b>' + you.toFixed(1) + 'h</b>' + DOW[i] + '</div></div>';
+    });
+    h += '</div><div class="hr-key"><span><i class="you"></i>Your time</span>' +
+         '<span><i class="bot"></i>Agents running</span></div>';
+
+    // projects table
+    h += '<div class="hr-sec">Projects</div><div class="hr-tw"><table>' +
+         '<thead><tr><th>Project</th><th>Hours</th><th>Prompts</th><th>Agent h</th>' +
+         '<th>Leverage</th><th>Output</th></tr></thead><tbody>';
+    p.projects.forEach(function (r) {
+      var rl = r.hours ? r.agent / r.hours : 0;
+      h += '<tr><td>' + esc(r.name) + '</td>' +
+           '<td>' + r.hours.toFixed(2) + '</td><td>' + r.turns + '</td>' +
+           '<td>' + r.agent.toFixed(2) + '</td><td>' + rl.toFixed(1) + '&times;</td>' +
+           '<td>' + tok(r.out) + '</td></tr>';
+    });
+    h += '<tr class="tot"><td>Total</td><td>' + p.presence_total.toFixed(2) + '</td><td>' +
+         p.turns_total + '</td><td>' + p.agent_total.toFixed(2) + '</td><td>' + lev.toFixed(1) +
+         '&times;</td><td>' + tok((p.tokens || {}).to || 0) + '</td></tr></tbody></table></div>';
+    h += '<p class="hr-note"><b>Leverage</b> is agent runtime over your time. Above 1&times; the ' +
+         'machines ran longer than you sat there; parallel sessions genuinely overlap, so ' +
+         'this is real compute, not a second count of your hours.</p>';
+
+    // usage blocks
+    if (p.blocks && p.blocks.length) {
+      var peak = Math.max.apply(null, p.blocks.map(function (b) { return b.tok; }).concat([1]));
+      h += '<div class="hr-sec">Usage blocks</div>' +
+           '<p class="hr-note">Rolling five-hour windows, context processed in each. ' +
+           p.blocks.length + ' this week, peaking at ' + tok(peak) + '.</p><div class="hr-bars">';
+      p.blocks.forEach(function (b) {
+        var w = Math.max(b.tok / peak * 100, 0.6);
+        h += '<div class="hr-bar"><span class="nm">' + esc(b.start.replace('T',' ').slice(5,16)) + '</span>' +
+             '<span class="hr-tr"><span class="hr-fl bot" style="width:' + w.toFixed(1) + '%"></span></span>' +
+             '<span class="vl">' + tok(b.tok) + '</span></div>';
+      });
+      h += '</div>';
+    }
+
+    // models
+    var models = Object.keys(p.models || {})
+      .filter(function (k) { return k.indexOf('<') !== 0; })
+      .sort(function (a, b) { return p.models[b] - p.models[a]; });
+    if (models.length) {
+      var mt = models.reduce(function (s, k) { return s + p.models[k]; }, 0) || 1;
+      h += '<div class="hr-sec">Models</div><div class="hr-bars">';
+      models.forEach(function (k) {
+        var w = Math.max(p.models[k] / mt * 100, 0.6);
+        h += '<div class="hr-bar"><span class="nm">' + esc(k) + '</span>' +
+             '<span class="hr-tr"><span class="hr-fl bot" style="width:' + w.toFixed(1) + '%"></span></span>' +
+             '<span class="vl">' + p.models[k] + '</span></div>';
+      });
+      h += '</div>';
+    }
+
+    root.innerHTML = h;
+  }
+
+  fetch('/api/hours/week', { credentials: 'same-origin' })
+    .then(function (r) {
+      if (!r.ok) return r.json().then(function (e) { throw new Error(e.detail || r.status); });
+      return r.json();
+    })
+    .then(render)
+    .catch(function (e) {
+      root.innerHTML = '<p class="dim">Could not load hours: ' + esc(e.message) +
+        '<br><span style="color:var(--text-placeholder)">The snapshot comes from the ' +
+        'time-tracking service at <code>WAGES_URL</code>.</span></p>';
+    });
+})();
+</script>

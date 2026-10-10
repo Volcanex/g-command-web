@@ -1,0 +1,185 @@
+<div class="page-head">
+  <h1>References</h1>
+  <span data-summary class="badge badge-plain">Loading</span>
+</div>
+<p class="page-sub">URLs cited across the brain, ranked by note count.</p>
+
+<div class="card refs-card">
+  <div class="table-wrap">
+    <table class="table refs-table">
+      <thead>
+        <tr><th>URL</th><th class="r">Notes</th><th class="r">Variants</th><th>Status</th></tr>
+      </thead>
+      <tbody data-rows>
+        <tr><td colspan="4" class="dim">Loading</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page-head graph-head">
+  <h2>Reference graph</h2>
+  <span data-ref-stats class="badge badge-plain">Loading</span>
+  <span class="spacer"></span>
+  <span class="legend" data-ref-legend></span>
+</div>
+<p class="page-sub">Notes, coloured by kind, linked to the URLs they cite.</p>
+
+<div class="card graph-wrap">
+  <svg data-ref-graph width="100%" height="600" role="img" aria-label="Reference graph"></svg>
+</div>
+
+<style>
+  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-head h2 { font-size: 15px; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .graph-head { margin-top: var(--sp-5); }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  [data-summary], [data-ref-stats] { font-variant-numeric: tabular-nums; }
+  .dim { color: var(--text-placeholder); }
+  .refs-card { padding-top: 4px; padding-bottom: 4px; }
+  .refs-table td.url { word-break: break-all; }
+  .refs-table td.url a { color: var(--text-primary); text-decoration: none; }
+  .refs-table td.url a:hover { text-decoration: underline; }
+  .refs-table th.r, .refs-table td.n, .refs-table td.v {
+    text-align: right; font-variant-numeric: tabular-nums;
+    color: var(--text-secondary); width: 1%; white-space: nowrap;
+  }
+  .refs-table td.status { width: 1%; white-space: nowrap; }
+  .refs-table tr.broken td.url a { color: var(--danger-text); }
+  .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; }
+  .legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+  .legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; }
+  .graph-wrap { padding: 0; overflow: hidden; max-width: none; }
+  svg[data-ref-graph] { display: block; cursor: grab; }
+  svg[data-ref-graph]:active { cursor: grabbing; }
+  svg[data-ref-graph] .link { stroke: var(--text-placeholder); stroke-opacity: 0.2; stroke-width: 1; }
+  svg[data-ref-graph] .node { cursor: pointer; stroke: var(--card-bg); stroke-width: 1.5; }
+  svg[data-ref-graph] .label {
+    font-family: var(--font-ui); font-size: 9px; fill: var(--text-secondary);
+    pointer-events: none; user-select: none;
+  }
+</style>
+
+<script>
+(async () => {
+  try {
+    const r = await fetch(BRAIN_API + '/api/refs');
+    if (!r.ok) throw new Error(`refs ${r.status}`);
+    const data = await r.json();
+    document.querySelector('[data-summary]').textContent =
+      `${data.summary.total_urls} URLs (${data.summary.distinct_canonical} canonical), ${data.summary.broken} broken`;
+    const rows = document.querySelector('[data-rows]');
+    if (!data.top.length) {
+      rows.innerHTML = '<tr><td colspan="4" class="dim">No references yet.</td></tr>';
+      return;
+    }
+    rows.innerHTML = data.top.map(r => {
+      const broken = r.status && (r.status.startsWith('http-4') || r.status.startsWith('http-5') || r.status.startsWith('error-'));
+      const safeUrl = r.url.replace(/"/g, '&quot;');
+      const badge = broken ? 'badge-danger' : (r.status ? 'badge-plain' : '');
+      return `<tr class="${broken ? 'broken' : ''}">
+        <td class="url"><a href="${safeUrl}" target="_blank" rel="noopener">${r.url}</a></td>
+        <td class="n">${r.notes}</td>
+        <td class="v">${r.variants}</td>
+        <td class="status">${r.status ? `<span class="badge ${badge}">${r.status}</span>` : ''}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    document.querySelector('[data-rows]').innerHTML = `<tr><td colspan="4">Error: ${e.message}</td></tr>`;
+  }
+})();
+</script>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(async () => {
+  const svgEl = document.querySelector('[data-ref-graph]');
+  const stats = document.querySelector('[data-ref-stats]');
+  const legend = document.querySelector('[data-ref-legend]');
+
+  const cs = getComputedStyle(document.documentElement);
+  const palette = [1,2,3,4,5,6].map(i => (cs.getPropertyValue(`--chart-${i}`) || '').trim()).filter(Boolean);
+  const fallback = ['#2f6fe0', '#c2410c', '#4d8b3f', '#b7791f', '#7c4dbd', '#2a8a8a'];
+  const chartPalette = palette.length ? palette : fallback;
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  const URL_OK     = 'var(--ok)';
+  const URL_BROKEN = 'var(--danger)';
+
+  try {
+    const r = await fetch(BRAIN_API + '/api/refs/graph');
+    if (!r.ok) throw new Error(`refs/graph ${r.status}`);
+    const { nodes, links } = await r.json();
+
+    const noteNodes = nodes.filter(n => n.type === 'note');
+    const kinds = Array.from(new Set(noteNodes.map(n => n.kind))).sort();
+    const kindColor = kind => chartPalette[kinds.indexOf(kind) % chartPalette.length];
+
+    stats.textContent = `${noteNodes.length} notes, ${nodes.filter(n=>n.type==='url').length} URLs, ${links.length} citations`;
+
+    legend.innerHTML = kinds.map(k =>
+      `<span class="swatch"><span class="dot" style="background:${kindColor(k)}"></span>${cap(k)}</span>`
+    ).join('') +
+    `<span class="swatch"><span class="dot" style="background:${URL_OK}"></span>URL ok</span>` +
+    `<span class="swatch"><span class="dot" style="background:${URL_BROKEN}"></span>URL broken</span>`;
+
+    function nodeColor(d) {
+      if (d.type === 'url') return d.broken ? URL_BROKEN : URL_OK;
+      return kindColor(d.kind);
+    }
+    function nodeR(d) { return d.type === 'url' ? 5 : 8; }
+
+    const width = svgEl.clientWidth || 900;
+    const height = +svgEl.getAttribute('height') || 600;
+    const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
+    svg.selectAll('*').remove();
+
+    const g = svg.append('g');
+    svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => g.attr('transform', e.transform)));
+
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(60).strength(0.5))
+      .force('charge', d3.forceManyBody().strength(-100))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collide', d3.forceCollide().radius(d => nodeR(d) + 3));
+
+    const link = g.append('g').selectAll('line')
+      .data(links).enter().append('line').attr('class', 'link');
+
+    const node = g.append('g').selectAll('circle')
+      .data(nodes).enter().append('circle')
+      .attr('class', 'node')
+      .attr('r', d => nodeR(d))
+      .attr('fill', d => nodeColor(d))
+      .call(d3.drag()
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }))
+      .on('click', (_, d) => {
+        if (d.type === 'url') window.open(d.url, '_blank');
+        else window.location.href = `/note/${d.id.replace('note-', '')}`;
+      });
+
+    node.append('title').text(d =>
+      d.type === 'url' ? `${d.url}\n${d.broken ? 'broken' : 'ok'}` : `${d.label}\n${d.kind}`
+    );
+
+    const label = g.append('g').selectAll('text')
+      .data(nodes).enter().append('text')
+      .attr('class', 'label').attr('dx', d => nodeR(d) + 3).attr('dy', 3)
+      .text(d => d.label);
+
+    sim.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('cx', d => d.x).attr('cy', d => d.y);
+      label.attr('x', d => d.x).attr('y', d => d.y);
+    });
+  } catch (e) {
+    stats.textContent = `Error: ${e.message}`;
+  }
+})();
+</script>

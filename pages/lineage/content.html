@@ -1,0 +1,121 @@
+<div class="page-head">
+  <h1>Lineage</h1>
+  <span class="badge badge-plain">Layer 4</span>
+  <span data-stats class="badge badge-plain">Loading</span>
+  <span class="spacer"></span>
+  <span class="legend" data-legend></span>
+</div>
+<p class="page-sub">Starter and design language provenance from <code>[tool.g-core]</code> (or <code>[tool.gcore]</code>) in each repo's <code>pyproject.toml</code>.</p>
+
+<div class="card graph-wrap">
+  <svg data-graph width="100%" height="560" role="img" aria-label="Lineage graph"></svg>
+</div>
+
+<style>
+  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  [data-stats] { font-variant-numeric: tabular-nums; }
+  .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; }
+  .legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+  .legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; }
+  .graph-wrap { padding: 0; overflow: hidden; max-width: none; }
+  svg[data-graph] { display: block; cursor: grab; }
+  svg[data-graph]:active { cursor: grabbing; }
+  svg[data-graph] .link-starter { stroke: var(--chart-1); stroke-opacity: 0.6; stroke-width: 1.5; }
+  svg[data-graph] .link-design  { stroke: var(--chart-4); stroke-opacity: 0.6; stroke-width: 1.5; stroke-dasharray: 4 3; }
+  svg[data-graph] .node { cursor: pointer; stroke: var(--card-bg); stroke-width: 1.5; }
+  svg[data-graph] .label {
+    font-family: var(--font-ui); font-size: 10px; fill: var(--text-secondary);
+    pointer-events: none; user-select: none;
+  }
+</style>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(async () => {
+  const svgEl = document.querySelector('[data-graph]');
+  const stats = document.querySelector('[data-stats]');
+  const legend = document.querySelector('[data-legend]');
+
+  /* Node and edge colours come from the derived chart palette so both
+     themes clear contrast. */
+  const REPO = 'var(--chart-2)';
+  const SOURCE = 'var(--chart-1)';
+  const DESIGN = 'var(--chart-4)';
+
+  legend.innerHTML = [
+    ['Repo', REPO],
+    ['Starter or design', SOURCE],
+    ['Starter edge', SOURCE],
+    ['Design edge', DESIGN],
+  ].map(([label, color]) =>
+    `<span class="swatch"><span class="dot" style="background:${color}"></span>${label}</span>`
+  ).join('');
+
+  try {
+    const r = await fetch(BRAIN_API + '/api/lineage');
+    if (!r.ok) throw new Error(`lineage ${r.status}`);
+    const { nodes, links } = await r.json();
+
+    const repos = nodes.filter(n => n.type === 'repo');
+    const sources = nodes.filter(n => n.type === 'source');
+    stats.textContent = `${repos.length} repos, ${sources.length} sources, ${links.length} edges`;
+
+    function nodeColor(d) { return d.type === 'source' ? SOURCE : REPO; }
+    function nodeR(d) { return d.type === 'source' ? 12 : 8; }
+
+    const width = svgEl.clientWidth || 900;
+    const height = +svgEl.getAttribute('height') || 560;
+    const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
+    svg.selectAll('*').remove();
+
+    const g = svg.append('g');
+    svg.call(d3.zoom().scaleExtent([0.3, 4]).on('zoom', e => g.attr('transform', e.transform)));
+
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(100).strength(0.8))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collide', d3.forceCollide().radius(d => nodeR(d) + 8));
+
+    const link = g.append('g').selectAll('line')
+      .data(links).enter().append('line')
+      .attr('class', d => `link-${d.rel}`);
+
+    const node = g.append('g').selectAll('circle')
+      .data(nodes).enter().append('circle')
+      .attr('class', 'node')
+      .attr('r', d => nodeR(d))
+      .attr('fill', d => nodeColor(d))
+      .call(d3.drag()
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }))
+      .on('click', (_, d) => {
+        if (d.type === 'repo') window.open(`https://github.com/Volcanex/${d.label}`, '_blank');
+      });
+
+    node.append('title').text(d =>
+      d.type === 'source' ? d.label : `${d.label}\nclick to open GitHub`
+    );
+
+    const label = g.append('g').selectAll('text')
+      .data(nodes).enter().append('text')
+      .attr('class', 'label')
+      .attr('dx', d => nodeR(d) + 3).attr('dy', 3)
+      .text(d => d.label);
+
+    sim.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('cx', d => d.x).attr('cy', d => d.y);
+      label.attr('x', d => d.x).attr('y', d => d.y);
+    });
+  } catch (e) {
+    stats.textContent = `Error: ${e.message}`;
+  }
+})();
+</script>

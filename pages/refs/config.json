@@ -1,0 +1,11 @@
+{
+  "title": "References",
+  "slug": "refs",
+  "description": "Top URLs cited across the brain.",
+  "nav": true,
+  "order": 31,
+  "nav_section": "Brain",
+  "nav_icon": "link",
+  "nav_label": "References",
+  "gsys": true
+}

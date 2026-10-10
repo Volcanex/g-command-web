@@ -1,0 +1,1713 @@
+<div class="fd-top">
+  <div class="page-head">
+    <h1>Full dash</h1>
+    <span class="badge badge-plain" data-health>Checking services</span>
+    <span class="fd-spacer"></span>
+  </div>
+  <p class="fd-sub">The whole G-System at a glance: services, dependencies, brain, topology and pulse.</p>
+  <div class="fd-stats">
+    <div class="card fd-stat"><span class="k">Services up</span><span class="v" data-tile-services>-</span></div>
+    <div class="card fd-stat"><span class="k">Brain nodes</span><span class="v" data-tile-nodes>-</span></div>
+    <div class="card fd-stat"><span class="k">Brain links</span><span class="v" data-tile-links>-</span></div>
+  </div>
+</div>
+
+<script>
+window.FD = (function () {
+  var cache = {};
+  function cached(url, opts, parse) {
+    opts = opts || {};
+    var ttl = opts.ttl || 0;
+    var now = Date.now();
+    var hit = cache[url];
+    if (hit && (now - hit.t) < ttl) return hit.p;
+    var p = fetch(url, { credentials: 'same-origin' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
+      return parse(res);
+    });
+    p.catch(function () { if (cache[url] && cache[url].p === p) delete cache[url]; });
+    cache[url] = { t: now, p: p };
+    return p;
+  }
+  function setState(el, cls, msg, detail) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+    var em = document.createElement('em');
+    em.className = cls;
+    em.textContent = msg;
+    if (detail) em.title = String(detail);
+    el.appendChild(em);
+  }
+  // g-design serves its scales as color(display-p3 ...) wherever the browser
+  // supports it, which the canvas libraries on this page (3d-force-graph,
+  // cytoscape) cannot parse. Painting one pixel and reading it back hands
+  // them plain sRGB whatever notation the token arrived in.
+  var swatch = null;
+  function srgb(value, fallback) {
+    if (!value) return fallback;
+    try {
+      if (!swatch) swatch = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+      swatch.clearRect(0, 0, 1, 1);
+      swatch.fillStyle = value;
+      swatch.fillRect(0, 0, 1, 1);
+      var d = swatch.getImageData(0, 0, 1, 1).data;
+      if (!d[3]) return fallback;
+      return 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+    } catch (e) { return fallback; }
+  }
+  function token(name, fallback) {
+    return srgb(getComputedStyle(document.documentElement).getPropertyValue(name).trim(), fallback);
+  }
+  var CHART_FALLBACK = ['#0090ff', '#6e56cf', '#12a594', '#ffc53d', '#e93d82', '#46a758'];
+  var palette = [];
+  function repalette() {
+    for (var i = 1; i <= 6; i++) palette[i - 1] = token('--chart-' + i, CHART_FALLBACK[i - 1]);
+    return palette;
+  }
+  return {
+    BRAIN: BRAIN_API,
+    fetchJSON: function (url, opts) { return cached(url, opts, function (r) { return r.json(); }); },
+    fetchText: function (url, opts) { return cached(url, opts, function (r) { return r.text(); }); },
+    poll: function (fn, ms) {
+      Promise.resolve().then(fn).catch(function () {});
+      setInterval(function () {
+        if (document.hidden) return;
+        Promise.resolve().then(fn).catch(function () {});
+      }, ms);
+    },
+    color: token,
+    fail: function (el, msg, detail) { setState(el, 'fd-fail', msg, detail); },
+    empty: function (el, msg) { setState(el, 'fd-empty', msg); },
+    rel: function (iso) {
+      if (!iso) return '';
+      var t = new Date(iso).getTime();
+      if (isNaN(t)) return '';
+      var s = Math.round((Date.now() - t) / 1000);
+      var future = s < 0;
+      s = Math.abs(s);
+      var v = s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm'
+            : s < 86400 ? Math.round(s / 3600) + 'h' : Math.round(s / 86400) + 'd';
+      return future ? 'in ' + v : v + ' ago';
+    },
+    repalette: repalette,
+    palette: repalette()
+  };
+})();
+</script>
+
+<script>(function () {
+  // Headline stats. Reuses the SAME cached endpoints the Services and
+  // Brain-in-3D panels fetch (FD.fetchJSON dedupes by URL), so no extra
+  // network: the stats and panels share one /api/status and one /api/graph.
+  function set(sel, val) { var el = document.querySelector(sel); if (el) el.textContent = val; }
+  function health(kind, label) {
+    var el = document.querySelector('[data-health]');
+    if (!el) return;
+    if (window.g && g.status) { g.status(el, { kind: kind, label: label }); return; }
+    el.className = 'badge badge-' + kind;
+    el.textContent = label;
+  }
+  FD.fetchJSON(FD.BRAIN + '/api/status', { ttl: 30000 }).then(function (d) {
+    var s = d.summary || {};
+    var up = s.up || 0;
+    var down = s.down || 0;
+    set('[data-tile-services]', up + '/' + (up + down));
+    health(down ? 'danger' : 'ok',
+      down ? down + (down === 1 ? ' service down' : ' services down') : 'All services live');
+  }).catch(function () {
+    set('[data-tile-services]', 'n/a');
+    health('plain', 'Health unknown');
+  });
+  FD.fetchJSON(FD.BRAIN + '/api/graph', { ttl: 60000 }).then(function (d) {
+    set('[data-tile-nodes]', (d.nodes || []).length);
+    set('[data-tile-links]', (d.links || []).length);
+  }).catch(function () { set('[data-tile-nodes]', 'n/a'); set('[data-tile-links]', 'n/a'); });
+})();
+</script>
+
+<div class="fd-grid">
+<!-- panel: pulse start -->
+<section class="card fd-panel" id="fd-pulse">
+  <header class="fd-panel-head">
+    <i class="ph ph-sun-horizon"></i>
+    <h2 class="card-title">Brief</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/pulse" data-tip="Open pulse" aria-label="Open pulse"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-pulse .fd-body { max-height: 420px; overflow-y: auto; }
+  #fd-pulse .fd-pulse-text {
+    font-size: var(--font-size-body);
+    line-height: 1.65;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+  }
+  #fd-pulse .fd-pulse-line:empty::before { content: '\00a0'; }
+  #fd-pulse .fd-pulse-h {
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-top: var(--sp-3);
+  }
+  #fd-pulse .fd-pulse-li {
+    position: relative;
+    padding-left: 14px;
+  }
+  #fd-pulse .fd-pulse-li::before {
+    content: '-';
+    position: absolute;
+    left: 0;
+    color: var(--text-placeholder);
+  }
+  #fd-pulse .fd-pulse-text strong { color: var(--text-primary); font-weight: 500; }
+  #fd-pulse .fd-pulse-text code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--fill-hover);
+    border-radius: var(--radius-sm);
+    padding: 1px 4px;
+  }
+</style>
+<script>(function () {
+  var root = document.getElementById('fd-pulse');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+
+  function appendInline(el, text) {
+    var parts = String(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (!p) continue;
+      var node;
+      if (p.length > 4 && p.indexOf('**') === 0 && p.slice(-2) === '**') {
+        node = document.createElement('strong');
+        node.textContent = p.slice(2, -2);
+      } else if (p.length > 2 && p.charAt(0) === '*' && p.slice(-1) === '*') {
+        node = document.createElement('em');
+        node.textContent = p.slice(1, -1);
+      } else if (p.length > 2 && p.charAt(0) === '`' && p.slice(-1) === '`') {
+        node = document.createElement('code');
+        node.textContent = p.slice(1, -1);
+      } else {
+        node = document.createTextNode(p);
+      }
+      el.appendChild(node);
+    }
+  }
+
+  function render(data) {
+    meta.textContent = data && data.date ? String(data.date) : '';
+    var text = data && data.body ? String(data.body) : '';
+    if (!text.trim()) { FD.empty(body, 'No brief yet.'); return; }
+
+    var wrap = document.createElement('div');
+    wrap.className = 'fd-pulse-text';
+    var lines = text.split('\n');
+    var inComment = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (inComment) {
+        if (line.indexOf('-->') !== -1) inComment = false;
+        continue;
+      }
+      if (line.indexOf('<!--') !== -1) {
+        if (line.indexOf('-->') === -1) inComment = true;
+        continue;
+      }
+      var div = document.createElement('div');
+      if (line.charAt(0) === '#') {
+        div.className = 'fd-pulse-h';
+        appendInline(div, line.replace(/^#+\s*/, ''));
+      } else if (line.indexOf('- ') === 0) {
+        div.className = 'fd-pulse-li';
+        appendInline(div, line.slice(2));
+      } else {
+        div.className = 'fd-pulse-line';
+        appendInline(div, line);
+      }
+      wrap.appendChild(div);
+    }
+
+    body.textContent = '';
+    body.appendChild(wrap);
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/pulse/brief')
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Brief unavailable. The panel retries every 10 minutes.',
+          (e && e.message) || e);
+      });
+  }, 600000);
+})();</script>
+<!-- panel: pulse end -->
+<!-- panel: upcoming start -->
+<section class="card fd-panel" id="fd-upcoming">
+  <header class="fd-panel-head">
+    <i class="ph ph-calendar-dots"></i>
+    <h2 class="card-title">Upcoming</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/todos" data-tip="Open todos" aria-label="Open todos"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+#fd-upcoming .fd-body { max-height: 420px; overflow-y: auto; }
+#fd-upcoming .fdu-day + .fdu-day { margin-top: var(--sp-3); }
+#fd-upcoming .fdu-head {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  padding-bottom: 4px;
+}
+#fd-upcoming .fdu-head.fdu-today {
+  color: var(--chart-1);
+  border-bottom: 1px solid var(--chart-1);
+}
+#fd-upcoming ul.fdu-items { list-style: none; margin: 0; padding: 0; }
+#fd-upcoming li.fdu-item {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+#fd-upcoming li.fdu-item:last-child { border-bottom: none; }
+#fd-upcoming .fdu-title {
+  flex: 1; min-width: 0;
+  font-size: var(--font-size-ui); color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#fd-upcoming .fdu-time {
+  flex: none; margin-left: auto; text-align: right;
+  font-size: 12px; color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+#fd-upcoming li.fdu-past .fdu-title,
+#fd-upcoming li.fdu-past .fdu-time { color: var(--text-placeholder); }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-upcoming');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var DAY_MS = 86400000;
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function hasTime(t, iso) {
+    if (t.all_day) return false;
+    if (!/T/.test(iso)) return false;
+    var d = new Date(iso);
+    if (isNaN(d)) return false;
+    return d.getHours() !== 0 || d.getMinutes() !== 0;
+  }
+
+  function itemDate(t) {
+    var dates = [];
+    if (t.start) dates.push(t.start);
+    if (t.due) dates.push(t.due);
+    var best = null, bestIso = null;
+    dates.forEach(function (iso) {
+      var d = new Date(iso);
+      if (isNaN(d)) return;
+      if (best === null || d < best) { best = d; bestIso = iso; }
+    });
+    return best === null ? null : { d: best, iso: bestIso };
+  }
+
+  function dayLabel(idx, dayStart) {
+    if (idx === 0) return 'Today';
+    if (idx === 1) return 'Tomorrow';
+    return dayStart.toLocaleDateString('en-GB',
+      { weekday: 'short', day: 'numeric', month: 'short' }).replace(/,/g, '');
+  }
+
+  function render(data) {
+    var todos = Array.isArray(data) ? data : (data && Array.isArray(data.todos) ? data.todos : []);
+
+    var now = new Date();
+    var winStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var winEnd = new Date(winStart.getTime() + 7 * DAY_MS);
+
+    var days = {};
+    var total = 0;
+    todos.forEach(function (t) {
+      var when = itemDate(t);
+      if (!when) return;
+      if (when.d < winStart || when.d > winEnd) return;
+      var localDay = new Date(when.d.getFullYear(), when.d.getMonth(), when.d.getDate());
+      var idx = Math.round((localDay - winStart) / DAY_MS);
+      if (!days[idx]) days[idx] = [];
+      days[idx].push({ todo: t, d: when.d, iso: when.iso });
+      total++;
+    });
+
+    meta.textContent = total ? total + ' this week' : '';
+    if (!total) { FD.empty(body, 'Clear week.'); return; }
+
+    var html = '';
+    Object.keys(days).map(Number).sort(function (a, b) { return a - b; })
+      .forEach(function (idx) {
+        var items = days[idx];
+        items.sort(function (a, b) { return a.d - b.d; });
+        var dayStart = new Date(winStart.getTime() + idx * DAY_MS);
+        var rows = items.map(function (it) {
+          var t = it.todo;
+          var timed = hasTime(t, it.iso);
+          var past = idx === 0 && timed && it.d < now;
+          var row = '<li class="fdu-item' + (past ? ' fdu-past' : '') + '">' +
+            '<span class="fdu-title">' + esc(t.title || t.slug || '(untitled)') + '</span>';
+          if (timed) {
+            var hh = ('0' + it.d.getHours()).slice(-2);
+            var mm = ('0' + it.d.getMinutes()).slice(-2);
+            row += '<span class="fdu-time">' + hh + ':' + mm + '</span>';
+          }
+          row += '</li>';
+          return row;
+        }).join('');
+        html += '<div class="fdu-day">' +
+          '<div class="fdu-head' + (idx === 0 ? ' fdu-today' : '') + '">' +
+          esc(dayLabel(idx, dayStart)) + '</div>' +
+          '<ul class="fdu-items">' + rows + '</ul></div>';
+      });
+
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    FD.fetchJSON(FD.BRAIN + '/api/todos?status=open', { ttl: 60000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Upcoming items unavailable. The panel retries every 5 minutes.',
+          (e && e.message) || e);
+      });
+  }, 300000);
+})();</script>
+<!-- panel: upcoming end -->
+<!-- panel: todos start -->
+<section class="card fd-panel" id="fd-todos">
+  <header class="fd-panel-head">
+    <i class="ph ph-check-square"></i>
+    <h2 class="card-title">Tasks</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/todos" data-tip="Open todos" aria-label="Open todos"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+#fd-todos .fd-body { max-height: 420px; overflow-y: auto; }
+#fd-todos .fdt-group + .fdt-group { margin-top: var(--sp-3); }
+#fd-todos .fdt-label {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  padding-bottom: 4px;
+}
+#fd-todos .fdt-count {
+  font-weight: 400; color: var(--text-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+#fd-todos ul.fdt-items { list-style: none; margin: 0; padding: 0; }
+#fd-todos li.fdt-item {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding: 4px 0 4px var(--sp-2);
+  border-left: 2px solid var(--text-placeholder);
+  border-bottom: 1px solid var(--border-subtle);
+}
+#fd-todos li.fdt-item:last-child { border-bottom: none; }
+#fd-todos .fdt-title {
+  flex: 1; min-width: 0;
+  font-size: var(--font-size-ui); color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#fd-todos .fdt-due {
+  flex: none; font-size: 12px; color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+#fd-todos .fdt-due.fdt-overdue { color: var(--danger-text); }
+#fd-todos details.fdt-fold summary {
+  cursor: pointer; list-style: none;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  padding-bottom: 4px;
+}
+#fd-todos details.fdt-fold summary::-webkit-details-marker { display: none; }
+#fd-todos details.fdt-fold summary::before { content: '\25B8 '; color: var(--text-placeholder); }
+#fd-todos details.fdt-fold[open] summary::before { content: '\25BE '; }
+#fd-todos .fdt-more {
+  font-size: 12px; color: var(--text-placeholder);
+  margin-top: var(--sp-2);
+}
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-todos');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var MAX_VISIBLE = 12;
+
+  var STRIPE = {
+    P0: 'var(--chart-5)',
+    P1: 'var(--chart-4)',
+    P2: 'var(--chart-1)',
+    P3: 'var(--text-placeholder)'
+  };
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function fmtDue(iso, now) {
+    var d = new Date(iso);
+    if (isNaN(d)) return null;
+    return {
+      text: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      overdue: d < now
+    };
+  }
+
+  function itemHTML(t, prio, now) {
+    var html = '<li class="fdt-item" style="border-left-color:' + STRIPE[prio] + '">' +
+      '<span class="fdt-title">' + esc(t.title || t.slug || '(untitled)') + '</span>';
+    if (t.due) {
+      var due = fmtDue(t.due, now);
+      if (due) {
+        html += '<span class="fdt-due' + (due.overdue ? ' fdt-overdue' : '') + '">' +
+          esc(due.text) + '</span>';
+      }
+    }
+    html += '</li>';
+    return html;
+  }
+
+  function render(data) {
+    var todos = Array.isArray(data) ? data : (data && Array.isArray(data.todos) ? data.todos : []);
+    // Calendar events (start, no due) aren't actionable, they live in the
+    // Upcoming panel and never get ticked off. Show real tasks only here.
+    todos = todos.filter(function (t) { return t.due || !t.start; });
+    meta.textContent = todos.length + ' open';
+    if (!todos.length) { FD.empty(body, 'Nothing open.'); return; }
+
+    var now = new Date();
+    var prios = ['P0', 'P1', 'P2', 'P3'];
+    var groups = { P0: [], P1: [], P2: [], P3: [] };
+    todos.forEach(function (t) {
+      var p = prios.indexOf(t.priority) >= 0 ? t.priority : 'P3';
+      groups[p].push(t);
+    });
+
+    var html = '';
+    var shown = 0;
+    prios.forEach(function (p) {
+      var items = groups[p];
+      if (!items.length || shown >= MAX_VISIBLE) return;
+      var take = items.slice(0, MAX_VISIBLE - shown);
+      shown += take.length;
+      var rows = take.map(function (t) { return itemHTML(t, p, now); }).join('');
+      var list = '<ul class="fdt-items">' + rows + '</ul>';
+      if (p === 'P3' && items.length > 5) {
+        html += '<div class="fdt-group"><details class="fdt-fold">' +
+          '<summary>P3 (' + items.length + ')</summary>' + list + '</details></div>';
+      } else {
+        html += '<div class="fdt-group">' +
+          '<div class="fdt-label">' + p +
+          ' <span class="fdt-count">' + items.length + '</span></div>' +
+          list + '</div>';
+      }
+    });
+
+    var hidden = todos.length - shown;
+    if (hidden > 0) {
+      html += '<div class="fdt-more">' + hidden + ' more in the todos page</div>';
+    }
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    FD.fetchJSON(FD.BRAIN + '/api/todos?status=open', { ttl: 60000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Tasks unavailable. The panel retries every 5 minutes.',
+          (e && e.message) || e);
+      });
+  }, 300000);
+})();</script>
+<!-- panel: todos end -->
+<!-- panel: graph3d start -->
+<section class="card fd-panel" id="fd-graph3d">
+  <header class="fd-panel-head">
+    <i class="ph ph-graph"></i>
+    <h2 class="card-title">Brain in 3D</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/graph" data-tip="Open graph" aria-label="Open graph"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-graph3d .fd-canvas {
+    height: 540px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface-1);
+  }
+  @media (max-width: 760px) {
+    #fd-graph3d .fd-canvas { height: 380px; }
+  }
+  #fd-graph3d .fd-legend {
+    display: flex;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+    margin-top: var(--sp-2);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  #fd-graph3d .fd-legend .swatch {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  #fd-graph3d .fd-legend .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  #fd-graph3d .scene-tooltip {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    color: var(--text-primary);
+    background: var(--overlay-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.79.0/dist/3d-force-graph.min.js"></script>
+<script>(function () {
+  var root = document.getElementById('fd-graph3d');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+
+  function webglAvailable() {
+    if (!window.WebGLRenderingContext) return false;
+    try {
+      var c = document.createElement('canvas');
+      return !!(c.getContext('webgl') || c.getContext('experimental-webgl'));
+    } catch (e) { return false; }
+  }
+
+  if (!webglAvailable()) {
+    FD.fail(body, 'This browser has no WebGL. Open the 2D graph instead.');
+    return;
+  }
+  if (typeof ForceGraph3D !== 'function') {
+    FD.fail(body, 'The 3D graph library did not load. Open the 2D graph instead.');
+    return;
+  }
+
+  FD.fetchJSON(FD.BRAIN + '/api/graph', { ttl: 60000 }).then(function (data) {
+    var nodes = data.nodes, links = data.links;
+    meta.textContent = nodes.length + ' nodes, ' + links.length + ' links';
+
+    // Same colour assignment as pages/graph: kinds sorted, indexed into the
+    // chart palette. The legend takes the var() so it follows a live theme
+    // change; the scene takes the resolved sRGB, which WebGL needs.
+    var kinds = Array.from(new Set(nodes.map(function (n) { return n.kind; }))).sort();
+    function slot(kind) { return kinds.indexOf(kind) % 6 + 1; }
+    function swatchColor(kind) { return 'var(--chart-' + slot(kind) + ')'; }
+    function sceneColor(kind) { return FD.palette[slot(kind) - 1]; }
+
+    // val = link degree (compute before the lib swaps ids for node objects)
+    var degree = {};
+    links.forEach(function (l) {
+      degree[l.source] = (degree[l.source] || 0) + 1;
+      degree[l.target] = (degree[l.target] || 0) + 1;
+    });
+    nodes.forEach(function (n) { n.val = degree[n.id] || 1; });
+
+    body.innerHTML = '';
+    var el = document.createElement('div');
+    el.className = 'fd-canvas';
+    body.appendChild(el);
+
+    var legend = document.createElement('div');
+    legend.className = 'fd-legend';
+    kinds.forEach(function (k) {
+      var sw = document.createElement('span');
+      sw.className = 'swatch';
+      var dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = swatchColor(k);
+      sw.appendChild(dot);
+      sw.appendChild(document.createTextNode(k));
+      legend.appendChild(sw);
+    });
+    body.appendChild(legend);
+
+    // The WebGL scene needs concrete colours, not CSS vars, so resolve the
+    // live theme's plot ground and link grey through FD.color.
+    var linkGrey = FD.color('--text-placeholder', '#696e77');
+    var graph = ForceGraph3D()(el)
+      .width(el.clientWidth)
+      .height(el.clientHeight)
+      .backgroundColor(FD.color('--surface-1', '#111113'))
+      .showNavInfo(false)
+      .nodeRelSize(4)
+      .nodeLabel('title')
+      .nodeColor(function (n) { return sceneColor(n.kind); })
+      .linkColor(function () { return linkGrey; })
+      .linkOpacity(0.35)
+      .onNodeClick(function (n) { window.location.href = '/note/' + n.id; })
+      .graphData({ nodes: nodes, links: links });
+
+    try {
+      if (typeof graph.renderer === 'function') {
+        graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      }
+    } catch (e) { /* pixel-ratio cap is best-effort */ }
+
+    graph.controls().autoRotate = true;
+    graph.controls().autoRotateSpeed = 0.5;
+    el.addEventListener('pointerdown', function () {
+      graph.controls().autoRotate = false;
+    }, { once: true });
+
+    new ResizeObserver(function () {
+      graph.width(el.clientWidth).height(el.clientHeight);
+    }).observe(el);
+
+    // A theme flip changes the ground and the palette; the scene holds copies,
+    // so re-resolve and push them back in.
+    new MutationObserver(function () {
+      FD.repalette();
+      linkGrey = FD.color('--text-placeholder', '#696e77');
+      graph.backgroundColor(FD.color('--surface-1', '#111113'))
+        .nodeColor(function (n) { return sceneColor(n.kind); })
+        .linkColor(function () { return linkGrey; });
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }).catch(function (e) {
+    FD.fail(body, 'Graph data unavailable. Reload the page to try again.',
+      (e && e.message) || e);
+  });
+})();</script>
+<!-- panel: graph3d end -->
+<!-- panel: services start -->
+<section class="card fd-panel" id="fd-services">
+  <header class="fd-panel-head">
+    <i class="ph ph-pulse"></i>
+    <h2 class="card-title">Services</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/system" data-tip="Open system" aria-label="Open system"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-services { --row-h: 30px; }
+  #fd-services .fd-body { max-height: 540px; overflow-y: auto; }
+  #fd-services .fds-id { width: 42%; }
+  #fd-services .fds-domain { color: var(--text-secondary); }
+  #fd-services .fds-state { width: 68px; }
+  #fd-services [data-meta] .fds-down-warn { color: var(--danger-text); }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-services');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var LOCATIONS = { h: 'Nuremberg', b: 'Helsinki' };
+  var STATE_RANK = { down: 0, unknown: 1, up: 2 };
+  var BADGE = { up: 'badge-ok', down: 'badge-danger', unknown: 'badge-plain' };
+  var STATE_LABEL = { up: 'Up', down: 'Down', unknown: 'Unknown' };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function render(data) {
+    var summary = data.summary || {};
+    var downPart = summary.down + ' down';
+    if (summary.down > 0) downPart = '<span class="fds-down-warn">' + downPart + '</span>';
+    var checked = FD.rel(data.checked_at);
+    meta.innerHTML = summary.up + ' up, ' + downPart + ', ' + esc(checked);
+    meta.title = 'Checked ' + checked;
+
+    var byHost = {};
+    var hostOrder = [];
+    (data.services || []).forEach(function (s) {
+      var h = s.host || '?';
+      if (!byHost[h]) { byHost[h] = []; hostOrder.push(h); }
+      byHost[h].push(s);
+    });
+
+    var html = '';
+    hostOrder.forEach(function (h) {
+      var svcs = byHost[h].slice().sort(function (a, b) {
+        var ra = STATE_RANK[a.state] !== undefined ? STATE_RANK[a.state] : 1;
+        var rb = STATE_RANK[b.state] !== undefined ? STATE_RANK[b.state] : 1;
+        return ra - rb;
+      });
+      var loc = LOCATIONS[h];
+      var label = 'Host ' + h + (loc ? ', ' + loc : '');
+      html += '<div class="fd-group">' +
+        '<div class="fd-group-label">' + esc(label) + '</div>' +
+        '<div class="table-wrap"><table class="table"><tbody>';
+      svcs.forEach(function (s) {
+        var state = STATE_RANK[s.state] !== undefined ? s.state : 'unknown';
+        html += '<tr title="' + esc(s.method + ': ' + s.detail) + '">' +
+          '<td class="fds-id">' + esc(s.id) + '</td>' +
+          '<td class="fds-domain">' + esc(s.domain || '') + '</td>' +
+          '<td class="r fds-state"><span class="badge ' + BADGE[state] + '">' +
+            esc(STATE_LABEL[state]) + '</span></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div></div>';
+    });
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/status', { ttl: 30000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Service health unavailable. The panel retries every minute.',
+          (e && e.message) || e);
+      });
+  }, 60000);
+})();</script>
+<!-- panel: services end -->
+<!-- panel: dependencies start -->
+<section class="card fd-panel" id="fd-dependencies">
+  <header class="fd-panel-head">
+    <i class="ph ph-plugs-connected"></i>
+    <h2 class="card-title">Dependencies</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/system" data-tip="Open system" aria-label="Open system"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-dependencies { --row-h: 30px; }
+  #fd-dependencies .fd-body { max-height: 540px; overflow-y: auto; }
+  #fd-dependencies .fdd-id { width: 36%; }
+  #fd-dependencies .fdd-detail { color: var(--text-secondary); }
+  #fd-dependencies .fdd-state { width: 86px; }
+  #fd-dependencies [data-meta] .fdd-warn { color: var(--warn-text); }
+  #fd-dependencies [data-meta] .fdd-down { color: var(--danger-text); }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-dependencies');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var CRIT_ORDER = ['vital', 'important', 'nice'];
+  var CRIT_LABEL = { vital: 'Vital', important: 'Important', nice: 'Nice to have' };
+  var STATE_RANK = { down: 0, warn: 1, unknown: 2, up: 3 };
+  var BADGE = { up: 'badge-ok', warn: 'badge-warn', down: 'badge-danger', unknown: 'badge-plain' };
+  var STATE_LABEL = { up: 'Up', warn: 'Warn', down: 'Down', unknown: 'Unknown' };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function render(data) {
+    var deps = data.dependencies || [];
+    var counts = { up: 0, warn: 0, down: 0, unknown: 0 };
+    deps.forEach(function (d) { if (counts[d.state] !== undefined) counts[d.state]++; });
+    var warnPart = counts.warn + ' warn';
+    if (counts.warn > 0) warnPart = '<span class="fdd-warn">' + warnPart + '</span>';
+    var downPart = counts.down + ' down';
+    if (counts.down > 0) downPart = '<span class="fdd-down">' + downPart + '</span>';
+    meta.innerHTML = counts.up + ' up, ' + warnPart + ', ' + downPart +
+      ', ' + counts.unknown + ' unknown';
+    meta.title = counts.up + ' up, ' + counts.warn + ' warn, ' + counts.down +
+      ' down, ' + counts.unknown + ' unknown';
+
+    var byCrit = {};
+    deps.forEach(function (d) {
+      var c = CRIT_ORDER.indexOf(d.criticality) >= 0 ? d.criticality : 'nice';
+      (byCrit[c] = byCrit[c] || []).push(d);
+    });
+
+    var html = '';
+    CRIT_ORDER.forEach(function (crit) {
+      var group = byCrit[crit];
+      if (!group || !group.length) return;
+      group.sort(function (a, b) {
+        var ra = STATE_RANK[a.state] !== undefined ? STATE_RANK[a.state] : 2;
+        var rb = STATE_RANK[b.state] !== undefined ? STATE_RANK[b.state] : 2;
+        return ra - rb;
+      });
+      html += '<div class="fd-group">' +
+        '<div class="fd-group-label">' + esc(CRIT_LABEL[crit]) + '</div>' +
+        '<div class="table-wrap"><table class="table"><tbody>';
+      group.forEach(function (d) {
+        var state = STATE_RANK[d.state] !== undefined ? d.state : 'unknown';
+        html += '<tr title="' + esc((d.provider || '') + ': ' + (d.detail || '')) + '">' +
+          '<td class="fdd-id">' + esc(d.id) + '</td>' +
+          '<td class="fdd-detail">' + esc(d.detail || '') + '</td>' +
+          '<td class="r fdd-state"><span class="badge ' + BADGE[state] + '">' +
+            esc(STATE_LABEL[state]) + '</span></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div></div>';
+    });
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/status', { ttl: 30000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Dependency health unavailable. The panel retries every minute.',
+          (e && e.message) || e);
+      });
+  }, 60000);
+})();</script>
+<!-- panel: dependencies end -->
+<!-- panel: topology start -->
+<section class="card fd-panel" id="fd-topology">
+  <header class="fd-panel-head">
+    <i class="ph ph-cube"></i>
+    <h2 class="card-title">Topology</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/gcore" data-tip="Open g-core" aria-label="Open g-core"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-topology .fd-topo-wrap {
+    position: relative;
+    height: 420px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    background: var(--surface-1);
+    overflow: hidden;
+  }
+  #fd-topology .fd-topo-cy { position: absolute; inset: 0; }
+  #fd-topology .fd-topo-legend {
+    position: absolute;
+    left: var(--sp-2);
+    bottom: var(--sp-2);
+    font-size: 12px;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+  #fd-topology .fd-topo-legend span {
+    display: inline-flex;
+    align-items: center;
+    margin-right: var(--sp-3);
+  }
+  #fd-topology .fd-topo-legend i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+<script>(function () {
+  var panel = document.getElementById('fd-topology');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+
+  var SLOT = { system: 1, meta: 5, external: 4, source: 3 };
+  var LABELS = {
+    system: 'System', meta: 'Meta', external: 'External', source: 'Source'
+  };
+  var ORDER = ['system', 'meta', 'external', 'source'];
+
+  FD.fetchJSON('/api/full-dash/diagram').then(function (res) {
+    if (typeof cytoscape === 'undefined') {
+      FD.fail(body, 'The graph library did not load. Reload the page to try again.');
+      return;
+    }
+    var elements = (res && res.elements) || [];
+    var nodeCount = elements.filter(function (el) {
+      return el.data && !el.data.source;
+    }).length;
+    var defaultMeta = nodeCount + ' nodes';
+    meta.textContent = defaultMeta;
+
+    body.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.className = 'fd-topo-wrap';
+    var holder = document.createElement('div');
+    holder.className = 'fd-topo-cy';
+    wrap.appendChild(holder);
+
+    var legend = document.createElement('div');
+    legend.className = 'fd-topo-legend';
+    ORDER.forEach(function (t) {
+      var item = document.createElement('span');
+      var dot = document.createElement('i');
+      dot.style.background = 'var(--chart-' + SLOT[t] + ')';
+      item.appendChild(dot);
+      item.appendChild(document.createTextNode(LABELS[t]));
+      legend.appendChild(item);
+    });
+    wrap.appendChild(legend);
+    body.appendChild(wrap);
+
+    // Cytoscape holds copies of whatever colours it was given and needs
+    // concrete ones, not CSS vars, so the sheet is rebuilt from the live
+    // theme here and again whenever data-theme flips.
+    function themeStyle() {
+      FD.repalette();
+      var faint = FD.color('--text-placeholder', '#696e77');
+      var muted = FD.color('--text-secondary', '#b0b4ba');
+      var colors = {};
+      ORDER.forEach(function (t) { colors[t] = FD.palette[SLOT[t] - 1]; });
+      function typeColor(ele) { return colors[ele.data('type')] || faint; }
+      return [
+        { selector: 'node', style: {
+          'shape': 'round-rectangle',
+          'width': 'label',
+          'height': 'label',
+          'padding': '8px',
+          'background-color': typeColor,
+          'background-opacity': 0.15,
+          'border-width': 1,
+          'border-color': typeColor,
+          'label': 'data(label)',
+          'font-family': 'InterVariable, Inter, sans-serif',
+          'font-size': '10px',
+          'color': FD.color('--text-primary', '#edeef0'),
+          'text-wrap': 'wrap',
+          'text-max-width': '90px',
+          'text-valign': 'center',
+          'text-halign': 'center'
+        } },
+        { selector: 'node[?highlight]', style: {
+          'border-color': FD.color('--warn-text', '#ffca16')
+        } },
+        { selector: 'edge', style: {
+          'width': 1,
+          'line-color': faint,
+          'curve-style': 'bezier',
+          'target-arrow-shape': 'triangle',
+          'target-arrow-color': faint,
+          'arrow-scale': 0.6,
+          'label': 'data(label)',
+          'font-family': 'InterVariable, Inter, sans-serif',
+          'font-size': '8px',
+          'color': muted,
+          'text-rotation': 'autorotate',
+          'text-background-color': FD.color('--surface-1', '#111113'),
+          'text-background-opacity': 1,
+          'text-background-padding': '1px'
+        } },
+        { selector: '.fd-topo-dim', style: {
+          'opacity': 0.2
+        } }
+      ];
+    }
+
+    var cy = cytoscape({
+      container: holder,
+      elements: elements,
+      userZoomingEnabled: false,
+      style: themeStyle()
+    });
+
+    cy.layout({ name: 'cose', animate: false, padding: 24 }).run();
+
+    new MutationObserver(function () {
+      cy.style(themeStyle());
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    cy.on('tap', 'node', function (evt) {
+      var hood = evt.target.closedNeighborhood();
+      cy.elements().not(hood).addClass('fd-topo-dim');
+      hood.removeClass('fd-topo-dim');
+      meta.textContent = evt.target.data('subtitle') || evt.target.data('label') || '';
+    });
+    cy.on('tap', function (evt) {
+      if (evt.target === cy) {
+        cy.elements().removeClass('fd-topo-dim');
+        meta.textContent = defaultMeta;
+      }
+    });
+  }).catch(function (err) {
+    FD.fail(body, 'Topology diagram unavailable. Reload the page to try again.',
+      (err && err.message) || err);
+  });
+})();</script>
+<!-- panel: topology end -->
+<!-- panel: voice start -->
+<section class="card fd-panel" id="fd-voice">
+  <header class="fd-panel-head">
+    <i class="ph ph-chat-circle-dots"></i>
+    <h2 class="card-title">Voice</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/voice" data-tip="Open voice" aria-label="Open voice"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-voice .table td { height: auto; padding-top: 6px; padding-bottom: 6px; }
+  #fd-voice .fdv-label { color: var(--text-primary); }
+  #fd-voice .fdv-detail {
+    font-size: 12px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-voice .fdv-detail.low { color: var(--warn-text); }
+  #fd-voice .fdv-state { width: 68px; }
+  #fd-voice [data-meta] .fdv-model { font-family: var(--font-mono); font-size: 0.925em; }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-voice');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+
+  var ORDER = ['engine', 'telnyx_balance', 'brain', 'outlet', 'transport_creds'];
+  var LABELS = {
+    engine: 'Engine',
+    telnyx_balance: 'Telnyx balance',
+    brain: 'Brain',
+    outlet: 'Calendar outlet',
+    transport_creds: 'Transport creds'
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function render(data) {
+    var model = String(data.model || '');
+    var slash = model.indexOf('/');
+    if (slash !== -1) model = model.slice(slash + 1);
+    var metaHtml = '<span class="fdv-model">' + esc(model) + '</span>';
+    if (!data.ok) metaHtml += ' <span class="badge badge-danger">Degraded</span>';
+    meta.innerHTML = metaHtml;
+
+    var checks = data.checks || {};
+    var html = '<div class="table-wrap"><table class="table"><tbody>';
+    ORDER.forEach(function (key) {
+      var c = checks[key];
+      if (!c) return;
+      var detail = c.detail;
+      if (key === 'transport_creds') {
+        detail = (c.missing && c.missing.length)
+          ? 'missing: ' + c.missing.join(', ')
+          : 'all present';
+      }
+      var detailCls = 'fdv-detail';
+      if (key === 'telnyx_balance' && typeof c.balance === 'number' && c.balance < 5) {
+        detailCls += ' low';
+      }
+      html += '<tr>' +
+        '<td><div class="fdv-label">' + esc(LABELS[key]) + '</div>' +
+          (detail ? '<div class="' + detailCls + '">' + esc(detail) + '</div>' : '') +
+        '</td>' +
+        '<td class="r fdv-state"><span class="badge ' +
+          (c.ok ? 'badge-ok">Ok' : 'badge-danger">Down') + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON('/api/full-dash/voice-health', { ttl: 60000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Voice health unavailable. The panel retries every 5 minutes.',
+          (e && e.message) || e);
+      });
+  }, 300000);
+})();</script>
+<!-- panel: voice end -->
+<!-- panel: brain start -->
+<section class="card fd-panel" id="fd-brain">
+  <header class="fd-panel-head">
+    <i class="ph ph-brain"></i>
+    <h2 class="card-title">Brain</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/notes" data-tip="Open notes" aria-label="Open notes"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-brain .fdb-kinds { display: flex; flex-direction: column; gap: 6px; }
+  #fd-brain .fdb-kind-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+  #fd-brain .fdb-kind-label {
+    font-size: 12px; color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-brain .fdb-kind-count {
+    font-size: 12px; font-variant-numeric: tabular-nums;
+    text-align: right; min-width: 3ch;
+  }
+  #fd-brain .fdb-subhead {
+    font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    margin: var(--sp-4) 0 var(--sp-1);
+  }
+  #fd-brain .fdb-recent { display: flex; flex-direction: column; }
+  #fd-brain .fdb-note-row {
+    display: flex; align-items: baseline; gap: var(--sp-3);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--font-size-ui);
+  }
+  #fd-brain .fdb-note-row:last-child { border-bottom: none; }
+  #fd-brain .fdb-note-row a {
+    flex: 1; min-width: 0;
+    text-decoration: none; color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-brain .fdb-note-row a:hover { text-decoration: underline; }
+  #fd-brain .fdb-note-when {
+    flex: none; font-size: 12px; color: var(--text-placeholder);
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-brain .fdb-refs {
+    margin-top: var(--sp-3);
+    font-size: 12px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-brain .fdb-refs .fdb-broken { color: var(--danger-text); }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-brain');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function render(data) {
+    var kinds = data.kinds || [];
+    var recent = data.recent || [];
+    var refs = data.refs || {};
+
+    var totalNotes = 0;
+    var maxKind = 1;
+    kinds.forEach(function (k) {
+      totalNotes += k.total;
+      if (k.total > maxKind) maxKind = k.total;
+    });
+    meta.textContent = totalNotes + ' notes';
+
+    var html = '<div class="fdb-kinds">';
+    kinds.forEach(function (k, i) {
+      // The var(), not FD.palette, so the bars follow a live theme change.
+      var color = 'var(--chart-' + (i % 6 + 1) + ')';
+      var pct = Math.max(1, Math.round(k.total / maxKind * 100));
+      html += '<div class="fdb-kind-row">' +
+        '<span class="fdb-kind-label" title="' + esc(k.kind) + '">' + esc(k.kind) + '</span>' +
+        '<span class="g-progress"><span class="g-progress-fill" style="width:' +
+          pct + '%;background:' + esc(color) + '"></span></span>' +
+        '<span class="fdb-kind-count">' + k.total + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    html += '<div class="fdb-subhead">Recent</div><div class="fdb-recent">';
+    recent.forEach(function (n) {
+      html += '<div class="fdb-note-row">' +
+        '<a href="/note/' + esc(n.path) + '" title="' + esc(n.path) + '">' +
+        esc(g.plain(n.title)) + '</a>';
+      if (n.updated) {
+        html += '<span class="fdb-note-when">' + esc(FD.rel(n.updated)) + '</span>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+
+    var broken = refs.broken
+      ? ', <span class="fdb-broken">' + refs.broken + ' broken</span>' : '';
+    html += '<div class="fdb-refs">' + (refs.total_urls || 0) + ' refs, ' +
+      (refs.distinct_canonical || 0) + ' canonical' + broken + '</div>';
+
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/home/stats')
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Brain stats unavailable. The panel retries every 5 minutes.',
+          (e && e.message) || e);
+      });
+  }, 300000);
+})();</script>
+<!-- panel: brain end -->
+<!-- panel: refs start -->
+<section class="card fd-panel" id="fd-refs">
+  <header class="fd-panel-head">
+    <i class="ph ph-link"></i>
+    <h2 class="card-title">Refs</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/refs" data-tip="Open refs" aria-label="Open refs"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-refs .fdr-hero { text-align: center; padding: var(--sp-4) 0 var(--sp-3); }
+  #fd-refs .fdr-num {
+    font-size: 44px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-refs .fdr-num.broken { color: var(--danger-text); }
+  #fd-refs .fdr-num.healthy { color: var(--ok-text); }
+  #fd-refs .fdr-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  #fd-refs .fdr-list { display: flex; flex-direction: column; }
+  #fd-refs .fdr-row {
+    display: block;
+    font-size: 12px;
+    color: var(--danger-text);
+    text-decoration: none;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  #fd-refs .fdr-row:last-child { border-bottom: none; }
+  #fd-refs .fdr-row:hover { text-decoration: underline; }
+  #fd-refs .fdr-empty { text-align: center; }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-refs');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+
+  function render(data) {
+    var urls = (data.nodes || []).filter(function (n) { return n.type === 'url'; });
+    var brokenUrls = urls.filter(function (n) { return n.broken; });
+    var total = urls.length;
+    var broken = brokenUrls.length;
+
+    if (total === 0) {
+      meta.textContent = '';
+      FD.empty(body, 'No refs indexed yet.');
+      return;
+    }
+
+    var healthy = Math.round(((total - broken) / total) * 100);
+    var kind = broken ? 'warn' : 'ok';
+    var label = healthy + '% healthy';
+    var badge = meta.querySelector('.badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'badge';
+      meta.innerHTML = '';
+      meta.appendChild(badge);
+    }
+    // g.status swells the pill when the figure moves; plain assignment is the
+    // fallback if g-ui.js has not finished loading.
+    if (window.g && g.status) {
+      g.status(badge, { kind: kind, label: label });
+    } else {
+      badge.className = 'badge badge-' + kind;
+      badge.textContent = label;
+    }
+
+    body.innerHTML = '';
+
+    var hero = document.createElement('div');
+    hero.className = 'fdr-hero';
+    var num = document.createElement('div');
+    num.className = 'fdr-num ' + (broken > 0 ? 'broken' : 'healthy');
+    num.textContent = String(broken);
+    var sub = document.createElement('div');
+    sub.className = 'fdr-sub';
+    sub.textContent = 'of ' + total + ' refs broken';
+    hero.appendChild(num);
+    hero.appendChild(sub);
+    body.appendChild(hero);
+
+    if (broken > 0) {
+      var list = document.createElement('div');
+      list.className = 'fdr-list';
+      brokenUrls.slice(0, 8).forEach(function (n) {
+        var row = document.createElement('a');
+        row.className = 'fdr-row';
+        row.href = n.url;
+        row.target = '_blank';
+        row.rel = 'noopener';
+        row.title = n.url;
+        row.textContent = n.url;
+        list.appendChild(row);
+      });
+      body.appendChild(list);
+    } else {
+      var ok = document.createElement('div');
+      ok.className = 'fdr-empty';
+      FD.empty(ok, 'Every ref resolves.');
+      body.appendChild(ok);
+    }
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/refs/graph')
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Ref health unavailable. The panel retries every 10 minutes.',
+          (e && e.message) || e);
+      });
+  }, 600000);
+})();</script>
+<!-- panel: refs end -->
+<!-- panel: inlets start -->
+<section class="card fd-panel" id="fd-inlets">
+  <header class="fd-panel-head">
+    <i class="ph ph-waves"></i>
+    <h2 class="card-title">Inlets</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/pulse" data-tip="Open pulse" aria-label="Open pulse"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-inlets .table td { height: auto; padding-top: 6px; padding-bottom: 6px; }
+  #fd-inlets .fdi-title {
+    color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-inlets .fdi-summary {
+    font-size: 12px; color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-inlets .fdi-when {
+    width: 120px;
+    font-size: 12px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-inlets .fdi-when div {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #fd-inlets .fdi-state { width: 68px; }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-inlets');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var RECENT_MS = 24 * 60 * 60 * 1000;
+  var BADGE = { fresh: 'badge-ok', stale: 'badge-warn', stub: 'badge-plain' };
+  var STATE_LABEL = { fresh: 'Fresh', stale: 'Stale', stub: 'Stub' };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function state(inlet) {
+    if (inlet.status === 'stub') return 'stub';
+    if (!inlet.last_run) return 'stale';
+    var t = Date.parse(inlet.last_run);
+    if (isNaN(t) || Date.now() - t > RECENT_MS) return 'stale';
+    return 'fresh';
+  }
+
+  function render(inlets) {
+    inlets = Array.isArray(inlets) ? inlets : [];
+    var stubs = inlets.filter(function (i) { return i.status === 'stub'; }).length;
+    var active = inlets.length - stubs;
+    meta.textContent = active + ' active, ' + stubs + ' stubs';
+
+    if (!inlets.length) {
+      FD.empty(body, 'No inlets defined.');
+      return;
+    }
+
+    var html = '<div class="table-wrap"><table class="table"><tbody>';
+    inlets.forEach(function (i) {
+      var last = i.last_run ? 'last run ' + FD.rel(i.last_run) : 'never run';
+      var st = state(i);
+      html += '<tr>' +
+        '<td><div class="fdi-title">' + esc(i.title || i.id) + '</div>' +
+          (i.summary ? '<div class="fdi-summary">' + esc(i.summary) + '</div>' : '') +
+        '</td>' +
+        '<td class="r fdi-when"><div>' + esc(i.schedule || 'no schedule') + '</div>' +
+          '<div>' + esc(last) + '</div></td>' +
+        '<td class="r fdi-state"><span class="badge ' + BADGE[st] + '">' +
+          esc(STATE_LABEL[st]) + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/pulse/inlets', { ttl: 300000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Inlet status unavailable. The panel retries every 10 minutes.',
+          (e && e.message) || e);
+      });
+  }, 600000);
+})();</script>
+<!-- panel: inlets end -->
+<!-- panel: sessions start -->
+<section class="card fd-panel" id="fd-sessions">
+  <header class="fd-panel-head">
+    <i class="ph ph-terminal"></i>
+    <h2 class="card-title">Sessions</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/sessions" data-tip="Open sessions" aria-label="Open sessions"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+  #fd-sessions { --row-h: 30px; }
+  #fd-sessions .fd-body { max-height: 480px; overflow-y: auto; }
+  #fd-sessions .fdt-name {
+    display: inline-flex; align-items: center; gap: 7px;
+    text-decoration: none; color: var(--text-primary);
+    white-space: nowrap;
+  }
+  #fd-sessions .fdt-name:hover { text-decoration: underline; }
+  #fd-sessions .fdt-name .ph { color: var(--text-placeholder); font-size: 14px; }
+  #fd-sessions .fdt-info {
+    width: 210px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  #fd-sessions .fdt-none {
+    font-size: 12px; color: var(--text-placeholder); padding: 2px 0;
+  }
+</style>
+<script>(function () {
+  var panel = document.getElementById('fd-sessions');
+  var body = panel.querySelector('[data-body]');
+  var meta = panel.querySelector('[data-meta]');
+  var LOCATIONS = { h: 'Nuremberg', b: 'Helsinki' };
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function ago(ts) {
+    if (!ts) return '?';
+    var s = Math.floor(Date.now() / 1000 - Number(ts));
+    if (s < 0) s = 0;
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  function render(data) {
+    var hosts = data.hosts || {};
+    var hostOrder = Object.keys(hosts);
+    var total = 0;
+    hostOrder.forEach(function (h) {
+      if (Array.isArray(hosts[h])) total += hosts[h].length;
+    });
+
+    meta.textContent = total + (total === 1 ? ' session' : ' sessions');
+
+    if (total === 0) {
+      FD.empty(body, 'No tmux sessions on any host.');
+      return;
+    }
+
+    var html = '';
+    hostOrder.forEach(function (h) {
+      var loc = LOCATIONS[h];
+      var label = 'Host ' + h + (loc ? ', ' + loc : '');
+      html += '<div class="fd-group">' +
+        '<div class="fd-group-label">' + esc(label) + '</div>';
+
+      var sessions = hosts[h];
+      if (!Array.isArray(sessions) || sessions.length === 0) {
+        // The API collapses SSH/tmux failures to an empty list, so "no
+        // sessions" and "unreachable" are indistinguishable here.
+        html += '<div class="fdt-none">No sessions, or the host is unreachable.</div></div>';
+        return;
+      }
+
+      sessions = sessions.slice().sort(function (a, b) {
+        return (b.last_activity || 0) - (a.last_activity || 0);
+      });
+
+      html += '<div class="table-wrap"><table class="table"><tbody>';
+      sessions.forEach(function (s) {
+        var info = [];
+        if (s.attached) info.push('attached');
+        info.push((s.windows || 0) + 'w');
+        info.push('used ' + ago(s.last_activity));
+        var href = '/sessions?attach=' + encodeURIComponent(h + '/' + s.name);
+        html += '<tr>' +
+          '<td><a class="fdt-name" href="' + esc(href) + '">' +
+            '<i class="ph ph-terminal"></i>' + esc(s.name) + '</a></td>' +
+          '<td class="r fdt-info">' + esc(info.join(', ')) + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div></div>';
+    });
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON('/api/sessions', { ttl: 30000 })
+      .then(render)
+      .catch(function (e) {
+        FD.fail(body, 'Session list unavailable. The panel retries every minute.',
+          (e && e.message) || e);
+      });
+  }, 60000);
+})();</script>
+<!-- panel: sessions end -->
+</div>
+
+<style>
+/* ---- Page top ---- */
+.fd-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.page-head { display: flex; align-items: center; gap: 10px; }
+.page-head h1 { font-size: 18px; }
+.fd-spacer { flex: 1; }
+.fd-sub {
+  margin: calc(var(--sp-4) * -1 + 4px) 0 0;
+  font-size: var(--font-size-ui);
+  color: var(--text-secondary);
+  max-width: 70ch;
+}
+.fd-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 210px)); gap: var(--sp-4); }
+.fd-stat { display: flex; flex-direction: column; gap: 4px; }
+.fd-stat .k { font-size: 12px; color: var(--text-secondary); }
+.fd-stat .v {
+  font-size: 22px; font-weight: 500; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Panel grid ---- */
+.fd-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: start;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+}
+.fd-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fd-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fd-panel-head > .ph { color: var(--text-placeholder); font-size: 15px; flex: none; }
+.fd-panel-head h2 { flex: none; }
+.fd-panel-head a.btn { text-decoration: none; flex: none; }
+.fd-panel-head a.btn .ph { font-size: 14px; }
+.fd-meta {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fd-body { min-width: 0; }
+.fd-loading, .fd-empty {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-placeholder);
+}
+.fd-fail {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--danger-text);
+}
+
+/* Grouped rows: every table panel labels its groups the same way. */
+.fd-group + .fd-group { margin-top: var(--sp-3); }
+.fd-group-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-bottom: 4px;
+}
+
+/* Panel tables are dense and narrow: fixed layout so a long domain or detail
+   ellipsises instead of shoving the status column off the card. */
+.fd-panel .table { table-layout: fixed; }
+.fd-panel .table td {
+  padding-left: var(--sp-2);
+  padding-right: var(--sp-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fd-panel .table td:first-child { padding-left: 0; }
+.fd-panel .table td:last-child { padding-right: 0; }
+.fd-panel .table td.r .badge { vertical-align: middle; }
+
+#fd-pulse    { grid-column: span 6; }
+#fd-upcoming { grid-column: span 3; }
+#fd-todos    { grid-column: span 3; }
+#fd-graph3d  { grid-column: span 8; }
+#fd-services { grid-column: span 4; }
+#fd-dependencies { grid-column: span 4; }
+#fd-topology { grid-column: span 8; }
+#fd-voice    { grid-column: span 4; }
+#fd-brain    { grid-column: span 4; }
+#fd-refs     { grid-column: span 4; }
+#fd-inlets   { grid-column: span 5; }
+#fd-sessions { grid-column: span 7; }
+
+@media (max-width: 1100px) {
+  .fd-grid { grid-template-columns: repeat(6, 1fr); }
+  #fd-pulse, #fd-graph3d, #fd-services, #fd-dependencies, #fd-topology, #fd-inlets, #fd-sessions { grid-column: span 6; }
+  #fd-upcoming, #fd-todos, #fd-brain, #fd-refs { grid-column: span 3; }
+  #fd-voice { grid-column: span 6; }
+}
+@media (max-width: 760px) {
+  .fd-grid { grid-template-columns: 1fr; padding: var(--sp-4); }
+  .fd-grid > * { grid-column: 1 / -1 !important; }
+  .fd-top { padding: var(--sp-4); }
+  .fd-stats { grid-template-columns: 1fr; }
+}
+</style>

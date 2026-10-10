@@ -1,0 +1,11 @@
+{
+  "title": "Todos",
+  "slug": "todos",
+  "description": "Open TODOs across the brain.",
+  "nav": true,
+  "order": 22,
+  "nav_section": "Brain",
+  "nav_icon": "check-square",
+  "nav_label": "Todos",
+  "gsys": true
+}

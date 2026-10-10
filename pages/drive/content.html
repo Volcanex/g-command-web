@@ -1,0 +1,310 @@
+<div class="page-head">
+  <h1>Workspaces</h1>
+  <span class="badge badge-plain" data-live>Loading</span>
+  <span class="grow"></span>
+  <a class="btn btn-secondary btn-sm" href="/sessions" data-all>View all sessions</a>
+</div>
+
+<p class="page-sub">
+  Pick a session. Live sessions (attached) and anything created in the last two
+  days show here. Older ones stay on the sessions page.
+</p>
+
+<div id="drive-root">
+  <p class="drive-loading">Loading sessions…</p>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: 6px; }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .grow { flex: 1; }
+  .page-head a.btn { text-decoration: none; }
+
+  .page-sub {
+    margin: 0 0 var(--sp-4);
+    max-width: 60ch;
+    font-size: var(--font-size-ui); color: var(--text-secondary); line-height: 1.55;
+  }
+
+  .drive-loading { font-size: var(--font-size-ui); color: var(--text-placeholder); }
+
+  .drive-list { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+  .ws-card { padding: var(--pad-card) var(--pad-card) 4px; }
+
+  .ws-head { display: flex; align-items: center; gap: var(--sp-2); padding-bottom: var(--sp-3); }
+  .ws-head .grow { flex: 1; }
+  .ws-num {
+    min-width: 1.2em;
+    font-family: var(--font-mono); font-size: var(--font-size-ui);
+    font-variant-numeric: tabular-nums; color: var(--text-placeholder);
+  }
+
+  .ses-row { position: relative; }
+  .ses-name { font-family: var(--font-mono); font-size: 0.925em; white-space: nowrap; }
+  .ses-name a { color: var(--text-primary); text-decoration: none; }
+  /* the whole row is the link target; the kill button sits above it */
+  .ses-name a::after { content: ""; position: absolute; inset: 0; }
+  .ses-age { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ses-kill { width: 1%; position: relative; z-index: 1; text-align: right; }
+
+  .ws-empty {
+    padding: 2px 0 var(--sp-3);
+    font-size: var(--font-size-ui); color: var(--text-placeholder);
+  }
+</style>
+
+<script>
+(async () => {
+  const root = document.getElementById('drive-root');
+  const liveBadge = document.querySelector('[data-live]');
+
+  const PHONETIC = [
+    'alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel',
+    'india','juliet','kilo','lima','mike','november','oscar','papa',
+    'quebec','romeo','sierra','tango','uniform','victor','whiskey',
+    'xray','yankee','zulu'
+  ];
+
+  function ago(ts) {
+    if (!ts) return '?';
+    const s = Math.floor(Date.now()/1000 - Number(ts));
+    if (s < 60)    return s + 's';
+    if (s < 3600)  return Math.floor(s/60) + 'm';
+    if (s < 86400) return Math.floor(s/3600) + 'h';
+    return Math.floor(s/86400) + 'd';
+  }
+
+  function failCard(title, desc) {
+    root.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card';
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.innerHTML =
+      `<i class="ph ph-warning-circle" style="font-size:22px;color:var(--text-placeholder)"></i>` +
+      `<span class="e-title"></span><span class="e-desc"></span>`;
+    empty.querySelector('.e-title').textContent = title;
+    empty.querySelector('.e-desc').textContent = desc;
+    card.appendChild(empty);
+    root.appendChild(card);
+  }
+
+  // ---- fetch in parallel ----
+  let gcoreData, sessionsData;
+  try {
+    const [g, s] = await Promise.all([
+      fetch('/api/gcore'),
+      fetch('/api/sessions'),
+    ]);
+    if (!g.ok || !s.ok) throw new Error(`gcore=${g.status} sessions=${s.status}`);
+    gcoreData = await g.json();
+    sessionsData = await s.json();
+  } catch (e) {
+    liveBadge.className = 'badge badge-danger';
+    liveBadge.textContent = 'Unavailable';
+    failCard('Could not load sessions',
+             `The workspace and session APIs did not answer (${e.message}). Reload the page to try again.`);
+    return;
+  }
+
+  const workspaces = (gcoreData.manifest?.workspaces || [])
+    .filter(w => w.host)
+    .sort((a, b) => a.number - b.number);
+
+  // ---- group sessions ----
+  const TWO_DAYS = 2 * 86400;
+  const now = Date.now() / 1000;
+  const fresh = (s) => s.attached || (now - (s.created || 0)) < TWO_DAYS;
+  const sessionsByHost = sessionsData.hosts || {};
+  const allSessions = Object.values(sessionsByHost).flat();
+
+  const byWs = {};      // number -> session[]
+  const other = [];     // h sessions without a ws prefix
+
+  for (const [host, sessions] of Object.entries(sessionsByHost)) {
+    for (const s of sessions) {
+      if (!fresh(s)) continue;
+      const m = s.name.match(/^ws(\d+)(?:-.+)?$/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        (byWs[n] = byWs[n] || []).push(s);
+      } else if (host === 'h') {
+        other.push(s);
+      }
+    }
+  }
+
+  // sort each group: attached first, then newest-created
+  for (const list of Object.values(byWs)) {
+    list.sort((a, b) =>
+      (b.attached - a.attached) || ((b.created || 0) - (a.created || 0))
+    );
+  }
+  other.sort((a, b) =>
+    (b.attached - a.attached) || ((b.created || 0) - (a.created || 0))
+  );
+
+  // the badge counts what this page shows, not every session that exists
+  const shown = workspaces.flatMap(w => byWs[w.number] || []).concat(other);
+  const liveCount = shown.filter(s => s.attached).length;
+  liveBadge.className = liveCount ? 'badge badge-ok' : 'badge badge-plain';
+  liveBadge.textContent = liveCount ? `${liveCount} live` : 'None live';
+  document.querySelector('[data-all]').textContent =
+    `View all ${allSessions.length} sessions`;
+
+  // ---- render ----
+  root.innerHTML = '';
+  const list = document.createElement('div');
+  list.className = 'drive-list';
+  root.appendChild(list);
+
+  function makeRow(s, host) {
+    const tr = document.createElement('tr');
+    tr.className = 'ses-row';
+
+    const name = document.createElement('td');
+    name.className = 'ses-name';
+    const link = document.createElement('a');
+    link.href = '/sessions?attach=' + host + '/' + encodeURIComponent(s.name);
+    link.textContent = s.name;
+    name.appendChild(link);
+
+    const status = document.createElement('td');
+    status.innerHTML = s.attached
+      ? '<span class="badge badge-ok">Live</span>'
+      : '<span class="badge badge-plain">Idle</span>';
+
+    const windows = document.createElement('td');
+    windows.className = 'r';
+    windows.textContent = s.windows;
+
+    const used = document.createElement('td');
+    used.className = 'ses-age r';
+    used.textContent = ago(s.last_activity) + ' ago';
+
+    const created = document.createElement('td');
+    created.className = 'ses-age r';
+    created.textContent = ago(s.created) + ' ago';
+
+    const killCell = document.createElement('td');
+    killCell.className = 'ses-kill';
+    const kill = document.createElement('button');
+    kill.className = 'btn btn-tertiary btn-sm btn-icon';
+    kill.type = 'button';
+    kill.setAttribute('data-tip', `Kill ${s.name}`);
+    kill.setAttribute('aria-label', `Kill ${s.name}`);
+    kill.innerHTML = '<i class="ph ph-x"></i>';
+    kill.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!confirm(`Kill session ${host}:${s.name}? This is permanent.`)) return;
+      const r = await fetch('/api/sessions/kill', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({host, name: s.name}),
+      });
+      if (!r.ok) {
+        g.toast({title: 'Could not kill session',
+                 desc: `${host}:${s.name} answered ${r.status}. The session is still running.`,
+                 kind: 'danger'});
+        return;
+      }
+      location.reload();
+    });
+    killCell.appendChild(kill);
+
+    tr.append(name, status, windows, used, created, killCell);
+    return tr;
+  }
+
+  async function makeNew(host, wsNum) {
+    const used = new Set((sessionsByHost[host] || [])
+      .map(s => (s.name.match(new RegExp('^ws' + wsNum + '-(.+)$')) || [])[1])
+      .filter(Boolean));
+    const free = PHONETIC.filter(p => !used.has(p));
+    const pick = free[Math.floor(Math.random() * free.length)] ||
+                 ('s' + Math.floor(Math.random() * 1000));
+    const name = `ws${wsNum}-${pick}`;
+    const r = await fetch('/api/sessions/new', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({host, name}),
+    });
+    if (!r.ok) {
+      g.toast({title: 'Could not start session',
+               desc: `${host} answered ${r.status}. Nothing was created.`,
+               kind: 'danger'});
+      return;
+    }
+    location.href = '/sessions?attach=' + host + '/' + encodeURIComponent(name);
+  }
+
+  function renderSection({number, name, host, sessions, onNew}) {
+    const card = document.createElement('section');
+    card.className = 'card ws-card';
+
+    const head = document.createElement('div');
+    head.className = 'ws-head';
+    head.innerHTML =
+      `<span class="ws-num"></span>` +
+      `<span class="card-title"></span>` +
+      `<span class="badge badge-plain"></span>` +
+      `<span class="grow"></span>`;
+    head.querySelector('.ws-num').textContent = number;
+    head.querySelector('.card-title').textContent = name;
+    head.querySelector('.badge').textContent = host;
+
+    if (onNew) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-secondary btn-sm';
+      btn.type = 'button';
+      btn.innerHTML = '<i class="ph ph-plus"></i>New session';
+      btn.setAttribute('data-tip', `Spawn a new ws${number}-* session on ${host}`);
+      btn.addEventListener('click', () => onNew());
+      head.appendChild(btn);
+    }
+    card.appendChild(head);
+
+    if (sessions.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'ws-empty';
+      empty.textContent = 'No recent sessions.';
+      card.appendChild(empty);
+    } else {
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      const table = document.createElement('table');
+      table.className = 'table';
+      table.innerHTML =
+        '<thead><tr>' +
+        '<th>Session</th><th>Status</th><th class="r">Windows</th>' +
+        '<th class="r">Used</th><th class="r">Created</th><th></th>' +
+        '</tr></thead><tbody></tbody>';
+      const tbody = table.querySelector('tbody');
+      for (const s of sessions) tbody.appendChild(makeRow(s, host));
+      wrap.appendChild(table);
+      card.appendChild(wrap);
+    }
+    list.appendChild(card);
+  }
+
+  for (const ws of workspaces) {
+    renderSection({
+      number: ws.number,
+      name: ws.name,
+      host: ws.host,
+      sessions: byWs[ws.number] || [],
+      onNew: () => makeNew(ws.host, ws.number),
+    });
+  }
+
+  if (other.length > 0) {
+    renderSection({
+      number: '',
+      name: 'Other',
+      host: 'h',
+      sessions: other,
+      onNew: null,
+    });
+  }
+})();
+</script>

@@ -1,0 +1,248 @@
+<div class="page-head">
+  <h1>Nerves</h1>
+  <span class="badge badge-plain">Layer 3</span>
+  <span data-stats class="badge badge-plain num">Loading</span>
+  <span class="spacer"></span>
+  <input class="input" data-q type="search" placeholder="Filter repo or path" aria-label="Filter repo or path">
+  <span class="filters" role="group" aria-label="Pair filter">
+    <button class="btn btn-sm btn-primary" data-filter="all">All</button>
+    <button class="btn btn-sm" data-filter="unpaired">Unpaired</button>
+    <button class="btn btn-sm" data-filter="drift">Drifted</button>
+  </span>
+</div>
+<p class="page-sub">
+  Every directory carrying a CLAUDE.md or an AGENTS.md, nested at full depth.
+  Node colour is how the pair sits.
+</p>
+
+<div class="legend" data-legend></div>
+
+<div class="card graph-wrap">
+  <svg data-graph width="100%" height="660" role="img" aria-label="Nerves web"></svg>
+  <aside class="detail" data-detail hidden></aside>
+</div>
+
+<style>
+  .page-head { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-head .input { width: 200px; }
+  .filters { display: inline-flex; gap: 4px; }
+  .page-sub { margin: 6px 0 var(--sp-3); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .legend { display: flex; gap: var(--sp-4); flex-wrap: wrap; font-size: 12px; margin-bottom: var(--sp-3); }
+  .legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+  .legend .swatch .n { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; flex: none; }
+  .graph-wrap { padding: 0; overflow: hidden; max-width: none; position: relative; }
+  svg[data-graph] { display: block; cursor: grab; }
+  svg[data-graph]:active { cursor: grabbing; }
+  svg[data-graph] .link { stroke: var(--text-placeholder); stroke-opacity: 0.22; stroke-width: 1; }
+  svg[data-graph] .node { cursor: pointer; }
+  svg[data-graph] .dim { opacity: 0.12; }
+  svg[data-graph] .label {
+    font-family: var(--font-ui); font-size: 10px; fill: var(--text-secondary);
+    pointer-events: none; user-select: none;
+  }
+  svg[data-graph] .label-repo { fill: var(--text-primary); font-size: 11px; }
+  /* At full extent 224 dir labels collide, so they wait for zoom or a filter. */
+  svg[data-graph] .label-dir { opacity: 0; transition: opacity 120ms ease; }
+  svg[data-graph] g.show-dirs .label-dir { opacity: 1; }
+  svg[data-graph] g.show-dirs .label-dir.dim { opacity: 0.12; }
+  .detail {
+    position: absolute; top: var(--sp-3); right: var(--sp-3); width: 260px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: var(--radius-3); padding: var(--sp-3); font-size: 12px;
+  }
+  .detail h3 { margin: 0 0 6px; font-size: 13px; color: var(--text-primary); }
+  .detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px var(--sp-3); }
+  .detail dt { color: var(--text-secondary); }
+  .detail dd { margin: 0; color: var(--text-primary); word-break: break-all; }
+  .detail .path { font-family: var(--font-mono); font-size: 11px; }
+  .detail .btn { margin-top: var(--sp-3); width: 100%; }
+</style>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(async () => {
+  const svgEl  = document.querySelector('[data-graph]');
+  const stats  = document.querySelector('[data-stats]');
+  const legend = document.querySelector('[data-legend]');
+  const detail = document.querySelector('[data-detail]');
+  const qInput = document.querySelector('[data-q]');
+
+  // Pair state is status, so it reads through the status tokens. agents_only is
+  // rare enough to earn a categorical colour rather than a severity.
+  const STATE = {
+    symlink:     { color: 'var(--ok)',              label: 'Symlinked' },
+    copy_synced: { color: 'var(--info-text)',       label: 'Copied, in sync' },
+    copy_drift:  { color: 'var(--danger)',          label: 'Copied, drifted' },
+    claude_only: { color: 'var(--warn)',            label: 'No AGENTS.md' },
+    agents_only: { color: 'var(--chart-2)',         label: 'No CLAUDE.md' },
+    unknown:     { color: 'var(--text-placeholder)',label: 'Not yet resynced' },
+    none:        { color: 'var(--border-strong)',   label: 'No nerve' },
+  };
+  const PROBLEM = new Set(['copy_drift', 'claude_only', 'agents_only']);
+
+  const stateOf = d => STATE[d.pair] || STATE.none;
+  const radius  = d => d.type === 'repo' ? 9 : (d.pair === 'none' ? 3.5 : 5.5);
+
+  let mode = 'all', query = '';
+
+  try {
+    const r = await fetch(BRAIN_API + '/api/nerves');
+    if (!r.ok) throw new Error(`nerves ${r.status}`);
+    const { nodes, links, summary, error } = await r.json();
+    if (error) throw new Error(error);
+
+    const problems = (summary.copy_drift || 0) + (summary.claude_only || 0) + (summary.agents_only || 0);
+    stats.textContent = `${summary.repos} repos, ${summary.nerve_dirs} nerve dirs, ${problems} unpaired`;
+
+    legend.innerHTML = Object.entries(STATE)
+      .filter(([k]) => k !== 'none' && (k !== 'unknown' || summary.unknown))
+      .map(([k, s]) => `<span class="swatch"><span class="dot" style="background:${s.color}"></span>${s.label}<span class="n">${summary[k] ?? 0}</span></span>`)
+      .join('') + `<span class="swatch"><span class="dot" style="background:${STATE.none.color}"></span>Directory with no nerve</span>`;
+
+    const width  = svgEl.clientWidth || 900;
+    const height = +svgEl.getAttribute('height') || 660;
+    const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
+    svg.selectAll('*').remove();
+
+    const g = svg.append('g');
+    let zoomedIn = false, filtering = false;
+    const syncLabels = () => g.classed('show-dirs', zoomedIn || filtering);
+    const zoom = d3.zoom().scaleExtent([0.15, 5]).on('zoom', e => {
+      g.attr('transform', e.transform);
+      zoomedIn = e.transform.k > 1.15;
+      syncLabels();
+    });
+    svg.call(zoom);
+
+    // Every repo is its own disconnected tree, so a single centre force just
+    // flings 36 islands off-canvas. Give each repo a grid cell and pull its
+    // subtree there instead; the web then reads as a wall of small trees.
+    const repos = [...new Set(nodes.map(d => d.repo))].sort();
+    const cols  = Math.ceil(Math.sqrt(repos.length));
+    const rows  = Math.ceil(repos.length / cols);
+    const cellW = width / cols, cellH = height / rows;
+    const cell  = new Map(repos.map((r, i) => [r, {
+      x: (i % cols + 0.5) * cellW,
+      y: (Math.floor(i / cols) + 0.5) * cellH,
+    }]));
+    nodes.forEach(d => { const c = cell.get(d.repo); d.x = c.x; d.y = c.y; });
+
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.source.type === 'repo' ? 34 : 22).strength(0.9))
+      .force('charge', d3.forceManyBody().strength(-38).distanceMax(180))
+      .force('x', d3.forceX(d => cell.get(d.repo).x).strength(0.35))
+      .force('y', d3.forceY(d => cell.get(d.repo).y).strength(0.35))
+      .force('collide', d3.forceCollide().radius(d => radius(d) + 4));
+
+    const link = g.append('g').selectAll('line')
+      .data(links).enter().append('line').attr('class', 'link');
+
+    const node = g.append('g').selectAll('circle')
+      .data(nodes).enter().append('circle')
+      .attr('class', 'node')
+      .attr('r', radius)
+      .attr('fill', d => stateOf(d).color)
+      .attr('stroke', 'var(--bg-panel)')
+      .attr('stroke-width', 1.5)
+      .call(d3.drag()
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }))
+      .on('click', (_, d) => show(d));
+
+    node.append('title').text(d => {
+      const where = d.type === 'repo' ? `${d.label} (root)` : `${d.repo}/${d.path}`;
+      return `${where}\n${stateOf(d).label}`;
+    });
+
+    // Only repos and nerve-carrying dirs get a label; the rest would be noise.
+    const label = g.append('g').selectAll('text')
+      .data(nodes.filter(d => d.type === 'repo' || d.pair !== 'none')).enter().append('text')
+      .attr('class', d => d.type === 'repo' ? 'label label-repo' : 'label label-dir')
+      .attr('dx', d => radius(d) + 3).attr('dy', 3)
+      .text(d => d.label);
+
+    // Repo titles are lifted from the first heading of a CLAUDE.md, so they
+    // arrive carrying markdown; flatten before it reaches a plain slot.
+    const plain = t => (window.g && g.plain ? g.plain(t) : String(t ?? ''));
+    const esc = t => plain(t).replace(/[&<>"]/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    function show(d) {
+      const s = stateOf(d);
+      const isRepo = d.type === 'repo';
+      detail.hidden = false;
+      detail.innerHTML = `
+        <h3>${esc(d.label)}</h3>
+        <dl>
+          <dt>Repo</dt><dd>${esc(d.repo)}</dd>
+          <dt>Path</dt><dd class="path">${isRepo || !d.path ? '(root)' : esc(d.path) + '/'}</dd>
+          <dt>Pair</dt><dd style="color:${s.color}">${s.label}</dd>
+          ${isRepo ? `<dt>About</dt><dd>${esc(d.title)}</dd>
+          <dt>Nerve dirs</dt><dd class="num">${d.nerve_dirs}</dd>
+          <dt>Compliant</dt><dd>${d.compliant ? 'Yes' : 'No'}</dd>` : ''}
+        </dl>
+        <a class="btn btn-sm btn-secondary" target="_blank" rel="noopener"
+           href="https://github.com/Volcanex/${encodeURIComponent(d.repo)}${isRepo || !d.path ? '' : '/tree/HEAD/' + d.path}">Open on GitHub</a>`;
+    }
+
+    function matches(d) {
+      if (query && !(`${d.repo}/${d.path || ''}`.toLowerCase().includes(query))) return false;
+      if (mode === 'unpaired') return PROBLEM.has(d.pair);
+      if (mode === 'drift')    return d.pair === 'copy_drift';
+      return true;
+    }
+
+    function apply() {
+      filtering = mode !== 'all' || !!query;
+      syncLabels();
+      const keep = new Set(nodes.filter(matches).map(d => d.id));
+      node.classed('dim',  d => !keep.has(d.id));
+      label.classed('dim', d => !keep.has(d.id));
+      link.classed('dim',  d => !keep.has(d.source.id) && !keep.has(d.target.id));
+    }
+
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        mode = btn.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach(b =>
+          b.classList.toggle('btn-primary', b === btn));
+        apply();
+      });
+    });
+    qInput.addEventListener('input', () => { query = qInput.value.trim().toLowerCase(); apply(); });
+
+    sim.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('cx', d => d.x).attr('cy', d => d.y);
+      label.attr('x', d => d.x).attr('y', d => d.y);
+    });
+
+    // Once it settles, frame the whole web rather than leaving edges cropped.
+    let fitted = false;
+    sim.on('end', () => {
+      if (fitted) return;
+      fitted = true;
+      const xs = nodes.map(d => d.x), ys = nodes.map(d => d.y);
+      const pad = 24;
+      const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad;
+      const y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+      const k = Math.min(width / (x1 - x0), height / (y1 - y0), 1.6);
+      svg.transition().duration(400).call(
+        zoom.transform,
+        d3.zoomIdentity
+          .translate(width / 2, height / 2)
+          .scale(k)
+          .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+      );
+    });
+  } catch (e) {
+    stats.textContent = `Could not load the web: ${e.message}`;
+  }
+})();
+</script>

@@ -1,0 +1,292 @@
+<div class="page-head">
+  <h1 data-title>Loading</h1>
+  <span class="badge badge-plain" data-kind hidden></span>
+  <span class="badge" data-status hidden></span>
+  <span class="badge badge-plain mono" data-lineage-chip hidden></span>
+</div>
+
+<div data-broken-banner></div>
+
+<dl class="facts">
+  <div data-fact="path"><dt>Path</dt><dd class="mono" data-path></dd></div>
+  <div data-fact="version"><dt>Version</dt><dd class="mono num" data-version></dd></div>
+  <div data-fact="updated"><dt>Updated</dt><dd data-updated></dd></div>
+  <div data-fact="created"><dt>Created</dt><dd data-created></dd></div>
+</dl>
+
+<div class="note-grid">
+  <div class="note-main">
+    <pre class="codeblock meta-card" data-meta-card hidden></pre>
+    <article class="prose note-body" data-body></article>
+  </div>
+
+  <aside class="card note-aside">
+    <section class="aside-sec">
+      <h3>Lineage</h3>
+      <ol class="lineage-list" data-lineage><li class="empty-line">Loading</li></ol>
+    </section>
+    <section class="aside-sec">
+      <h3>Outgoing</h3>
+      <ul data-forward><li class="empty-line">Loading</li></ul>
+    </section>
+    <section class="aside-sec">
+      <h3>Backlinks</h3>
+      <ul data-back><li class="empty-line">Loading</li></ul>
+    </section>
+    <section class="aside-sec">
+      <h3>Citations</h3>
+      <ul class="citations" data-citations><li class="empty-line">Loading</li></ul>
+    </section>
+    <section class="aside-sec">
+      <h3>Tags</h3>
+      <div class="tags" data-tags><span class="empty-line">Loading</span></div>
+    </section>
+  </aside>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+
+  .facts {
+    display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5);
+    margin: var(--sp-3) 0 var(--sp-5); padding: 0;
+  }
+  .facts > div { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+  .facts dt { font-size: 12px; color: var(--text-secondary); }
+  .facts dd { margin: 0; font-size: var(--font-size-ui); }
+  .facts dd.mono { font-size: 12px; word-break: break-all; }
+
+  .note-grid { display: grid; grid-template-columns: 1fr; gap: var(--sp-5); align-items: start; }
+  .note-main { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+  @media (min-width: 900px) {
+    .note-grid { grid-template-columns: minmax(0, 1fr) 264px; column-gap: var(--sp-6); }
+    .note-grid:has(.note-aside[hidden]) { grid-template-columns: 1fr; }
+    .note-aside { position: sticky; top: 0; }
+  }
+
+  /* A wikilink whose target does not exist resolves to #broken. */
+  .note-body a[href="#broken"] {
+    color: var(--danger-text); text-decoration-style: dotted;
+  }
+
+  .meta-card { margin: 0; white-space: pre; font-size: 12px; line-height: 1.6; }
+  .meta-card .k { color: var(--text-secondary); }
+  .meta-card .v { color: var(--text-primary); }
+  .meta-card .v.scalar-num { color: var(--info-text); }
+  .meta-card .v.scalar-list { color: var(--text-secondary); }
+
+  .banner { display: flex; gap: var(--sp-2); align-items: flex-start; border-left: 2px solid var(--danger-text); }
+  .banner i { color: var(--danger-text); font-size: 15px; line-height: 1.5; }
+  .banner p { font-size: var(--font-size-ui); }
+
+  .note-aside {
+    display: flex; flex-direction: column; gap: var(--sp-4);
+    font-size: var(--font-size-ui);
+  }
+  .aside-sec h3 {
+    font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    margin: 0 0 var(--sp-2);
+  }
+  .aside-sec ul, .aside-sec ol { list-style: none; margin: 0; padding: 0; }
+  .aside-sec li {
+    display: flex; gap: var(--sp-2); align-items: baseline;
+    padding: 6px 0; border-bottom: 1px solid var(--border-subtle);
+  }
+  .aside-sec li:last-child { border-bottom: none; padding-bottom: 0; }
+  .aside-sec li a { flex: 1 1 auto; min-width: 0; text-decoration: none; overflow-wrap: anywhere; }
+  .aside-sec li a:hover { text-decoration: underline; }
+  .aside-sec .kind { flex: none; font-size: 11px; color: var(--text-placeholder); }
+  .empty-line { color: var(--text-placeholder); border-bottom: none; }
+
+  /* Lineage runs parallel to the version: one authored step per number. */
+  .lineage-list li { display: grid; grid-template-columns: 46px 20px auto 1fr; gap: var(--sp-2); }
+  .lineage-list .step-slot { font-size: 11px; color: var(--text-secondary); }
+  .lineage-list .step-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .lineage-list .step-label { font-size: 11px; color: var(--text-placeholder); }
+
+  .citations li { flex-wrap: wrap; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+</style>
+
+<script>
+(async () => {
+  // /note/<path...>: strip the /note/ prefix to get the brain path
+  const slug = decodeURIComponent(location.pathname.replace(/^\/note\//, '').replace(/\/$/, ''));
+  const titleEl = document.querySelector('[data-title]');
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function sentence(s) {
+    return s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : '';
+  }
+
+  // The title and the relationship rail are chrome, not prose: markdown
+  // carried over from the note body is flattened before it lands there.
+  // Looked up per call: g-ui.js is deferred, so it has not defined `g` yet
+  // when this inline script first runs.
+  const plain = (s) => g.plain(s);
+
+  // Same tones as the notes table: green reads as "settled", red as
+  // "needs a rewrite", everything else stays plain.
+  const TONE = {
+    broken: 'badge-danger',
+    stable: 'badge-ok', shipped: 'badge-ok', done: 'badge-ok', resolved: 'badge-ok',
+  };
+
+  const facts = {
+    path: document.querySelector('[data-path]'),
+    version: document.querySelector('[data-version]'),
+    updated: document.querySelector('[data-updated]'),
+    created: document.querySelector('[data-created]'),
+  };
+
+  // Nothing loaded: the note facts and the relationship rail have no
+  // content to hold, so drop them rather than leave them mid-load.
+  function dropNoteChrome() {
+    document.querySelector('.note-aside').hidden = true;
+    ['version', 'updated', 'created'].forEach(k => {
+      document.querySelector(`[data-fact="${k}"]`).hidden = true;
+    });
+  }
+
+  if (!slug) {
+    titleEl.textContent = 'No note specified';
+    dropNoteChrome();
+    document.querySelector('[data-fact="path"]').hidden = true;
+    document.querySelector('[data-body]').innerHTML =
+      '<p>This page needs a note path, as in <code>/note/findings/some-note</code>. Pick one from the notes list.</p>';
+    return;
+  }
+
+  try {
+    const r = await fetch(`${BRAIN_API}/api/note/${slug}`);
+    if (r.status === 404) {
+      titleEl.textContent = 'Not found';
+      facts.path.textContent = slug;
+      dropNoteChrome();
+      document.querySelector('[data-body]').innerHTML =
+        `<p>No note lives at <code>${escapeHtml(slug)}</code>. Pick another from the notes list.</p>`;
+      return;
+    }
+    if (!r.ok) throw new Error(`note ${r.status}`);
+    const n = await r.json();
+    const title = plain(n.title);
+    document.title = `${title} - Command`;
+    titleEl.textContent = title;
+
+    const kindEl = document.querySelector('[data-kind]');
+    kindEl.textContent = sentence(n.kind);
+    kindEl.hidden = false;
+
+    const statusEl = document.querySelector('[data-status]');
+    statusEl.className = `badge ${TONE[n.status] || 'badge-plain'}`;
+    statusEl.textContent = sentence(n.status);
+    statusEl.hidden = false;
+
+    const lineage = n.lineage || [];
+    if (lineage.length) {
+      const chip = document.querySelector('[data-lineage-chip]');
+      chip.textContent = lineage.join('');
+      chip.setAttribute('data-tip', `Lineage: ${lineage.join(' → ')}`);
+      chip.hidden = false;
+    }
+
+    facts.path.textContent = n.path;
+    facts.version.textContent = `v${n.version}`;
+    facts.updated.textContent = n.updated || 'Unknown';
+    facts.created.textContent = n.created || 'Unknown';
+
+    // Render any pseudo-frontmatter rescued from the body as a YAML card
+    const card = document.querySelector('[data-meta-card]');
+    if (n.pseudo_meta && n.pseudo_meta.length) {
+      // Skip keys we already show in chrome (title/kind/version/lineage/status/updated/created/tags)
+      const skip = new Set(['title','kind','version','lineage','status','updated','created','tags']);
+      const remaining = n.pseudo_meta.filter(p => !skip.has(p.key.toLowerCase()));
+      if (remaining.length) {
+        const keyW = Math.max(...remaining.map(p => p.key.length));
+        card.innerHTML = remaining.map(p => {
+          const pad = ' '.repeat(keyW - p.key.length);
+          let cls = '';
+          if (/^[\[\{]/.test(p.value)) cls = 'scalar-list';
+          else if (/^-?\d/.test(p.value)) cls = 'scalar-num';
+          return `<span class="k">${escapeHtml(p.key)}</span>:${pad} <span class="v ${cls}">${escapeHtml(p.value)}</span>`;
+        }).join('\n');
+        card.hidden = false;
+      }
+    }
+
+    const body = document.querySelector('[data-body]');
+    body.innerHTML = n.html;
+    // The markdown usually opens with the title as an h1; the page head
+    // already carries it, so drop the repeat rather than print it twice.
+    const lead = body.querySelector('h1');
+    if (lead && plain(lead.textContent) === title) lead.remove();
+
+    if (n.status === 'broken') {
+      document.querySelector('[data-broken-banner]').innerHTML =
+        `<div class="card banner">
+           <i class="ph ph-warning-diamond"></i>
+           <p>This note is marked broken. Its claims no longer hold, treat them with skepticism.</p>
+         </div>`;
+    }
+
+    const fwd = document.querySelector('[data-forward]');
+    fwd.innerHTML = n.forward.length
+      ? n.forward.map(f => f.path
+          ? `<li><a href="/note/${f.path}">${escapeHtml(plain(f.title))}</a><span class="kind">${escapeHtml(sentence(f.kind))}</span></li>`
+          : `<li><span style="flex:1 1 auto;min-width:0">${escapeHtml(plain(f.title))}</span><span class="badge badge-danger">Broken</span></li>`).join('')
+      : '<li class="empty-line">None</li>';
+
+    const back = document.querySelector('[data-back]');
+    back.innerHTML = n.backlinks.length
+      ? n.backlinks.map(b => `<li><a href="/note/${b.path}">${escapeHtml(plain(b.title))}</a><span class="kind">${escapeHtml(sentence(b.kind))}</span></li>`).join('')
+      : '<li class="empty-line">None</li>';
+
+    const lin = document.querySelector('[data-lineage]');
+    const codeLabel = c => ({
+      H: 'Human',
+      A: 'AI',
+    }[c.toUpperCase()] || c);
+    // Lineage is parallel to the version: major.minor.patch
+    const slot = ['Major', 'Minor', 'Patch'];
+    const versionParts = String(n.version).split('.');
+    lin.innerHTML = lineage.length
+      ? lineage.map((l, i) => {
+          const c = String(l).toUpperCase();
+          const slotName = slot[i] || `Step ${i+1}`;
+          const num = versionParts[i] !== undefined ? versionParts[i] : '?';
+          return `<li>
+            <span class="step-slot">${slotName}</span>
+            <span class="step-num">${num}</span>
+            <span class="badge badge-plain mono" data-tip="${escapeHtml(codeLabel(l))}-authored">${escapeHtml(c)}</span>
+            <span class="step-label">${escapeHtml(codeLabel(l))}</span>
+          </li>`;
+        }).join('')
+      : '<li class="empty-line">None recorded</li>';
+
+    const cites = document.querySelector('[data-citations]');
+    const citeTone = s => s === 'ok' ? 'badge-ok'
+      : (/^(broken|error|timeout|http-)/.test(s) ? 'badge-danger' : 'badge-plain');
+    cites.innerHTML = (n.citations && n.citations.length)
+      ? n.citations.map(c => {
+          let host = c.url;
+          try { host = new URL(c.url).hostname.replace(/^www\./, ''); } catch (e) {}
+          const status = (c.status || 'unknown').toLowerCase();
+          return `<li><a href="${escapeHtml(c.url)}" rel="noopener" target="_blank" data-tip="${escapeHtml(c.url)}">${escapeHtml(host)}</a><span class="badge ${citeTone(status)}">${escapeHtml(sentence(status))}</span></li>`;
+        }).join('')
+      : '<li class="empty-line">None</li>';
+
+    const tagsEl = document.querySelector('[data-tags]');
+    tagsEl.innerHTML = (n.tags && n.tags.length)
+      ? n.tags.map(t => `<span class="badge badge-plain">${escapeHtml(t)}</span>`).join('')
+      : '<span class="empty-line">None</span>';
+  } catch (e) {
+    dropNoteChrome();
+    document.querySelector('[data-body]').innerHTML =
+      `<p>The brain did not return this note (${escapeHtml(e.message)}). It may be offline, retry in a moment.</p>`;
+  }
+})();
+</script>

@@ -1,0 +1,1063 @@
+<div class="page-head">
+  <h1>Blog</h1>
+  <span class="badge badge-plain" data-gsite-badge>g-site</span>
+</div>
+<p class="page-sub">g-site editor: posts, copy, projects, generation and editions.</p>
+
+<div class="tabs blog-tabs" role="tablist">
+  <button class="tab" type="button" role="tab" id="tab-posts" aria-controls="panel-posts" aria-selected="true" data-tab="posts">Posts</button>
+  <button class="tab" type="button" role="tab" id="tab-copy" aria-controls="panel-copy" aria-selected="false" data-tab="copy">Copy</button>
+  <button class="tab" type="button" role="tab" id="tab-projects" aria-controls="panel-projects" aria-selected="false" data-tab="projects">Projects</button>
+  <button class="tab" type="button" role="tab" id="tab-generation" aria-controls="panel-generation" aria-selected="false" data-tab="generation">Generation</button>
+  <button class="tab" type="button" role="tab" id="tab-editions" aria-controls="panel-editions" aria-selected="false" data-tab="editions">Editions</button>
+  <button class="tab" type="button" role="tab" id="tab-fossil" aria-controls="panel-fossil" aria-selected="false" data-tab="fossil">Fossil</button>
+</div>
+
+<!-- ================= Posts ================= -->
+<section class="panel" id="panel-posts" role="tabpanel" aria-labelledby="tab-posts" data-panel="posts">
+  <div class="card list-card" data-posts-list>
+    <div class="panel-head">
+      <span class="card-title">Posts</span>
+      <span class="badge badge-plain num" data-posts-count>Loading</span>
+      <span class="spacer"></span>
+      <button class="btn btn-primary btn-sm" type="button" data-posts-new><i class="ph ph-plus"></i>New post</button>
+    </div>
+    <div class="table-wrap">
+      <table class="table posts-table">
+        <thead>
+          <tr><th>Title</th><th>Slug</th><th>Type</th><th>Date</th><th>Status</th></tr>
+        </thead>
+        <tbody data-posts-rows>
+          <tr><td colspan="5" class="dim">Loading posts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card editor-card" data-posts-editor hidden>
+    <div class="panel-head">
+      <button class="btn btn-tertiary btn-sm" type="button" data-posts-back><i class="ph ph-arrow-left"></i>Back to posts</button>
+      <span class="spacer"></span>
+      <button class="btn btn-danger btn-sm" type="button" data-posts-delete hidden><i class="ph ph-trash"></i>Delete post</button>
+      <button class="btn btn-primary btn-sm" type="button" data-posts-save><i class="ph ph-floppy-disk"></i>Save post</button>
+    </div>
+
+    <div class="form-grid">
+      <label class="field f-full">
+        <span class="label">Title</span>
+        <input class="input" type="text" data-p-title placeholder="Post title">
+      </label>
+      <label class="field">
+        <span class="label">Slug</span>
+        <input class="input" type="text" data-p-slug placeholder="url-slug">
+      </label>
+      <label class="field">
+        <span class="label">Date</span>
+        <input class="input" type="date" data-p-date>
+      </label>
+      <label class="field f-full">
+        <span class="label">Description</span>
+        <input class="input" type="text" data-p-description placeholder="Meta description">
+      </label>
+      <div class="f-full toggles">
+        <label class="choice"><input class="checkbox" type="checkbox" data-p-draft> Draft</label>
+        <label class="choice"><input class="checkbox" type="checkbox" data-p-hidden> Hidden</label>
+      </div>
+    </div>
+
+    <div class="md-grid">
+      <div class="md-col">
+        <span class="label" data-p-body-label>Markdown</span>
+        <textarea class="textarea md-input" data-p-body rows="20" placeholder="# Post body (markdown)"></textarea>
+      </div>
+      <div class="md-col">
+        <span class="label">Preview</span>
+        <div class="well md-preview prose" data-p-preview></div>
+        <!-- Artifact posts are raw HTML fragments with their own <style> blocks
+             (often a full :root token override). Rendering those via innerHTML
+             into this page applies their CSS to the whole document, so sandbox
+             them in an iframe instead and nothing leaks past its own document. -->
+        <iframe class="md-frame" data-p-preview-frame hidden title="Artifact post preview" sandbox=""></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Copy ================= -->
+<section class="panel" id="panel-copy" role="tabpanel" aria-labelledby="tab-copy" data-panel="copy" hidden>
+  <div class="card">
+    <div class="panel-head">
+      <span class="card-title">Copy keys</span>
+      <span class="badge badge-plain num" data-copy-count>Loading</span>
+      <span class="spacer"></span>
+      <button class="btn btn-secondary btn-sm" type="button" data-copy-add><i class="ph ph-plus"></i>Add key</button>
+      <button class="btn btn-primary btn-sm" type="button" data-copy-save><i class="ph ph-floppy-disk"></i>Save copy</button>
+    </div>
+    <div class="kv" data-copy-rows>
+      <p class="dim">Loading copy keys</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Projects ================= -->
+<section class="panel" id="panel-projects" role="tabpanel" aria-labelledby="tab-projects" data-panel="projects" hidden>
+  <div class="card list-card">
+    <div class="panel-head">
+      <span class="card-title">Projects</span>
+      <span class="badge badge-plain num" data-projects-count>Loading</span>
+      <span class="spacer"></span>
+      <span class="hint">Presentation overlay for the front-page grid.</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table projects-table">
+        <thead>
+          <tr>
+            <th>Project</th><th>Status</th><th>Blurb</th><th>Size</th>
+            <th>Show</th><th>Pocket note</th><th>Thumbnail</th><th></th>
+          </tr>
+        </thead>
+        <tbody data-projects-rows>
+          <tr><td colspan="8" class="dim">Loading projects</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Generation ================= -->
+<section class="panel" id="panel-generation" role="tabpanel" aria-labelledby="tab-generation" data-panel="generation" hidden>
+  <div class="card">
+    <div class="panel-head">
+      <span class="card-title">Generation config</span>
+      <span class="badge badge-plain" data-gen-status>Loading</span>
+      <span class="spacer"></span>
+      <button class="btn btn-secondary btn-sm" type="button" data-gen-reroll><i class="ph ph-dice-five"></i>Re-roll seed and preview</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-gen-preview><i class="ph ph-eye"></i>Compile preview</button>
+      <button class="btn btn-primary btn-sm" type="button" data-gen-save><i class="ph ph-floppy-disk"></i>Save generation</button>
+    </div>
+    <div class="gen-form" data-gen-form>
+      <p class="dim">Loading generation config</p>
+    </div>
+  </div>
+
+  <div class="card preview-card">
+    <div class="panel-head">
+      <span class="card-title">Preview</span>
+      <span class="spacer"></span>
+      <span class="gen-stats" data-gen-stats></span>
+    </div>
+    <div class="gen-frame-wrap">
+      <iframe class="gen-frame" data-gen-iframe title="g-site preview"></iframe>
+    </div>
+    <p class="hint" data-gen-iframe-note></p>
+  </div>
+</section>
+
+<!-- ================= Editions ================= -->
+<section class="panel" id="panel-editions" role="tabpanel" aria-labelledby="tab-editions" data-panel="editions" hidden>
+  <div class="card list-card">
+    <div class="panel-head">
+      <span class="card-title">Editions</span>
+      <span class="badge badge-plain num" data-editions-count>Loading</span>
+      <span class="spacer"></span>
+      <button class="btn btn-primary btn-sm" type="button" data-editions-publish><i class="ph ph-upload-simple"></i>Publish new edition</button>
+    </div>
+    <div class="table-wrap">
+      <table class="table editions-table">
+        <thead>
+          <tr><th>Edition</th><th>Published</th><th>Seed</th><th>Note</th><th class="r">Actions</th></tr>
+        </thead>
+        <tbody data-editions-rows>
+          <tr><td colspan="5" class="dim">Loading editions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Fossil ================= -->
+<section class="panel" id="panel-fossil" role="tabpanel" aria-labelledby="tab-fossil" data-panel="fossil" hidden>
+  <div class="card fossil-card">
+    <i class="ph ph-clock-counter-clockwise"></i>
+    <div class="fossil-body">
+      <div class="panel-head">
+        <span class="card-title">The old site</span>
+        <span class="badge badge-plain" data-fossil-status hidden></span>
+      </div>
+      <p>blog-new lives on, frozen, at <a href="https://old.gabrielpenman.com" target="_blank" rel="noopener">old.gabrielpenman.com</a>. Every current post stays there; g-site imports the keepers.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-sub { margin: var(--sp-1) 0 var(--sp-4); color: var(--text-secondary); font-size: var(--font-size-ui); }
+
+  .blog-tabs { margin-bottom: var(--sp-4); }
+  .panel { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+  .panel-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  .panel-head .spacer { flex: 1; }
+  .dim { color: var(--text-placeholder); }
+  .hint { font-size: 12px; color: var(--text-secondary); }
+  .panel-error { font-size: var(--font-size-ui); color: var(--danger-text); }
+  [data-posts-count], [data-copy-count], [data-projects-count], [data-editions-count] { font-variant-numeric: tabular-nums; }
+
+  /* Rows run the full width of the card, so the head rule and row hover
+     both read as one band. */
+  .list-card { padding: var(--pad-card); }
+  .list-card .table-wrap { margin: var(--sp-3) calc(-1 * var(--pad-card)) calc(-1 * var(--pad-card)); }
+  .list-card .table th:first-child,
+  .list-card .table td:first-child { padding-left: var(--pad-card); }
+  .list-card .table th:last-child,
+  .list-card .table td:last-child { padding-right: var(--pad-card); }
+
+  .posts-table tbody tr[data-row-slug] { cursor: pointer; }
+  .posts-table td.slug { font-family: var(--font-mono); font-size: 0.925em; color: var(--text-secondary); }
+  .posts-table td.date { color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .posts-table td.status { white-space: nowrap; width: 1%; }
+  .posts-table td.status .badge + .badge { margin-left: var(--sp-1); }
+
+  /* Posts editor */
+  .editor-card { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3) var(--sp-4); }
+  .form-grid .f-full { grid-column: 1 / -1; }
+  .toggles { display: flex; gap: var(--sp-5); }
+
+  .md-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+  .md-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .md-input { font-family: var(--font-mono); font-size: 12.5px; min-height: 420px; }
+  .md-preview { min-height: 420px; overflow-y: auto; }
+  .md-preview.prose { max-width: none; }
+  .md-frame {
+    width: 100%; min-height: 420px;
+    border: 1px solid var(--well-border); border-radius: var(--radius);
+    background: var(--surface-1);
+  }
+
+  /* Copy */
+  .kv { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
+  .kv-row { display: grid; grid-template-columns: 200px 1fr auto; gap: var(--sp-2); align-items: start; }
+  .kv-row .input { font-family: var(--font-mono); font-size: 12.5px; }
+  .kv-row .textarea { min-height: 64px; }
+
+  /* Projects */
+  .projects-table td { vertical-align: top; padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+  .projects-table .input, .projects-table .select { height: var(--h-control-sm); font-size: 12.5px; }
+  .projects-table .select { min-width: 108px; }
+  .projects-table td.blurb { min-width: 220px; }
+  .projects-table td.note { min-width: 160px; }
+  .projects-table td.thumb { width: 1%; }
+  .projects-table img { max-width: 72px; max-height: 44px; display: block; margin-bottom: var(--sp-1); border-radius: var(--radius-sm); }
+  .projects-table input[type="file"] { font-size: 11px; color: var(--text-secondary); max-width: 168px; }
+  .projects-table input[type="file"]::file-selector-button {
+    height: 22px; margin-right: 6px; padding: 0 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: transparent; color: var(--text-primary);
+    font-family: var(--font-ui); font-size: 11px; cursor: pointer;
+  }
+  .projects-table input[type="file"]::file-selector-button:hover { background: var(--fill-hover); }
+  .projects-table tr.deprecated, .projects-table tr.fossil { opacity: 0.55; }
+
+  /* Generation */
+  .gen-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3) var(--sp-4); margin-top: var(--sp-4); }
+  .gen-form .input { font-variant-numeric: tabular-nums; }
+  .gen-section {
+    grid-column: 1 / -1; margin-top: var(--sp-2);
+    font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--sp-1);
+  }
+  .gen-toggle { grid-column: 1 / -1; }
+  .kind-order { grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--sp-1); }
+  .kind-row {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--font-size-ui);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-2);
+  }
+  .kind-row .spacer { flex: 1; }
+  .kind-row .kind-n { color: var(--text-placeholder); font-variant-numeric: tabular-nums; width: 20px; }
+  .kind-row .kind-name { font-family: var(--font-mono); font-size: 0.925em; }
+
+  .gen-stats { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+  .gen-stats .badge { font-variant-numeric: tabular-nums; }
+  .preview-card { padding: var(--pad-card); }
+  .gen-frame-wrap {
+    margin-top: var(--sp-3);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .gen-frame { width: 100%; height: 480px; border: 0; display: block; background: var(--surface-1); }
+  .preview-card .hint { margin-top: var(--sp-2); }
+
+  /* Editions */
+  .editions-table td.ed { white-space: nowrap; width: 1%; }
+  .editions-table td.when, .editions-table td.seed {
+    color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .editions-table td.actions { white-space: nowrap; width: 1%; }
+  .editions-table td.actions .btn + .btn { margin-left: var(--sp-2); }
+
+  /* Fossil */
+  .fossil-card { display: flex; gap: var(--sp-4); align-items: flex-start; }
+  .fossil-card > i { font-size: 24px; color: var(--text-placeholder); }
+  .fossil-body { display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--font-size-ui); color: var(--text-secondary); }
+
+  @media (max-width: 900px) {
+    .form-grid, .md-grid, .gen-form { grid-template-columns: 1fr; }
+    .kv-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+(() => {
+  const tabs = document.querySelector('.blog-tabs');
+  const loaded = {};
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // g-ui.js is deferred, so a toast fired before it lands must degrade quietly.
+  function toast(opts) {
+    if (window.g && g.toast) return g.toast(opts);
+    return { update() {}, dismiss() {} };
+  }
+
+  // Minimal, safe markdown: escape first, then format the escaped string.
+  function mdToHtml(s) {
+    const lines = escapeHtml(s).split('\n');
+    const out = [];
+    let inList = false;
+    for (let line of lines) {
+      const h = line.match(/^(#{1,3})\s+(.*)$/);
+      const li = line.match(/^[-*]\s+(.*)$/);
+      if (h) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        const n = h[1].length;
+        out.push(`<h${n}>${inline(h[2])}</h${n}>`);
+      } else if (li) {
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push(`<li>${inline(li[1])}</li>`);
+      } else {
+        if (inList) { out.push('</ul>'); inList = false; }
+        if (line.trim() === '') out.push('<br>');
+        else out.push(`<p>${inline(line)}</p>`);
+      }
+    }
+    if (inList) out.push('</ul>');
+    return out.join('\n');
+  }
+  function inline(h) {
+    h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return h;
+  }
+
+  async function api(method, path, body, isForm) {
+    const opts = { method, credentials: 'same-origin' };
+    if (body !== undefined) {
+      if (isForm) {
+        opts.body = body;
+      } else {
+        opts.headers = { 'Content-Type': 'application/json' };
+        opts.body = JSON.stringify(body);
+      }
+    }
+    const r = await fetch('/api/blog/proxy/' + path, opts);
+    const text = await r.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+    if (!r.ok) {
+      const msg = (data && data.detail) ? data.detail : (typeof data === 'string' ? data : `HTTP ${r.status}`);
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  async function upload(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch('/api/blog/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch (e) { data = text; }
+    if (!r.ok) throw new Error((data && data.detail) || `upload HTTP ${r.status}`);
+    return data;
+  }
+
+  // -------- tab switching --------
+  // g-ui.js owns the visual selection and the panel hidden state (via
+  // aria-controls); this only kicks off the panel's first load.
+  tabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-tab]');
+    if (!btn) return;
+    loadPanel(btn.dataset.tab);
+  });
+
+  // Defensive error boundary: a panel load/render throwing (network error,
+  // unexpected API shape, a bug) must never leave the page silently blank.
+  // Show it inline and let the user retry by switching tabs.
+  function loadPanel(name) {
+    if (loaded[name]) return;
+    loaded[name] = true;
+    const fn = { posts: loadPosts, copy: loadCopy, projects: loadProjects, generation: loadGeneration, editions: loadEditions, fossil: loadFossil }[name];
+    if (!fn) return;
+    fn().catch(err => {
+      loaded[name] = false;
+      const panel = document.querySelector(`[data-panel="${name}"]`);
+      if (!panel) return;
+      const banner = document.createElement('p');
+      banner.className = 'panel-error';
+      banner.textContent = `The ${name} panel failed to load (${(err && err.message) || err}). Switch tabs to try again.`;
+      panel.prepend(banner);
+    });
+  }
+
+  // ================= Posts =================
+  const postsRows = document.querySelector('[data-posts-rows]');
+  const postsCount = document.querySelector('[data-posts-count]');
+  const postsEditor = document.querySelector('[data-posts-editor]');
+  const postsList = document.querySelector('[data-posts-list]');
+  let posts = [];
+  let editingSlug = null;
+  let editingType = null; // 'markdown' | 'artifact' | null (new post)
+
+  async function loadPosts() {
+    postsRows.innerHTML = '<tr><td colspan="5" class="dim">Loading posts</td></tr>';
+    try {
+      const data = await api('GET', 'posts');
+      posts = Array.isArray(data) ? data : (data.posts || []);
+      renderPosts();
+    } catch (e) {
+      postsCount.textContent = 'Unavailable';
+      postsRows.innerHTML = `<tr><td colspan="5" class="dim">g-site did not answer (${escapeHtml(e.message)}).</td></tr>`;
+    }
+  }
+
+  function postStatusBadges(p) {
+    const out = [];
+    if (p.draft) out.push('<span class="badge badge-warn">Draft</span>');
+    if (p.hidden) out.push('<span class="badge badge-plain">Hidden</span>');
+    if (!out.length) out.push('<span class="badge badge-ok">Live</span>');
+    return out.join('');
+  }
+
+  function renderPosts() {
+    postsCount.textContent = `${posts.length} posts`;
+    if (!posts.length) {
+      postsRows.innerHTML = '<tr><td colspan="5" class="dim">No posts yet.</td></tr>';
+      return;
+    }
+    postsRows.innerHTML = posts.map(p => {
+      const type = p.type || 'markdown';
+      return `
+      <tr data-row-slug="${escapeHtml(p.slug)}">
+        <td>${escapeHtml(p.title)}</td>
+        <td class="slug">${escapeHtml(p.slug)}</td>
+        <td><span class="badge badge-plain">${escapeHtml(type === 'artifact' ? 'Artifact' : 'Markdown')}</span></td>
+        <td class="date">${escapeHtml(p.date || '')}</td>
+        <td class="status">${postStatusBadges(p)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  postsRows.addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-row-slug]');
+    if (!row) return;
+    openPostEditor(row.dataset.rowSlug);
+  });
+
+  document.querySelector('[data-posts-new]').addEventListener('click', () => openPostEditor(null));
+  document.querySelector('[data-posts-back]').addEventListener('click', () => {
+    postsEditor.hidden = true;
+    postsList.hidden = false;
+    document.querySelector('[data-posts-new]').hidden = false;
+  });
+
+  // g-site posts are either markdown (content.md) or artifact (raw content.html
+  // fragment, e.g. photography/music). GET /posts/{slug} returns
+  // {config, content, type}, so unwrap config's fields onto the flat form here.
+  function fillPostForm(p) {
+    const c = p.config || p;
+    document.querySelector('[data-p-title]').value = c.title || '';
+    const slugInput = document.querySelector('[data-p-slug]');
+    slugInput.value = c.slug || '';
+    slugInput.disabled = !!editingSlug; // slug can't be renamed via PUT, only set on create
+    document.querySelector('[data-p-date]').value = c.date || '';
+    document.querySelector('[data-p-description]').value = c.description || '';
+    document.querySelector('[data-p-draft]').checked = !!c.draft;
+    document.querySelector('[data-p-hidden]').checked = !!c.hidden;
+    document.querySelector('[data-p-body]').value = p.content ?? p.body ?? '';
+    document.querySelector('[data-p-body-label]').textContent =
+      editingType === 'artifact' ? 'HTML (artifact post, raw fragment)' : 'Markdown';
+    renderPreview();
+  }
+
+  async function openPostEditor(slug) {
+    // Whole body guarded: a throw anywhere here (bad API shape, a rendering
+    // bug) must surface as a toast, not a blank/broken panel.
+    try {
+      editingSlug = slug;
+      editingType = slug ? (posts.find(p => p.slug === slug) || {}).type || 'markdown' : null;
+      postsList.hidden = true;
+      document.querySelector('[data-posts-new]').hidden = true;
+      postsEditor.hidden = false;
+      document.querySelector('[data-posts-delete]').hidden = !slug;
+      if (!slug) {
+        fillPostForm({});
+        return;
+      }
+      fillPostForm({ config: { slug, title: 'Loading' } });
+      const p = await api('GET', `posts/${encodeURIComponent(slug)}`);
+      editingType = p.type || editingType;
+      fillPostForm(p);
+    } catch (e) {
+      toast({ title: 'Could not load the post', desc: `g-site refused the read (${e.message || e}). Go back and try again.`, kind: 'danger' });
+    }
+  }
+
+  // Artifact posts are raw HTML fragments (same content that ships verbatim
+  // to the live page) with their own <style> blocks, often a full :root
+  // token override for the CRT theme. innerHTML-ing that straight into this
+  // page applies its CSS to the *whole document* (custom properties aren't
+  // scoped to where the <style> tag sits), which is what turned the panel
+  // black. Sandbox artifact previews in an iframe instead; markdown still
+  // renders inline via the escape-first renderer, which never touches <style>.
+  const previewDiv = document.querySelector('[data-p-preview]');
+  const previewFrame = document.querySelector('[data-p-preview-frame]');
+
+  function renderPreview() {
+    const raw = document.querySelector('[data-p-body]').value;
+    if (editingType === 'artifact') {
+      previewDiv.hidden = true;
+      previewFrame.hidden = false;
+      previewFrame.srcdoc = raw;
+    } else {
+      previewFrame.hidden = true;
+      previewDiv.hidden = false;
+      previewDiv.innerHTML = mdToHtml(raw);
+    }
+  }
+  document.querySelector('[data-p-body]').addEventListener('input', renderPreview);
+
+  document.querySelector('[data-posts-save]').addEventListener('click', async () => {
+    const title = document.querySelector('[data-p-title]').value.trim();
+    const slug = document.querySelector('[data-p-slug]').value.trim();
+    const date = document.querySelector('[data-p-date]').value;
+    const description = document.querySelector('[data-p-description]').value.trim();
+    const draft = document.querySelector('[data-p-draft]').checked;
+    const hidden = document.querySelector('[data-p-hidden]').checked;
+    const body = document.querySelector('[data-p-body]').value;
+    if (!title || !slug) {
+      toast({ title: 'Title and slug are needed', desc: 'Fill both in, then save the post.', kind: 'danger' });
+      return;
+    }
+    const t = toast({ title: 'Saving post', desc: slug, kind: 'loading' });
+    try {
+      if (editingSlug) {
+        // markdown vs content field name depends on the post's storage type.
+        const payload = { title, date, description, draft, hidden };
+        if (editingType === 'artifact') payload.content = body;
+        else payload.markdown = body;
+        await api('PUT', `posts/${encodeURIComponent(editingSlug)}`, payload);
+      } else {
+        await api('POST', 'posts', { slug, title, date, description, draft, hidden, markdown: body });
+      }
+      t.update({ title: 'Post saved', desc: slug, kind: 'ok' });
+      loaded.posts = false;
+      await loadPosts();
+      document.querySelector('[data-posts-back]').click();
+    } catch (e) {
+      t.update({ title: 'Could not save the post', desc: `g-site refused the write (${e.message}). Your edits are still in the form.`, kind: 'danger' });
+    }
+  });
+
+  document.querySelector('[data-posts-delete]').addEventListener('click', async () => {
+    if (!editingSlug || !confirm(`Delete post "${editingSlug}"?`)) return;
+    const slug = editingSlug;
+    const t = toast({ title: 'Deleting post', desc: slug, kind: 'loading' });
+    try {
+      await api('DELETE', `posts/${encodeURIComponent(slug)}`);
+      t.update({ title: 'Post deleted', desc: slug, kind: 'ok' });
+      loaded.posts = false;
+      await loadPosts();
+      document.querySelector('[data-posts-back]').click();
+    } catch (e) {
+      t.update({ title: 'Could not delete the post', desc: `g-site refused the delete (${e.message}). The post is unchanged.`, kind: 'danger' });
+    }
+  });
+
+  // ================= Copy =================
+  const copyRows = document.querySelector('[data-copy-rows]');
+  const copyCount = document.querySelector('[data-copy-count]');
+  let copyData = {};
+
+  async function loadCopy() {
+    copyRows.innerHTML = '<p class="dim">Loading copy keys</p>';
+    try {
+      copyData = await api('GET', 'copy') || {};
+      renderCopy();
+    } catch (e) {
+      copyCount.textContent = 'Unavailable';
+      copyRows.innerHTML = `<p class="dim">g-site did not answer (${escapeHtml(e.message)}).</p>`;
+    }
+  }
+
+  // copy.json values aren't all plain strings: "socials", for example, is a
+  // structured array of {title, label, url}. Render non-strings as
+  // pretty-printed JSON so editing round-trips instead of flattening to
+  // "[object Object]".
+  function copyValueText(v) {
+    return typeof v === 'string' ? v : JSON.stringify(v, null, 2);
+  }
+
+  function copyRowHtml(key, value) {
+    return `
+      <div class="kv-row"${key == null ? '' : ` data-copy-key="${escapeHtml(key)}"`}>
+        <input class="input" type="text" ${key == null ? 'placeholder="key"' : `value="${escapeHtml(key)}"`} data-copy-k>
+        <textarea class="textarea" data-copy-v>${value == null ? '' : escapeHtml(value)}</textarea>
+        <button class="btn btn-tertiary btn-sm" type="button" data-copy-del><i class="ph ph-trash"></i>Remove</button>
+      </div>`;
+  }
+
+  function renderCopy() {
+    const keys = Object.keys(copyData);
+    copyCount.textContent = `${keys.length} keys`;
+    if (!keys.length) {
+      copyRows.innerHTML = '<p class="dim">No copy keys yet.</p>';
+      return;
+    }
+    copyRows.innerHTML = keys.map(k => copyRowHtml(k, copyValueText(copyData[k]))).join('');
+  }
+
+  document.querySelector('[data-copy-add]').addEventListener('click', () => {
+    const holder = document.createElement('div');
+    holder.innerHTML = copyRowHtml(null, null);
+    copyRows.appendChild(holder.firstElementChild);
+  });
+
+  copyRows.addEventListener('click', (e) => {
+    if (e.target.closest('[data-copy-del]')) {
+      e.target.closest('.kv-row').remove();
+    }
+  });
+
+  document.querySelector('[data-copy-save]').addEventListener('click', async () => {
+    const next = {};
+    copyRows.querySelectorAll('.kv-row').forEach(row => {
+      const k = row.querySelector('[data-copy-k]').value.trim();
+      if (!k) return;
+      const raw = row.querySelector('[data-copy-v]').value;
+      const t = raw.trim();
+      // Only re-parse values that look like JSON structures, which leaves
+      // plain prose (including numeric-looking text) alone.
+      if (t.startsWith('{') || t.startsWith('[')) {
+        try { next[k] = JSON.parse(t); return; } catch (e) { /* fall through, save as text */ }
+      }
+      next[k] = raw;
+    });
+    const t = toast({ title: 'Saving copy', kind: 'loading' });
+    try {
+      await api('PUT', 'copy', next);
+      copyData = next;
+      copyCount.textContent = `${Object.keys(next).length} keys`;
+      t.update({ title: 'Copy saved', desc: `${Object.keys(next).length} keys written`, kind: 'ok' });
+    } catch (e) {
+      t.update({ title: 'Could not save the copy', desc: `g-site refused the write (${e.message}). Your edits are still on screen.`, kind: 'danger' });
+    }
+  });
+
+  // ================= Projects =================
+  const projRows = document.querySelector('[data-projects-rows]');
+  const projCount = document.querySelector('[data-projects-count]');
+  const SIZES = ['hero', 'big', 'medium', 'small'];
+  const STATUS_BADGE = { active: 'badge-ok', deprecated: 'badge-warn', fossil: 'badge-plain' };
+  let projectsData = [];
+
+  async function loadProjects() {
+    projRows.innerHTML = '<tr><td colspan="8" class="dim">Loading projects</td></tr>';
+    try {
+      const data = await api('GET', 'projects');
+      projectsData = Array.isArray(data) ? data : (data.projects || []);
+      renderProjects(projectsData);
+    } catch (e) {
+      projCount.textContent = 'Unavailable';
+      projRows.innerHTML = `<tr><td colspan="8" class="dim">g-site did not answer (${escapeHtml(e.message)}).</td></tr>`;
+    }
+  }
+
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  function renderProjects(items) {
+    projCount.textContent = `${items.length} projects`;
+    if (!items.length) {
+      projRows.innerHTML = '<tr><td colspan="8" class="dim">No projects found.</td></tr>';
+      return;
+    }
+    projRows.innerHTML = items.map(p => {
+      // Presentation overlay (blurb/size/show/pocket_note/thumbnail_url) is
+      // nested under p.presentation, not top-level: g-site stores it keyed
+      // by project id and merges it into /projects for us to read.
+      const pres = p.presentation || {};
+      const status = p.status || 'active';
+      const sizeOpts = SIZES.map(s => `<option value="${s}" ${pres.size === s ? 'selected' : ''}>${cap(s)}</option>`).join('');
+      return `
+      <tr class="${escapeHtml(status)}" data-proj-id="${escapeHtml(p.id)}" title="${escapeHtml(p.description || '')}">
+        <td>${escapeHtml(p.id)}</td>
+        <td><span class="badge ${STATUS_BADGE[status] || 'badge-plain'}">${escapeHtml(cap(status))}</span></td>
+        <td class="blurb"><input class="input" type="text" data-proj-blurb value="${escapeHtml(pres.blurb || '')}"></td>
+        <td><span class="select-wrap"><select class="select" data-proj-size>${sizeOpts}</select></span></td>
+        <td><input class="checkbox" type="checkbox" data-proj-show aria-label="Show on the front page" ${pres.show === false ? '' : 'checked'}></td>
+        <td class="note"><input class="input" type="text" data-proj-note value="${escapeHtml(pres.pocket_note || '')}"></td>
+        <td class="thumb">
+          ${pres.thumbnail_url ? `<img src="${escapeHtml(pres.thumbnail_url)}" alt="" data-proj-thumb-img>` : '<span class="hint">None</span>'}
+          <input type="file" accept="video/*,image/*" data-proj-thumb-file aria-label="Replace thumbnail">
+        </td>
+        <td><button class="btn btn-secondary btn-sm" type="button" data-proj-save>Save</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  projRows.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-proj-save]');
+    if (!btn) return;
+    const row = btn.closest('tr');
+    const id = row.dataset.projId;
+    btn.disabled = true;
+    const t = toast({ title: 'Saving project', desc: id, kind: 'loading' });
+    try {
+      // PUT replaces the whole overlay for this id, so start from whatever
+      // g-site already has (preserves keys this table doesn't render).
+      const existing = (projectsData.find(p => p.id === id) || {}).presentation || {};
+      const payload = Object.assign({}, existing, {
+        blurb: row.querySelector('[data-proj-blurb]').value,
+        size: row.querySelector('[data-proj-size]').value,
+        show: row.querySelector('[data-proj-show]').checked,
+        pocket_note: row.querySelector('[data-proj-note]').value,
+      });
+      const fileInput = row.querySelector('[data-proj-thumb-file]');
+      if (fileInput.files && fileInput.files[0]) {
+        const up = await upload(fileInput.files[0]);
+        payload.thumbnail_url = up.url;
+      }
+      await api('PUT', `presentation/${encodeURIComponent(id)}`, payload);
+      t.update({ title: 'Project saved', desc: id, kind: 'ok' });
+      loaded.projects = false;
+      await loadProjects();
+    } catch (e2) {
+      t.update({ title: 'Could not save the project', desc: `g-site refused the write (${e2.message}). The row is unchanged.`, kind: 'danger' });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ================= Generation =================
+  const genForm = document.querySelector('[data-gen-form]');
+  const genStatus = document.querySelector('[data-gen-status]');
+  const genStats = document.querySelector('[data-gen-stats]');
+  const genIframe = document.querySelector('[data-gen-iframe]');
+  const genIframeNote = document.querySelector('[data-gen-iframe-note]');
+  let genData = null;
+
+  function field(label, path, value, type) {
+    type = type || 'number';
+    const step = type === 'number' ? ' step="any"' : '';
+    return `<label class="field"><span class="label">${escapeHtml(label)}</span>` +
+      `<input class="input" type="${type}"${step} data-gen-field="${path}" value="${escapeHtml(value)}"></label>`;
+  }
+  // Range knobs (thickness_px, aberration_offset_px, glow_range) and pocket
+  // thresholds are [min, max] / [cols, rows] pairs in g-site's config, not
+  // objects, so render as two number fields addressed by array index.
+  function rangeField(label, path, pair, fallback) {
+    const v = Array.isArray(pair) ? pair : (fallback || [0, 0]);
+    return field(`${label} min`, `${path}.0`, v[0]) + field(`${label} max`, `${path}.1`, v[1]);
+  }
+  function pocketField(cls, pair, fallback) {
+    const v = Array.isArray(pair) ? pair : (fallback || [0, 0]);
+    return field(`${cap(cls)} cols`, `pockets.${cls}.0`, v[0]) + field(`${cap(cls)} rows`, `pockets.${cls}.1`, v[1]);
+  }
+
+  async function loadGeneration() {
+    genForm.innerHTML = '<p class="dim">Loading generation config</p>';
+    try {
+      genData = await api('GET', 'generation');
+      renderGeneration();
+    } catch (e) {
+      genStatus.textContent = 'Unavailable';
+      genForm.innerHTML = `<p class="dim">g-site did not answer (${escapeHtml(e.message)}).</p>`;
+    }
+  }
+
+  function renderGeneration() {
+    const g0 = genData || {};
+    const grid = g0.grid || {};
+    const streaks = g0.streaks || {};
+    const pockets = g0.pockets || {};
+    const band1 = g0.band1 || {};
+    const placement = g0.placement || {};
+    const fillers = g0.fillers || {};
+    const content = g0.content || {};
+    const kindOrder = content.kind_order || [];
+    const weights = (fillers.weights && typeof fillers.weights === 'object') ? fillers.weights : {};
+
+    genStatus.textContent = `Seed ${g0.seed ?? 0}`;
+
+    let html = '';
+    html += field('Seed', 'seed', g0.seed ?? 0);
+    html += '<div class="gen-section">Grid</div>';
+    html += field('Cols', 'grid.cols', grid.cols ?? 96);
+    html += field('Band rows', 'grid.band_rows', grid.band_rows ?? 40);
+    html += field('Min line spacing', 'grid.min_line_spacing', grid.min_line_spacing ?? 4);
+    html += field('Cuts per band', 'grid.cuts_per_band', grid.cuts_per_band ?? 7);
+    html += '<div class="gen-section">Streaks</div>';
+    html += rangeField('Thickness px', 'streaks.thickness_px', streaks.thickness_px, [2, 3]);
+    html += field('Aberration prob', 'streaks.aberration_prob', streaks.aberration_prob ?? 0.15);
+    html += rangeField('Aberration offset px', 'streaks.aberration_offset_px', streaks.aberration_offset_px, [1, 3]);
+    html += rangeField('Glow', 'streaks.glow_range', streaks.glow_range, [0.3, 0.9]);
+    html += field('Flicker prob', 'streaks.flicker_prob', streaks.flicker_prob ?? 0.05);
+    html += '<div class="gen-section">Pocket thresholds (cols &times; rows)</div>';
+    ['hero', 'big', 'medium', 'small'].forEach(k => {
+      html += pocketField(k, pockets[k]);
+    });
+    html += '<div class="gen-section">Band 0 and placement</div>';
+    html += field('Band0 require class', 'band1.require_class', band1.require_class || 'big', 'text');
+    html += field('Band0 max attempts', 'band1.max_attempts', band1.max_attempts ?? 10000);
+    html += field('Stall limit', 'placement.stall_limit', placement.stall_limit ?? 2);
+    html += field('Max bands', 'placement.max_bands', placement.max_bands ?? 40);
+    html += '<div class="gen-section">Fillers</div>';
+    html += `<label class="choice gen-toggle"><input class="checkbox" type="checkbox" data-gen-fillers-enabled ${fillers.enabled !== false ? 'checked' : ''}> Fillers enabled</label>`;
+    Object.keys(weights).forEach(k => {
+      html += field(`Weight: ${k}`, `fillers.weights.${k}`, weights[k]);
+    });
+    html += '<div class="gen-section">Content order and identity</div>';
+    html += `<label class="choice gen-toggle"><input class="checkbox" type="checkbox" data-gen-identity ${content.show_identity !== false ? 'checked' : ''}> Show identity pocket</label>`;
+    html += '<div class="kind-order" data-gen-kind-order>' +
+      kindOrder.map((k, i) => `
+        <div class="kind-row" data-kind="${escapeHtml(k)}">
+          <span class="kind-n">${i + 1}.</span><span class="kind-name">${escapeHtml(k)}</span>
+          <span class="spacer"></span>
+          <button class="btn btn-tertiary btn-sm btn-icon" type="button" data-kind-up aria-label="Move up"><i class="ph ph-arrow-up"></i></button>
+          <button class="btn btn-tertiary btn-sm btn-icon" type="button" data-kind-down aria-label="Move down"><i class="ph ph-arrow-down"></i></button>
+        </div>`).join('') + '</div>';
+
+    genForm.innerHTML = html;
+  }
+
+  genForm.addEventListener('click', (e) => {
+    const row = e.target.closest('.kind-row');
+    if (!row) return;
+    if (e.target.closest('[data-kind-up]') && row.previousElementSibling) {
+      row.parentNode.insertBefore(row, row.previousElementSibling);
+    } else if (e.target.closest('[data-kind-down]') && row.nextElementSibling) {
+      row.parentNode.insertBefore(row.nextElementSibling, row);
+    }
+    renumberKindOrder();
+  });
+
+  function renumberKindOrder() {
+    document.querySelectorAll('[data-gen-kind-order] .kind-row').forEach((row, i) => {
+      row.querySelector('.kind-n').textContent = `${i + 1}.`;
+    });
+  }
+
+  // Path segments that are pure digits address an array index (e.g.
+  // "pockets.hero.0"): g-site stores pocket thresholds and streak ranges
+  // as [min, max] pairs, not {min, max} objects.
+  function setPath(obj, path, value) {
+    const parts = path.split('.');
+    let cur = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const key = parts[i];
+      const nextIsIndex = /^\d+$/.test(parts[i + 1]);
+      if (cur[key] == null) cur[key] = nextIsIndex ? [] : {};
+      cur = cur[key];
+    }
+    cur[parts[parts.length - 1]] = value;
+  }
+
+  function collectGeneration() {
+    const out = JSON.parse(JSON.stringify(genData || {}));
+    genForm.querySelectorAll('[data-gen-field]').forEach(input => {
+      const path = input.dataset.genField;
+      let value = input.value;
+      if (input.type === 'number') value = value === '' ? null : Number(value);
+      setPath(out, path, value);
+    });
+    out.fillers = out.fillers || {};
+    out.fillers.enabled = document.querySelector('[data-gen-fillers-enabled]').checked;
+    out.content = out.content || {};
+    out.content.show_identity = document.querySelector('[data-gen-identity]').checked;
+    out.content.kind_order = Array.from(document.querySelectorAll('[data-gen-kind-order] .kind-row'))
+      .map(r => r.dataset.kind);
+    return out;
+  }
+
+  document.querySelector('[data-gen-save]').addEventListener('click', async () => {
+    const t = toast({ title: 'Saving generation config', kind: 'loading' });
+    try {
+      const payload = collectGeneration();
+      await api('PUT', 'generation', payload);
+      genData = payload;
+      genStatus.textContent = `Seed ${payload.seed ?? 0}`;
+      t.update({ title: 'Generation config saved', desc: 'Publish an edition to take it live.', kind: 'ok' });
+    } catch (e) {
+      t.update({ title: 'Could not save the generation config', desc: `g-site refused the write (${e.message}). Your edits are still on screen.`, kind: 'danger' });
+    }
+  });
+
+  // g-site is 127.0.0.1-only pre-flip; the admin API's preview_url is
+  // relative ("/preview/") so the browser needs the g-site origin, not
+  // g-command-web's, to load it. Only works when the browser shares a host with
+  // g-site (i.e. local/on-box use), documented in CLAUDE.md.
+  const GSITE_ORIGIN = 'http://127.0.0.1:8096';
+  const IFRAME_NOTE = 'The preview iframe only loads when the browser shares a host with g-site.';
+
+  async function runPreview(seed) {
+    const t = toast({ title: 'Compiling preview', kind: 'loading' });
+    genIframeNote.textContent = '';
+    try {
+      const body = seed === undefined ? {} : { seed };
+      const result = await api('POST', 'preview', body);
+      // layout stats (bands/pockets/attempts) aren't returned by g-site's
+      // /preview yet, so show what we do get and degrade quietly otherwise.
+      const stats = [`Seed ${result.seed ?? 'unknown'}`];
+      if (result.layout) {
+        if (result.layout.bands) stats.push(`Bands ${result.layout.bands.length}`);
+        if (result.layout.attempts != null) stats.push(`Attempts ${result.layout.attempts}`);
+        if (result.layout.unplaced) stats.push(`Unplaced ${result.layout.unplaced.length}`);
+      }
+      genStats.innerHTML = stats.map(s => `<span class="badge badge-plain">${escapeHtml(s)}</span>`).join('');
+      if (result.preview_url) {
+        genIframe.src = GSITE_ORIGIN + result.preview_url;
+        genIframe.onerror = () => { genIframeNote.textContent = IFRAME_NOTE; };
+      }
+      t.update({ title: 'Preview ready', desc: `Seed ${result.seed ?? 'unknown'}`, kind: 'ok' });
+    } catch (e) {
+      t.update({ title: 'Could not compile the preview', desc: `g-site refused the build (${e.message}). Nothing published.`, kind: 'danger' });
+      genIframeNote.textContent = IFRAME_NOTE;
+    }
+  }
+
+  document.querySelector('[data-gen-preview]').addEventListener('click', () => runPreview());
+  document.querySelector('[data-gen-reroll]').addEventListener('click', () => {
+    const seed = Math.floor(Math.random() * 1e9);
+    const seedInput = genForm.querySelector('[data-gen-field="seed"]');
+    if (seedInput) seedInput.value = seed;
+    runPreview(seed);
+  });
+
+  // ================= Editions =================
+  const edRows = document.querySelector('[data-editions-rows]');
+  const edCount = document.querySelector('[data-editions-count]');
+
+  async function loadEditions() {
+    edRows.innerHTML = '<tr><td colspan="5" class="dim">Loading editions</td></tr>';
+    try {
+      const data = await api('GET', 'editions');
+      const items = Array.isArray(data) ? data : (data.editions || []);
+      renderEditions(items);
+    } catch (e) {
+      edCount.textContent = 'Unavailable';
+      edRows.innerHTML = `<tr><td colspan="5" class="dim">g-site did not answer (${escapeHtml(e.message)}).</td></tr>`;
+    }
+  }
+
+  // g-site's edition snapshot shape: {edition, published_at, seed, generation,
+  // presentation, note}, where "edition" is the id string ("0001"), not n/number.
+  function renderEditions(items) {
+    edCount.textContent = `${items.length} editions`;
+    if (!items.length) {
+      edRows.innerHTML = '<tr><td colspan="5" class="dim">No editions published yet.</td></tr>';
+      return;
+    }
+    edRows.innerHTML = items.slice().reverse().map(ed => `
+      <tr data-ed-n="${escapeHtml(ed.edition)}" data-ed-seed="${escapeHtml(ed.seed ?? '')}">
+        <td class="ed"><span class="badge badge-plain">${escapeHtml(ed.edition)}</span></td>
+        <td class="when">${escapeHtml((ed.published_at || '').replace('T', ' ').slice(0, 16))}</td>
+        <td class="seed">${escapeHtml(ed.seed ?? '')}</td>
+        <td>${escapeHtml(ed.note || '')}</td>
+        <td class="actions r">
+          <button class="btn btn-secondary btn-sm" type="button" data-ed-preview>Preview</button>
+          <button class="btn btn-danger btn-sm" type="button" data-ed-rollback>Roll back</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  // Publishing always snapshots the *current* generation+presentation state
+  // as a new edition (g-site's /publish takes no edition id), so this is a
+  // panel-level action, not tied to any row. Rollback restores a past
+  // edition's config; Preview re-compiles preview/ with that edition's seed.
+  document.querySelector('[data-editions-publish]').addEventListener('click', async () => {
+    if (!confirm('Publish the current generation + presentation config as a new edition? This goes live.')) return;
+    const note = prompt('Edition note (optional):', '') || undefined;
+    const t = toast({ title: 'Publishing edition', kind: 'loading' });
+    try {
+      await api('POST', 'publish', note ? { note } : {});
+      t.update({ title: 'Edition published', desc: 'The site is live on the new edition.', kind: 'ok' });
+      loaded.editions = false;
+      await loadEditions();
+    } catch (err) {
+      t.update({ title: 'Could not publish the edition', desc: `g-site refused the publish (${err.message}). The live site is unchanged.`, kind: 'danger' });
+    }
+  });
+
+  edRows.addEventListener('click', async (e) => {
+    const row = e.target.closest('tr[data-ed-n]');
+    if (!row) return;
+    const n = row.dataset.edN;
+    const seed = row.dataset.edSeed ? Number(row.dataset.edSeed) : null;
+    if (e.target.closest('[data-ed-preview]')) {
+      const t = toast({ title: `Compiling edition ${n}`, kind: 'loading' });
+      try {
+        await api('POST', 'preview', { seed });
+        t.update({ title: `Edition ${n} preview compiled`, desc: 'See the iframe on the Generation tab.', kind: 'ok' });
+      } catch (err) {
+        t.update({ title: `Could not preview edition ${n}`, desc: `g-site refused the build (${err.message}). Nothing changed.`, kind: 'danger' });
+      }
+    } else if (e.target.closest('[data-ed-rollback]')) {
+      if (!confirm(`Rollback to edition ${n}? This restores its generation/presentation config, not post content.`)) return;
+      const t = toast({ title: `Rolling back to edition ${n}`, kind: 'loading' });
+      try {
+        await api('POST', `editions/${encodeURIComponent(n)}/rollback`);
+        t.update({ title: `Rolled back to edition ${n}`, desc: 'Its generation and presentation config is restored.', kind: 'ok' });
+        loaded.editions = false;
+        await loadEditions();
+      } catch (err) {
+        t.update({ title: `Could not roll back to edition ${n}`, desc: `g-site refused the rollback (${err.message}). The config is unchanged.`, kind: 'danger' });
+      }
+    }
+  });
+
+  // ================= Fossil =================
+  async function loadFossil() {
+    const el = document.querySelector('[data-fossil-status]');
+    try {
+      const r = await fetch(BRAIN_API + '/api/status');
+      if (!r.ok) throw new Error(`status ${r.status}`);
+      const data = await r.json();
+      const services = data.services || data.items || [];
+      const svc = services.find(s => (s.id || s.unit || '').includes('blog'));
+      if (svc) {
+        const state = String(svc.status || svc.state || 'unknown');
+        const kind = { up: 'badge-ok', down: 'badge-danger', warn: 'badge-warn' }[state] || 'badge-plain';
+        el.className = `badge ${kind}`;
+        el.textContent = `blog-server ${state}`;
+        el.hidden = false;
+      } else {
+        el.hidden = true;
+      }
+    } catch (e) {
+      el.hidden = true;
+    }
+  }
+
+  // Posts is the default-active panel, and the tab click handler above only
+  // fires for tabs the user switches *to*, so kick off its load here, once
+  // every panel's consts/functions above have actually been declared.
+  loadPanel('posts');
+})();
+</script>

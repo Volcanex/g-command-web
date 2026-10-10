@@ -1,0 +1,8 @@
+{
+  "title": "Sign in",
+  "slug": "login",
+  "description": "Sign in to the command center.",
+  "nav": false,
+  "body_class": "login-page",
+  "gsys": true
+}

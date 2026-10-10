@@ -1,0 +1,132 @@
+<div class="page-head">
+  <h1>Voice</h1>
+  <span class="badge badge-plain">Text transport</span>
+</div>
+<p class="page-sub">Chat with the brain. The same agent that answers on WhatsApp.</p>
+
+<div class="card chat" data-chat>
+  <div class="chat-log" data-log>
+    <div class="msg brain">
+      <div class="bubble">Hi, I'm the voice of your brain. Ask me something, or tell me to remember a todo.</div>
+    </div>
+  </div>
+  <form class="chat-form" data-form>
+    <textarea class="input" data-input rows="1" placeholder="Message your brain" autocomplete="off"></textarea>
+    <button type="submit" class="btn btn-primary" data-send>Send</button>
+  </form>
+  <span class="chat-msg" data-err></span>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .chat { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 720px; }
+  .chat-log {
+    display: flex; flex-direction: column; gap: var(--sp-2);
+    min-height: 280px; max-height: 60vh; overflow-y: auto;
+    padding: var(--sp-1) 0;
+  }
+  .msg { display: flex; }
+  .msg.me { justify-content: flex-end; }
+  .msg .bubble {
+    max-width: 78%; padding: 8px 12px; border-radius: 12px;
+    font-size: var(--font-size-ui); line-height: 1.5;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .msg.me .bubble { background: var(--accent-fill); color: var(--accent-fg); border-bottom-right-radius: var(--radius-sm); }
+  .msg.brain .bubble { background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-subtle); border-bottom-left-radius: var(--radius-sm); }
+  .msg .bubble strong { font-weight: 600; }
+  .msg .bubble code { font-family: var(--font-mono); font-size: 0.9em; background: var(--fill-hover); padding: 0 4px; border-radius: 3px; }
+  .msg.me .bubble code { background: rgb(255 255 255 / 0.18); }
+  .msg .bubble a { color: inherit; text-decoration: underline; }
+
+  .typing { display: inline-flex; gap: 4px; align-items: center; padding: 3px 0; }
+  .typing span { width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--text-placeholder); animation: blink 1.2s infinite both; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .typing span { animation: none; opacity: 0.6; } }
+
+  .chat-form { display: flex; gap: var(--sp-2); align-items: flex-end; }
+  .chat-form textarea { flex: 1; resize: none; max-height: 160px; min-height: var(--h-control); line-height: 1.5; }
+  .chat-msg { color: var(--danger-text); font-size: 12px; min-height: 1em; }
+</style>
+
+<script>
+(() => {
+  const log = document.querySelector('[data-log]');
+  const form = document.querySelector('[data-form]');
+  const input = document.querySelector('[data-input]');
+  const send = document.querySelector('[data-send]');
+  const err = document.querySelector('[data-err]');
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Minimal, safe markdown: escape first, then format the escaped string.
+  function mdToHtml(s) {
+    let h = escapeHtml(s);
+    h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    h = h.replace(/(^|[^\w])_([^_\n]+)_(?!\w)/g, '$1<em>$2</em>');
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return h.replace(/\n/g, '<br>');
+  }
+
+  const TYPING = '<span class="typing"><span></span><span></span><span></span></span>';
+
+  function add(role, text, opts = {}) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role + (opts.pending ? ' pending' : '');
+    const inner = opts.typing ? TYPING : (opts.md ? mdToHtml(text) : escapeHtml(text));
+    wrap.innerHTML = `<div class="bubble">${inner}</div>`;
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    return wrap;
+  }
+
+  // Grow the textarea with content.
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+  });
+
+  // Enter sends; Shift+Enter newlines.
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    err.textContent = '';
+    add('me', text);
+    input.value = ''; input.style.height = 'auto';
+    send.disabled = true;
+    const pending = add('brain', '', { pending: true, typing: true });
+
+    try {
+      const r = await fetch('/api/voice/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      if (!r.ok) throw new Error('chat ' + r.status);
+      const data = await r.json();
+      pending.className = 'msg brain';
+      pending.querySelector('.bubble').innerHTML = mdToHtml(data.reply || '(no reply)');
+    } catch (e2) {
+      pending.remove();
+      err.textContent = 'Could not reach the brain (' + escapeHtml(e2.message) + ')';
+    } finally {
+      send.disabled = false;
+      log.scrollTop = log.scrollHeight;
+      input.focus();
+    }
+  });
+})();
+</script>

@@ -1,0 +1,185 @@
+<div class="page-head">
+  <h1>Setup</h1>
+  <span class="badge badge-plain" data-no-tokens>Machine bootstrap</span>
+</div>
+<p class="page-sub">Bootstrap any machine into G-System. One command on Mac, one command on Linux. An agent can read and execute this page directly.</p>
+
+<section class="setup-block" id="mac">
+  <h2>Mac <span class="setup-tag" data-no-tokens>genv-mac</span></h2>
+  <p>Clone the Mac overlay and run bootstrap. It auto-clones the base <code>genv</code> repo alongside, wires claude, codex, git, zsh, Ghostty, and SSH, then installs a settings.local.json template.</p>
+
+  <h3>1. Clone and bootstrap</h3>
+  <pre class="code-block"><code>git clone https://github.com/Volcanex/genv-mac ~/genv-mac
+bash ~/genv-mac/bootstrap.sh</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="git clone https://github.com/Volcanex/genv-mac ~/genv-mac
+bash ~/genv-mac/bootstrap.sh" aria-label="Copy" data-no-tokens></button></pre>
+  <p class="hint">If bootstrap fails on a missing <code>sync-ecc.sh</code>, delete the line that calls it from <code>~/genv-mac/bootstrap.sh</code>. ECC was removed (2026-06-16); skills are tracked directly now (step 4).</p>
+
+  <h3>2. Secrets: Brain MCP credentials</h3>
+  <p>Copy the example env file and fill in the Cloudflare Access service-token pair for the Brain MCP. Get the values from <a href="/gcore">gcore passport</a>.</p>
+  <pre class="code-block"><code>cp ~/genv-mac/.env.example ~/genv-mac/.env
+# edit ~/genv-mac/.env:
+#   CF_ACCESS_CLIENT_ID=...
+#   CF_ACCESS_CLIENT_SECRET=...</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="cp ~/genv-mac/.env.example ~/genv-mac/.env" aria-label="Copy" data-no-tokens></button></pre>
+  <p class="hint">Add <code>source ~/genv-mac/.env</code> to the bottom of your <code>~/.zshrc</code> (or it goes in genv-mac/zsh/zshrc if you want it tracked).</p>
+
+  <h3>3. settings.local.json: machine-specific Claude Code overrides</h3>
+  <p>The base <code>~/.claude/settings.json</code> is now symlinked from genv. Machine-specific config (permissions mode, Brain MCP connection, Playwright) goes in <code>~/.claude/settings.local.json</code> which is <strong>not</strong> tracked.</p>
+  <pre class="code-block"><code>{
+  "permissions": {
+    "defaultMode": "auto",
+    "skipAutoPermissionPrompt": true
+  },
+  "mcpServers": {
+    "brain": {
+      "type": "sse",
+      "url": "<!-- seed:mcp_headless_url -->",
+      "headers": {
+        "CF-Access-Client-Id": "&lt;CF_ACCESS_CLIENT_ID&gt;",
+        "CF-Access-Client-Secret": "&lt;CF_ACCESS_CLIENT_SECRET&gt;"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}</code></pre>
+  <p class="hint">Playwright MCP gives Claude Code a headed browser with visual feedback. Install Node if needed: <code>brew install node</code>.</p>
+
+  <h3>4. Skills</h3>
+  <p>Skills are a small curated set tracked directly in genv: <code>g-gcore-comply</code> plus a few pinned upstream skills. They arrive via the <code>~/.claude/skills</code> symlink after bootstrap; nothing to run. To refresh the pinned upstream skills later: <code>bash ~/genv/scripts/vendor-skills.sh</code>. (ECC was removed 2026-06-16; keep the library lean.)</p>
+
+  <h3>5. Auto-sync (launchd)</h3>
+  <p>The Mac has no systemd, so it needs a launchd agent to self-update daily, the Mac equivalent of the Linux <code>genv-sync.timer</code>. Create the LaunchAgent and load it:</p>
+  <pre class="code-block"><code>cat > ~/Library/LaunchAgents/com.gabriel.genv-sync.plist &lt;&lt;'PLIST'
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;&lt;dict&gt;
+  &lt;key&gt;Label&lt;/key&gt;&lt;string&gt;com.gabriel.genv-sync&lt;/string&gt;
+  &lt;key&gt;ProgramArguments&lt;/key&gt;&lt;array&gt;
+    &lt;string&gt;/bin/bash&lt;/string&gt;&lt;string&gt;-lc&lt;/string&gt;
+    &lt;string&gt;cd ~/gcore &amp;&amp; git pull --ff-only; cd ~/genv &amp;&amp; git pull --ff-only; cd ~/genv-mac &amp;&amp; git pull --ff-only &amp;&amp; bash bootstrap.sh&lt;/string&gt;
+  &lt;/array&gt;
+  &lt;key&gt;StartCalendarInterval&lt;/key&gt;&lt;dict&gt;&lt;key&gt;Hour&lt;/key&gt;&lt;integer&gt;9&lt;/integer&gt;&lt;key&gt;Minute&lt;/key&gt;&lt;integer&gt;30&lt;/integer&gt;&lt;/dict&gt;
+  &lt;key&gt;RunAtLoad&lt;/key&gt;&lt;true/&gt;
+  &lt;key&gt;StandardOutPath&lt;/key&gt;&lt;string&gt;/tmp/genv-sync.log&lt;/string&gt;
+  &lt;key&gt;StandardErrorPath&lt;/key&gt;&lt;string&gt;/tmp/genv-sync.err&lt;/string&gt;
+&lt;/dict&gt;&lt;/plist&gt;
+PLIST
+launchctl load -w ~/Library/LaunchAgents/com.gabriel.genv-sync.plist</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="launchctl load -w ~/Library/LaunchAgents/com.gabriel.genv-sync.plist" aria-label="Copy" data-no-tokens></button></pre>
+  <p class="hint">Daily at 09:30 and on login: pulls gcore/genv/genv-mac and re-bootstraps. Logs to <code>/tmp/genv-sync.*</code>. Adjust paths if your repos live elsewhere.</p>
+
+  <h3>6. Verify</h3>
+  <pre class="code-block"><code># Check symlinks landed
+ls -la ~/.claude/settings.json ~/.claude/skills ~/.claude/agents
+
+# Curated skills + agents present
+ls ~/.claude/skills    # ~5: g-gcore-comply + vendored
+ls ~/.claude/agents    # g-executor, g-explore
+
+# Launch Claude Code; Brain MCP and skills should be available
+claude</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="ls -la ~/.claude/settings.json ~/.claude/skills ~/.claude/agents && ls ~/.claude/skills" aria-label="Copy" data-no-tokens></button></pre>
+</section>
+
+<section class="setup-block" id="linux">
+  <h2>Linux / Ubuntu <span class="setup-tag" data-no-tokens>genv-linux</span></h2>
+  <p>Clone the Linux overlay and run bootstrap. Auto-clones base genv, wires claude/codex/git, creates settings.local.json with server defaults, installs the self-maintaining systemd sync timer.</p>
+
+  <h3>1. Clone and bootstrap (run as the user who will run agents: root or your login user)</h3>
+  <pre class="code-block"><code>git clone https://github.com/Volcanex/genv-linux ~/genv-linux
+GENV_DIR=~/genv bash ~/genv-linux/bootstrap.sh</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="git clone https://github.com/Volcanex/genv-linux ~/genv-linux
+GENV_DIR=~/genv bash ~/genv-linux/bootstrap.sh" aria-label="Copy" data-no-tokens></button></pre>
+
+  <h3>2. settings.local.json: Brain MCP + machine overrides (not tracked)</h3>
+  <p>The base <code>~/.claude/settings.json</code> is symlinked from genv. Brain MCP and machine-specific overrides go in <code>~/.claude/settings.local.json</code>. Fill the CF Access service-token pair from the <a href="/gcore">gcore passport</a>.</p>
+  <pre class="code-block"><code>{
+  "permissions": { "defaultMode": "bypassPermissions" },
+  "env": { "IS_SANDBOX": "1" },
+  "mcpServers": {
+    "brain": {
+      "type": "sse",
+      "url": "<!-- seed:mcp_headless_url -->",
+      "headers": {
+        "CF-Access-Client-Id": "&lt;CF_ACCESS_CLIENT_ID&gt;",
+        "CF-Access-Client-Secret": "&lt;CF_ACCESS_CLIENT_SECRET&gt;"
+      }
+    }
+  }
+}</code></pre>
+
+  <h3>3. Skills</h3>
+  <p>Tracked directly in genv and delivered via the <code>~/.claude/skills</code> symlink; nothing to run. (ECC removed 2026-06-16; refresh pinned skills with <code>bash ~/genv/scripts/vendor-skills.sh</code>.)</p>
+
+  <h3>4. Verify</h3>
+  <pre class="code-block"><code># Timer self-maintains the host
+systemctl status genv-sync.timer
+systemctl start genv-sync.service && journalctl -u genv-sync.service -n 20
+
+# Symlinks + curated set landed
+readlink ~/.claude/hooks       # -> ~/genv/claude/hooks
+ls ~/.claude/skills            # ~5: g-gcore-comply + vendored
+ls ~/.claude/agents            # g-executor, g-explore</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="systemctl status genv-sync.timer" aria-label="Copy" data-no-tokens></button></pre>
+  <p class="hint">Timer fires daily with a random 0-60 min offset so servers don't hit GitHub simultaneously. Pushes to <code>Volcanex/genv</code> propagate overnight; the sync re-runs <code>bootstrap-base.sh</code>, which repairs any drifted symlinks.</p>
+</section>
+
+<section class="setup-block" id="agent-prompt">
+  <h2>Agent bootstrap prompt</h2>
+  <p>Paste this to any Claude Code or Codex agent on a fresh machine. It reads this page and executes the right setup path.</p>
+  <pre class="code-block" id="agent-prompt-block"><code id="agent-prompt-text">Go to <!-- seed:public_origin -->/setup and follow the setup instructions for this machine's OS. Detect whether this is Mac or Linux, then execute the correct bootstrap sequence exactly as described on that page. After bootstrap completes: verify the symlinks exist, confirm the curated skills and agents are present, and report what was done.</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="Go to <!-- seed:public_origin -->/setup and follow the setup instructions for this machine's OS. Detect whether this is Mac or Linux, then execute the correct bootstrap sequence exactly as described on that page. After bootstrap completes: verify the symlinks exist, confirm the curated skills and agents are present, and report what was done." aria-label="Copy" data-no-tokens></button></pre>
+</section>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .setup-block {
+    margin: 0 0 var(--sp-4);
+    border: 1px solid var(--card-border); border-radius: var(--radius-card);
+    background: var(--card-bg);
+    padding: var(--pad-card);
+  }
+  .setup-block h2 { font-size: 15px; margin: 0 0 var(--sp-2); }
+  .setup-block h3 { margin: var(--sp-4) 0 4px; font-size: var(--font-size-ui); }
+  .setup-block p { font-size: var(--font-size-ui); color: var(--text-secondary); margin: 4px 0; line-height: 1.6; }
+  .setup-block ol { font-size: var(--font-size-ui); padding-left: 22px; }
+  .setup-block ol li { margin: 6px 0; }
+  .setup-tag {
+    display: inline-block; margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-full);
+    font-weight: 400; vertical-align: middle;
+  }
+  .hint {
+    color: var(--text-placeholder); font-size: 12px;
+    border-left: 2px solid var(--border); padding-left: 10px;
+    margin-top: var(--sp-2);
+  }
+  .code-block {
+    position: relative; margin: var(--sp-2) 0;
+    background: var(--well-bg); color: var(--text-primary);
+    border: 1px solid var(--well-border);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--radius-sm); overflow-x: auto;
+  }
+  .code-block code {
+    background: transparent; color: inherit; padding: 0;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+    white-space: pre;
+  }
+  .code-block .copy-btn { position: absolute; top: 6px; right: 6px; }
+  .setup-block p code,
+  .setup-block li code,
+  .setup-block .hint code {
+    font-family: var(--font-mono); font-size: 0.9em;
+    background: var(--fill-hover); padding: 1px 5px; border-radius: 3px;
+  }
+</style>
+
+<!-- Copy buttons are g-design copy-btn components; g-ui.js wires them from
+     data-copy, no page script needed. -->
+
+<!-- token-select: LLM-token selection highlight across the prose. Buttons
+     and badges carry data-no-tokens so flex gaps never split their labels. -->
+<script>var _m=document.querySelector(".site-main");if(_m)_m.setAttribute("data-tokens","");</script>
+<script src="/js/token-select.js"></script>

@@ -1,0 +1,194 @@
+<div class="page-head">
+  <h1>Notes</h1>
+  <span class="badge badge-plain num" data-count>Loading</span>
+  <span class="spacer"></span>
+</div>
+<p class="page-sub">Everything in the brain, filterable.</p>
+
+<!-- Rewrite review queue. Hidden entirely when nothing is outstanding, so it
+     reads as a signal rather than furniture. Fed by brain_verify's daily sweep. -->
+<section class="card stale" data-stale hidden>
+  <div class="stale-head">
+    <i class="ph ph-warning-diamond"></i>
+    <span class="card-title">Standing on moved ground</span>
+  </div>
+  <p class="stale-sub" data-stale-sub></p>
+  <ul class="stale-list" data-stale-list></ul>
+</section>
+
+<div class="card notes-card">
+  <div class="toolbar">
+    <label class="tb-field">
+      <span class="tb-label">Kind</span>
+      <span class="select-wrap">
+        <select class="select" data-filter-kind><option value="">All kinds</option></select>
+      </span>
+    </label>
+    <label class="tb-field">
+      <span class="tb-label">Status</span>
+      <span class="select-wrap">
+        <select class="select" data-filter-status><option value="">All statuses</option></select>
+      </span>
+    </label>
+    <input class="input tb-search" type="search" data-filter-q placeholder="Search title or path">
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Title</th><th>Kind</th><th>Status</th><th class="r">Version</th><th class="r">Updated</th></tr>
+      </thead>
+      <tbody data-rows>
+        <tr><td colspan="5" class="muted">Loading notes</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .page-sub {
+    margin: var(--sp-1) 0 var(--sp-5);
+    color: var(--text-secondary); font-size: var(--font-size-ui);
+  }
+
+  .notes-card { padding: var(--pad-card); }
+  .toolbar {
+    display: flex; align-items: center; gap: var(--sp-3);
+    flex-wrap: wrap; padding-bottom: var(--sp-3);
+  }
+  .tb-field { display: flex; align-items: center; gap: var(--sp-2); }
+  .tb-label { font-size: 12px; color: var(--text-secondary); }
+  .tb-field .select-wrap { min-width: 150px; }
+  .tb-search { width: 220px; margin-left: auto; }
+
+  /* Rows run the full width of the card, so hover reads as one band. */
+  .notes-card .table-wrap { margin: 0 calc(-1 * var(--pad-card)); }
+  .notes-card .table th:first-child,
+  .notes-card .table td:first-child { padding-left: var(--pad-card); }
+  .notes-card .table th:last-child,
+  .notes-card .table td:last-child { padding-right: var(--pad-card); }
+
+  .table td.kind { color: var(--text-secondary); }
+  .table td.updated { color: var(--text-secondary); white-space: nowrap; }
+  .table td.title { max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .table td.title a { text-decoration: none; }
+  .table td.title a:hover { text-decoration: underline; }
+  .muted { color: var(--text-secondary); }
+
+  .stale {
+    border-left: 2px solid var(--warn-text);
+    margin-bottom: var(--sp-4);
+  }
+  .stale-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .stale-head i { color: var(--warn-text); font-size: 15px; }
+  .stale-sub {
+    color: var(--text-secondary); font-size: 12px;
+    margin: var(--sp-1) 0 var(--sp-3);
+  }
+  .stale-list { margin: 0; padding-left: 1.1em; font-size: var(--font-size-ui); }
+  .stale-list li { margin-bottom: var(--sp-1); }
+  .stale-list .age { font-family: var(--font-mono); font-size: 0.925em; color: var(--text-secondary); }
+  .stale-list li.escalate .age { color: var(--warn-text); }
+
+  @media (max-width: 720px) {
+    .tb-search { width: 100%; margin-left: 0; }
+    .table td.title { max-width: 220px; }
+  }
+</style>
+
+<script>
+(async () => {
+  const tbody = document.querySelector('[data-rows]');
+  const fkind = document.querySelector('[data-filter-kind]');
+  const fstat = document.querySelector('[data-filter-status]');
+  const fq    = document.querySelector('[data-filter-q]');
+  const cnt   = document.querySelector('[data-count]');
+  // Note titles are lifted from the first line of an authored body, so they
+  // arrive carrying markdown. A table cell is not a .prose surface.
+  // Looked up per call: g-ui.js is deferred, so it has not defined `g` yet
+  // when this inline script first runs.
+  const plain = (s) => g.plain(s);
+  let all = [];
+
+  // Green reads as "settled", red as "needs a rewrite"; everything else is
+  // in flight and stays plain so the two signals keep their weight.
+  const TONE = {
+    broken: 'badge-danger',
+    stable: 'badge-ok', shipped: 'badge-ok', done: 'badge-ok', resolved: 'badge-ok',
+  };
+
+  function sentence(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+  }
+
+  function render() {
+    const k = fkind.value, s = fstat.value, q = fq.value.trim().toLowerCase();
+    const rows = all.filter(n =>
+      (!k || n.kind === k) &&
+      (!s || n.status === s) &&
+      (!q || plain(n.title).toLowerCase().includes(q) || n.path.toLowerCase().includes(q))
+    );
+    cnt.textContent = rows.length === all.length
+      ? `${all.length} notes`
+      : `${rows.length} of ${all.length}`;
+    tbody.innerHTML = rows.map(n => `
+      <tr class="${n.status}">
+        <td class="title"><a href="/note/${n.path}">${escapeHtml(plain(n.title))}</a></td>
+        <td class="kind">${sentence(n.kind)}</td>
+        <td class="status"><span class="badge ${TONE[n.status] || 'badge-plain'}">${sentence(n.status)}</span></td>
+        <td class="r mono">${n.version}</td>
+        <td class="r updated num">${n.updated || ''}</td>
+      </tr>`).join('') || '<tr><td colspan="5" class="muted">No notes match these filters</td></tr>';
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  try {
+    const r = await fetch(BRAIN_API + '/api/notes');
+    if (!r.ok) throw new Error(`notes ${r.status}`);
+    const data = await r.json();
+    all = data.notes;
+    fkind.innerHTML = '<option value="">All kinds</option>' +
+      data.facets.kinds.map(k => `<option value="${k}">${sentence(k)}</option>`).join('');
+    fstat.innerHTML = '<option value="">All statuses</option>' +
+      data.facets.statuses.map(s => `<option value="${s}">${sentence(s)}</option>`).join('');
+    // The sidebar's brain-kind links arrive as /notes?kind=finding.
+    const wanted = new URLSearchParams(location.search).get('kind');
+    if (wanted && data.facets.kinds.includes(wanted)) fkind.value = wanted;
+    [fkind, fstat, fq].forEach(el => el.addEventListener('input', render));
+    render();
+  } catch (e) {
+    cnt.textContent = 'Unavailable';
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Could not reach the brain API (${escapeHtml(e.message)}). Check ${escapeHtml(BRAIN_API)}, then reload.</td></tr>`;
+  }
+
+  // Rewrite review queue: notes whose dependency moved and that nobody has
+  // re-checked. brain_verify clears only on evidence, so anything left here
+  // genuinely needs a human read. Silent failure is fine, it's a secondary
+  // signal and must never break the notes table.
+  try {
+    const r = await fetch(BRAIN_API + '/api/stale');
+    if (!r.ok) return;
+    const s = await r.json();
+    const rows = s.outstanding_detail || [];
+    if (!rows.length) return;
+    const box = document.querySelector('[data-stale]');
+    document.querySelector('[data-stale-sub]').textContent =
+      `${rows.length} ${rows.length === 1 ? 'note rests' : 'notes rest'} on a dependency that changed and ` +
+      `${rows.length === 1 ? "hasn't" : "haven't"} been re-checked` +
+      (s.checked_at ? `, swept ${s.checked_at.slice(0, 10)}` : '');
+    document.querySelector('[data-stale-list]').innerHTML = rows.map(o => `
+      <li class="${o.escalate ? 'escalate' : ''}">
+        <a href="/note/${escapeHtml(o.note)}">${escapeHtml(plain(o.title) || o.note)}</a>
+        depends on <a href="/note/${escapeHtml(o.depends_on)}">${escapeHtml(o.depends_on)}</a>
+        <span class="age">${o.age_days ?? 0}d</span>
+      </li>`).join('');
+    box.hidden = false;
+  } catch (e) { /* queue is advisory; never block the page */ }
+})();
+</script>
