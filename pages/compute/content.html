@@ -188,11 +188,11 @@
   const usd = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
   const units = (n) => n == null ? '0' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : `${Math.round(n)}`;
   const tempClass = (w) => `t-${String(w || '').toLowerCase()}`;
-  const tempBadge = (w) => ({ BURN: 'badge-ok', HOT: 'badge-ok', WARM: 'badge-ok', COOL: 'badge-plain', COLD: 'badge-warn', FREEZING: 'badge-danger' })[w] || 'badge-plain';
-  const STATUS = { BURN: 'Plenty spare, spend it', HOT: 'Ahead, spend more', WARM: 'Slightly ahead', COOL: 'On pace', COLD: 'Behind, go easy', FREEZING: 'Will run out, ration it' };
+  const tempBadge = (w) => ({ EBURN: 'badge-ok', BURN: 'badge-ok', HOT: 'badge-ok', WARM: 'badge-ok', COOL: 'badge-plain', COLD: 'badge-warn', FREEZING: 'badge-danger' })[w] || 'badge-plain';
+  const STATUS = { EBURN: 'About to be wasted, spend all of it', BURN: 'Plenty spare, spend it', HOT: 'Ahead, spend more', WARM: 'Slightly ahead', COOL: 'On pace', COLD: 'Behind, go easy', FREEZING: 'Will run out, ration it' };
   const MEANING = {
-    claude: { BURN: 'Claude fallbacks and Claude workers allowed freely', COLD: 'Claude fallbacks skipped, Claude agents need an OK', FREEZING: 'Claude fallbacks skipped, Claude agents need an OK' },
-    codex: { BURN: 'Sol effort up a level, as far as xhigh', HOT: 'Sol effort up a level, as far as high', COLD: 'Sol effort down a level', FREEZING: 'Sol effort down a level' },
+    claude: { EBURN: 'Expiring: Claude workers as wide as they go', BURN: 'Claude fallbacks and Claude workers allowed freely', COLD: 'Claude fallbacks skipped, Claude agents need an OK', FREEZING: 'Claude fallbacks skipped, Claude agents need an OK' },
+    codex: { EBURN: 'Effort up two levels, eburn runs up to 10 jobs, work without taste leaves Claude', BURN: 'Sol effort up a level, as far as xhigh', HOT: 'Sol effort up a level, as far as high', COLD: 'Sol effort down a level', FREEZING: 'Sol effort down a level' },
   };
   const SPEED = { FAST: 'Fast caps Sol at medium effort', SLOW: 'Slow adds a level of effort', NORMAL: '' };
 
@@ -451,7 +451,7 @@
   };
 
   function renderWhatIf(live) {
-    const temps = ['BURN', 'HOT', 'WARM', 'COOL', 'COLD', 'FREEZING'];
+    const temps = ['EBURN', 'BURN', 'HOT', 'WARM', 'COOL', 'COLD', 'FREEZING'];
     for (const p of PROVIDERS) {
       const box = document.querySelector(`[data-whatif="${p}"]`);
       const lp = live[p], c = vControls();

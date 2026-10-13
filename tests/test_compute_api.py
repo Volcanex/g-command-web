@@ -166,7 +166,7 @@ def test_state_reads_genv_data(client, tmp_path):
     assert body["roles"] == {"order": providers["roles"], "base_effort": providers["effort"],
                              "web": providers.get("web", {}),
                              "effective_codex_effort": providers["effort"]}
-    assert body["levels"] == {"temps": ["BURN", "HOT", "WARM", "COOL", "COLD", "FREEZING"],
+    assert body["levels"] == {"temps": ["EBURN", "BURN", "HOT", "WARM", "COOL", "COLD", "FREEZING"],
                               "speeds": ["FAST", "NORMAL", "SLOW"]}
 
 
