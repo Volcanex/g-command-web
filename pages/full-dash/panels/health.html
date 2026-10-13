@@ -1,0 +1,81 @@
+<section class="card fd-panel" id="fd-health">
+  <header class="fd-panel-head">
+    <i class="ph ph-heartbeat"></i>
+    <h2 class="card-title">Health</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/system" data-tip="Open services" aria-label="Open services"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+#fd-health .hl-line { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+#fd-health .hl-line + .hl-line, #fd-health .fd-list + .hl-line { margin-top: var(--sp-2); }
+#fd-health .hl-hosts { margin-left: auto; font-variant-numeric: tabular-nums; }
+#fd-health .hl-hosts span + span { margin-left: var(--sp-3); }
+#fd-health .hl-disk { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+#fd-health .fd-item .id { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#fd-health .fd-item .d { flex: 1; min-width: 0; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+<script>(function () {
+  var root = document.getElementById('fd-health');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+  var RANK = { down: 0, warn: 1 };
+  var BADGE = { down: 'badge-danger', warn: 'badge-warn' };
+  var STATE = { down: 'Down', warn: 'Warn' };
+
+  // Only what needs a look: down and warning services and dependencies. An
+  // unknown dependency is one nobody probes yet, so it is not news here.
+  function render(d) {
+    meta.textContent = d.checked_at ? 'Checked ' + FD.rel(d.checked_at) : '';
+    var bad = [];
+    (d.services || []).forEach(function (s) {
+      if (RANK[s.state] != null) bad.push({ state: s.state, id: s.id, where: s.host, detail: s.detail });
+    });
+    (d.dependencies || []).forEach(function (s) {
+      if (RANK[s.state] != null) bad.push({ state: s.state, id: s.id, where: s.criticality, detail: s.detail });
+    });
+    bad.sort(function (a, b) { return RANK[a.state] - RANK[b.state]; });
+
+    var hosts = {};
+    (d.services || []).forEach(function (x) {
+      if (x.state === 'paused') return;
+      var h = hosts[x.host] = hosts[x.host] || { up: 0, all: 0 };
+      h.all++;
+      if (x.state === 'up') h.up++;
+    });
+    var perHost = '<span class="hl-hosts">' + Object.keys(hosts).sort().map(function (k) {
+      return '<span>' + FD.esc(k) + ' ' + hosts[k].up + '/' + hosts[k].all + '</span>';
+    }).join('') + '</span>';
+
+    var s = d.summary || {};
+    var paused = s.paused ? '<span>' + s.paused + ' paused</span>' : '';
+    var html = '';
+    if (!bad.length) {
+      html += '<div class="hl-line"><span class="badge badge-ok">All ' + (s.up || 0) + ' services up</span>' + paused + perHost + '</div>';
+    } else {
+      html += '<ul class="fd-list">' + bad.map(function (b) {
+        return '<li class="fd-item"><span class="badge ' + BADGE[b.state] + '">' + STATE[b.state] + '</span>' +
+          '<span class="id">' + FD.esc(b.id) + '</span>' +
+          '<span class="d" title="' + FD.esc(b.detail) + '">' + FD.esc(b.detail || b.where || '') + '</span></li>';
+      }).join('') + '</ul>';
+      html += '<div class="hl-line"><span>' + (s.up || 0) + ' of ' + ((s.total || 0) - (s.paused || 0)) + ' up</span>' + paused + perHost + '</div>';
+    }
+
+    if (d.disk && d.disk.used_pct != null) {
+      var used = Math.round(d.disk.used_pct);
+      html += '<div class="hl-disk"><span>Disk</span>' +
+        '<div class="g-meter" data-value="' + used + '" data-max="100" data-warn-at="85" data-danger-at="95" aria-label="Disk used"></div>' +
+        '<span>' + used + '% used, ' + Math.round(d.disk.free_gb) + ' GB free</span></div>';
+    }
+    body.innerHTML = html;
+    FD.init(body);
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/status', { ttl: 30000 }).then(render).catch(function (e) {
+      FD.fail(body, 'Health unavailable. The panel retries every minute.', (e && e.message) || e);
+    });
+  }, 60000);
+})();</script>

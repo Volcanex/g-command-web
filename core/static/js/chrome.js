@@ -1,6 +1,7 @@
 /* g-command-web chrome interactions on g-design:
    off-canvas nav (data-nav-open, .g-nav-toggle, .g-scrim), theme and
-   density toggles via g.theme/g.density, active nav link, footer clock. */
+   density toggles via g.theme/g.density, active nav link (direct or by tab
+   group), footer clock. */
 (() => {
   /* reveal the page: this script is deferred, so every body <style> has been
      parsed by now and the content can enter without a restyle jump */
@@ -25,11 +26,15 @@
     g.density(document.documentElement.hasAttribute("data-density") ? "comfortable" : "compact");
   });
 
+  /* a page reached through a tab strip lights its group's entry */
   const here = location.pathname.replace(/\/$/, "") || "/";
-  document.querySelectorAll(".nav-drawer-section a").forEach((a) => {
-    const path = a.getAttribute("href").split("?")[0].replace(/\/$/, "") || "/";
-    if (path === here || (path === "/home" && here === "/")) a.setAttribute("aria-current", "page");
-  });
+  const links = [...document.querySelectorAll(".nav-drawer-section a, .side-foot a")];
+  const path = (a) => a.getAttribute("href").split("?")[0].replace(/\/$/, "") || "/";
+  let current = links.filter((a) => path(a) === here);
+  const group = document.querySelector(".g-subnav")?.dataset.tabs;
+  if (!current.length && group) current = links.filter((a) => a.dataset.tabs === group);
+  current.forEach((a) => a.setAttribute("aria-current", "page"));
+  document.querySelector('.g-subnav [aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
 
   const clock = document.querySelector("[data-clock]");
   if (clock) {

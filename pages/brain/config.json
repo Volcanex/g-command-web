@@ -1,0 +1,13 @@
+{
+  "title": "Brain",
+  "slug": "brain",
+  "description": "A personal MCP knowledge base.",
+  "nav": true,
+  "order": 20,
+  "nav_section": "Tools",
+  "nav_icon": "brain",
+  "nav_label": "Brain",
+  "gsys": true,
+  "tabs": "brain",
+  "tab_label": "Overview"
+}

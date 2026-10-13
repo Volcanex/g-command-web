@@ -1,0 +1,163 @@
+<script>
+window.FD = (function () {
+  var cache = {};
+  function cached(url, opts, parse) {
+    opts = opts || {};
+    var ttl = opts.ttl || 0;
+    var now = Date.now();
+    var hit = cache[url];
+    if (hit && (now - hit.t) < ttl) return hit.p;
+    var p = fetch(url, { credentials: 'same-origin' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
+      return parse(res);
+    });
+    p.catch(function () { if (cache[url] && cache[url].p === p) delete cache[url]; });
+    cache[url] = { t: now, p: p };
+    return p;
+  }
+  function setState(el, cls, msg, detail) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+    var em = document.createElement('em');
+    em.className = cls;
+    em.textContent = msg;
+    if (detail) em.title = String(detail);
+    el.appendChild(em);
+  }
+  // g-ui.js is deferred, so a panel that renders before it loads flattens
+  // markdown itself: wikilinks to their label, emphasis and code marks gone.
+  function plain(s) {
+    if (window.g && g.plain) return g.plain(s);
+    return String(s == null ? '' : s)
+      .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, function (m, a, b) { return b || a; })
+      .replace(/\*\*|__|`/g, '');
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  return {
+    BRAIN: BRAIN_API,
+    fetchJSON: function (url, opts) { return cached(url, opts, function (r) { return r.json(); }); },
+    fetchText: function (url, opts) { return cached(url, opts, function (r) { return r.text(); }); },
+    poll: function (fn, ms) {
+      Promise.resolve().then(fn).catch(function () {});
+      setInterval(function () {
+        if (document.hidden) return;
+        Promise.resolve().then(fn).catch(function () {});
+      }, ms);
+    },
+    fail: function (el, msg, detail) { setState(el, 'fd-fail', msg, detail); },
+    empty: function (el, msg) { setState(el, 'fd-empty', msg); },
+    plain: plain,
+    esc: function (s) {
+      return plain(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    },
+    iso: function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); },
+    day: function (iso) {
+      return new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    },
+    rel: function (iso) {
+      if (!iso) return '';
+      var t = new Date(iso).getTime();
+      if (isNaN(t)) return '';
+      var s = Math.round((Date.now() - t) / 1000);
+      var future = s < 0;
+      s = Math.abs(s);
+      var v = s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm'
+            : s < 86400 ? Math.round(s / 3600) + 'h' : Math.round(s / 86400) + 'd';
+      return future ? 'in ' + v : v + ' ago';
+    },
+    init: function (el) { if (window.g && g.init) g.init(el); }
+  };
+})();
+</script>
+<style>
+/* ---- Panel chrome, shared by every dash ---- */
+.fd-spacer { flex: 1; }
+.fd-panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-3);
+}
+.fd-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fd-panel-head > .ph { color: var(--text-placeholder); font-size: 15px; flex: none; }
+.fd-panel-head h2 { flex: none; }
+.fd-panel-head a.btn { text-decoration: none; flex: none; }
+.fd-panel-head a.btn .ph { font-size: 14px; }
+.fd-meta {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fd-body { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; container-type: inline-size; }
+.fd-loading, .fd-empty { font-style: normal; font-size: 12px; color: var(--text-placeholder); }
+.fd-fail { font-style: normal; font-size: 12px; color: var(--danger-text); }
+
+/* Groups and rows: every list panel labels and lines its rows the same way. */
+.fd-group + .fd-group { margin-top: var(--sp-3); }
+.fd-group-label {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  padding-bottom: var(--sp-1);
+}
+.fd-group-label .n { font-weight: 400; color: var(--text-placeholder); font-variant-numeric: tabular-nums; }
+.fd-list { list-style: none; margin: 0; padding: 0; }
+.fd-item {
+  display: flex; align-items: center; gap: var(--sp-2);
+  min-height: var(--h-2);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-ui);
+}
+.fd-item:last-child { border-bottom: none; }
+.fd-item .t {
+  flex: 1; min-width: 0;
+  color: var(--text-primary); text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fd-item a.t:hover { text-decoration: underline; text-underline-offset: 2px; }
+.fd-item .k {
+  flex: none; font-size: 12px; color: var(--text-secondary);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.fd-item .k.warn { color: var(--warn-text); }
+.fd-item .k.danger { color: var(--danger-text); }
+.fd-item .badge { flex: none; }
+.fd-more { display: block; font-size: 12px; color: var(--text-placeholder); margin-top: var(--sp-2); text-decoration: none; }
+a.fd-more:hover { color: var(--text-secondary); }
+
+/* ---- Dash frame ----
+   On a desktop window the dash is exactly the viewport: columns of panels
+   whose bodies scroll on their own, so nothing key sits below the fold.
+   Narrow or short windows fall back to one scrolling column. */
+.fd-dash {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  height: 100%;
+  box-sizing: border-box;
+}
+.fd-col { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; }
+.fd-col > .fd-panel { flex: 1 1 0; }
+.fd-row { display: grid; gap: var(--sp-3); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: 0; }
+@media (max-width: 900px), (max-height: 560px) {
+  .fd-dash { height: auto; grid-template-columns: minmax(0, 1fr); }
+  .fd-col > .fd-panel, .fd-row { flex: none; max-height: none; }
+  .fd-row { grid-auto-flow: row; }
+  .fd-body { overflow: visible; }
+}
+</style>

@@ -2,11 +2,13 @@
   "title": "Nerves",
   "slug": "nerves",
   "description": "Layer 3: the CLAUDE.md / AGENTS.md web across all repos, and how each pair sits.",
-  "nav": true,
-  "order": 30,
+  "nav": false,
+  "order": 43,
   "body_class": "nerves-page",
   "nav_section": "Brain",
   "nav_icon": "git-branch",
   "nav_label": "Nerves",
-  "gsys": true
+  "gsys": true,
+  "tabs": "brain",
+  "tab_label": "Nerves"
 }

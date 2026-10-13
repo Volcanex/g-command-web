@@ -1,0 +1,91 @@
+<div class="page-head">
+  <h1>Brain</h1>
+  <span class="badge badge-plain">Personal MCP knowledge base</span>
+</div>
+
+<div class="home-grid">
+  <div class="card">
+    <span class="card-title">Counts</span>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Kind</th><th class="r">Count</th><th class="r">Active</th><th class="r">Broken</th></tr>
+        </thead>
+        <tbody data-stats-rows>
+          <tr><td colspan="4" class="dim">Loading</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="card-title">Recent activity</span>
+    <ul data-recent-list>
+      <li class="dim">Loading</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card refs-card">
+  <span class="card-title">References</span>
+  <p data-refs-summary class="dim">Loading</p>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-4); }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .home-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: var(--sp-4); align-items: start; }
+  .home-grid > .card { min-width: 0; }
+  @media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }
+  .card { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .refs-card { margin-top: var(--sp-4); }
+  .refs-card p { margin: 0; font-size: var(--font-size-ui); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .dim { color: var(--text-placeholder); }
+  .table td.r, .table th.r { text-align: right; font-variant-numeric: tabular-nums; }
+  ul[data-recent-list] { list-style: none; padding: 0; margin: 0; font-size: var(--font-size-ui); }
+  ul[data-recent-list] li {
+    display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  ul[data-recent-list] li:last-child { border-bottom: none; }
+  ul[data-recent-list] a { flex: 1; min-width: 0; color: var(--text-primary); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  ul[data-recent-list] a:hover { color: var(--text-hot); }
+  ul[data-recent-list] .meta-cell {
+    color: var(--text-placeholder); font-size: 12px;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+</style>
+
+<script>
+(async () => {
+  try {
+    const r = await fetch(BRAIN_API + '/api/home/stats');
+    if (!r.ok) throw new Error(`stats ${r.status}`);
+    const data = await r.json();
+
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const esc = (s) => String(s).replace(/[&<>"']/g,
+      c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const rows = document.querySelector('[data-stats-rows]');
+    rows.innerHTML = data.kinds.map(k =>
+      `<tr><td>${cap(k.kind)}</td><td class="r">${k.total}</td><td class="r">${k.active}</td><td class="r">${k.broken}</td></tr>`
+    ).join('');
+
+    const recent = document.querySelector('[data-recent-list]');
+    recent.innerHTML = data.recent.map(n =>
+      `<li>
+         <a href="/note/${n.path}">${esc(g.plain(n.title))}</a>
+         <span class="meta-cell"><span class="badge badge-plain">${cap(n.kind)}</span>${n.updated}</span>
+       </li>`
+    ).join('');
+
+    document.querySelector('[data-refs-summary]').textContent =
+      `${data.refs.total_urls} URLs (${data.refs.distinct_canonical} canonical), ${data.refs.broken} broken.`;
+  } catch (e) {
+    document.querySelectorAll('[data-stats-rows], [data-recent-list], [data-refs-summary]')
+      .forEach(el => el.textContent = `Error: ${e.message}`);
+  }
+})();
+</script>

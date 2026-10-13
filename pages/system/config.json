@@ -2,11 +2,13 @@
   "title": "System",
   "slug": "system",
   "description": "Live service topology and health across all hosts.",
-  "nav": true,
-  "order": 15,
+  "nav": false,
+  "order": 30,
   "body_class": "system-page",
   "nav_section": "g-core",
   "nav_icon": "pulse",
   "nav_label": "System",
-  "gsys": true
+  "gsys": true,
+  "tabs": "system",
+  "tab_label": "Services"
 }

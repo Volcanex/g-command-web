@@ -1,0 +1,62 @@
+<section class="card fd-panel" id="fd-brief">
+  <header class="fd-panel-head">
+    <i class="ph ph-sun-horizon"></i>
+    <h2 class="card-title">Brief</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/pulse" data-tip="Open pulse" aria-label="Open pulse"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+#fd-brief details { border-bottom: 1px solid var(--border-subtle); font-size: var(--font-size-ui); line-height: var(--lh-2); }
+#fd-brief details:last-of-type { border-bottom: none; }
+#fd-brief summary {
+  list-style: none; cursor: pointer;
+  padding: var(--sp-1) 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+#fd-brief summary::-webkit-details-marker { display: none; }
+#fd-brief summary b { color: var(--text-primary); font-weight: 500; }
+#fd-brief summary:hover { color: var(--text-primary); }
+#fd-brief details[open] summary { white-space: normal; color: var(--text-primary); }
+</style>
+<script>(function () {
+  var root = document.getElementById('fd-brief');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+
+  // The brief's bullets only: one line each, a click opens the rest. The
+  // services line is the health panel's job and stale by mid-morning, and
+  // everything from the first subheading on is the compactor's working.
+  function render(data) {
+    meta.textContent = data && data.date ? FD.day(String(data.date)) : '';
+    var text = data && data.body ? String(data.body) : '';
+    var bullets = [];
+    var asks = 0;
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (line.indexOf('## ') === 0) break;
+      if (line.indexOf('- ') !== 0) continue;
+      line = FD.plain(line.slice(2)).trim();
+      if (/^Promote to brain\?/.test(line)) { asks++; continue; }
+      bullets.push(line);
+    }
+    if (!bullets.length) { FD.empty(body, 'No brief yet today.'); return; }
+    body.innerHTML = bullets.map(function (b) {
+      var cut = b.indexOf(':');
+      var head = cut > 0 && cut < 40 ? b.slice(0, cut) : '';
+      var rest = head ? b.slice(cut + 1) : b;
+      return '<details><summary>' + (head ? '<b>' + FD.esc(head) + '</b> ' : '') + FD.esc(rest) + '</summary></details>';
+    }).join('') +
+    (asks ? '<a class="fd-more" href="/pulse">' + (asks === 1 ? '1 note' : asks + ' notes') + ' waiting to go into the brain</a>' : '');
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/pulse/brief').then(render).catch(function (e) {
+      FD.fail(body, 'Brief unavailable. The panel retries every 10 minutes.', (e && e.message) || e);
+    });
+  }, 600000);
+})();</script>

@@ -1,0 +1,98 @@
+<section class="card fd-panel" id="fd-compute">
+  <header class="fd-panel-head">
+    <i class="ph ph-gauge"></i>
+    <h2 class="card-title">Compute</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/compute" data-tip="Open compute" aria-label="Open compute"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+#fd-compute .qs { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
+@container (min-width: 560px) {
+  #fd-compute .qs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+}
+#fd-compute .q { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+#fd-compute .q-head { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--font-size-ui); }
+#fd-compute .q-head .name { flex: none; white-space: nowrap; }
+#fd-compute .q-head .g-meter { flex: 1; width: auto; min-width: var(--sp-7); }
+#fd-compute .q-head .left { flex: none; font-weight: 500; font-variant-numeric: tabular-nums; }
+#fd-compute .q-head .left.warn { color: var(--warn-text); }
+#fd-compute .q-line { display: flex; gap: var(--sp-2); font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+#fd-compute .q-line span:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#fd-compute .q-line .warn { color: var(--warn-text); }
+#fd-compute .q-foot { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); padding-top: var(--sp-2); border-top: 1px solid var(--border-subtle); font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+#fd-compute .q-foot .warn { color: var(--warn-text); }
+</style>
+<script>(function () {
+  var root = document.getElementById('fd-compute');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+  // The compute page's own reads: quotas and reset times from /pace, the
+  // temperature each provider is running at from /state.
+  var QUOTAS = [
+    { id: 'claude 7d', name: 'Claude week', p: 'claude' },
+    { id: 'claude 5h', name: 'Claude 5 hour', p: 'claude' },
+    { id: 'codex 7d', name: 'Codex week', p: 'codex' }
+  ];
+  var TEMP_BADGE = { EBURN: 'badge-ok', BURN: 'badge-ok', HOT: 'badge-ok', WARM: 'badge-ok', COOL: 'badge-plain', COLD: 'badge-warn', FREEZING: 'badge-danger' };
+  var STATUS = { EBURN: 'About to be wasted, spend all of it', BURN: 'Plenty spare, spend it', HOT: 'Ahead, spend more', WARM: 'Slightly ahead', COOL: 'On pace', COLD: 'Behind, go easy', FREEZING: 'Will run out, ration it' };
+  function cap(s) { s = String(s || '').toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function london(iso, withDay) {
+    var o = { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' };
+    if (withDay) o.weekday = 'short';
+    if (withDay === true) { o.day = 'numeric'; o.month = 'short'; }
+    return new Date(iso).toLocaleString('en-GB', o);
+  }
+  function span(s) {
+    s = Math.max(0, s);
+    var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+    return d ? d + 'd ' + h + 'h' : h + 'h ' + String(m).padStart(2, '0') + 'm';
+  }
+
+  function render(pace, state) {
+    var temps = (state && state.temps) || {};
+    var byId = {};
+    (pace.quotas || []).forEach(function (q) { byId[q.id] = q; });
+    var cards = QUOTAS.map(function (Q) {
+      var q = byId[Q.id];
+      if (!q) return '<div class="q"><div class="q-head"><span class="name">' + Q.name + '</span></div><div class="q-line"><span>No reading yet</span></div></div>';
+      var left = Math.round(q.remaining_pct);
+      var short = q.runs_out_at && new Date(q.runs_out_at) < new Date(q.resets_at);
+      var t = Q.id.slice(-2) === '7d' ? temps[Q.p] : null;
+      var week = Q.id.slice(-2) === '7d';
+      // A quota that runs dry before it resets shows when, in place of the countdown.
+      return '<div class="q">' +
+        '<div class="q-head"><span class="name">' + Q.name + '</span>' +
+          (t && t.temp ? '<span class="badge ' + (TEMP_BADGE[t.temp] || 'badge-plain') + '" data-tip="' + FD.esc(STATUS[t.temp] || '') + '">' + FD.esc(cap(t.temp)) + '</span>' : '') +
+          '<div class="g-meter" data-value="' + left + '" data-max="100" aria-label="' + Q.name + ' left"></div>' +
+          '<span class="left' + (short ? ' warn' : '') + '">' + left + '% left</span></div>' +
+        '<div class="q-line"><span>Resets ' + FD.esc(london(q.resets_at, week)) + '</span>' +
+          (short ? '<span class="warn">Runs out ' + FD.esc(london(q.runs_out_at, 'weekday')) + '</span>' : '<span>in ' + span(q.seconds_to_reset) + '</span>') + '</div>' +
+      '</div>';
+    }).join('');
+    var foot = '';
+    var or = pace.openrouter;
+    if (or && or.remaining_usd != null) {
+      var low = or.remaining_usd < 5;
+      foot += '<span class="' + (low ? 'warn' : '') + '">OpenRouter $' + Number(or.remaining_usd).toFixed(2) + ' left' +
+        (or.limit_usd ? ' of $' + Math.round(or.limit_usd) : '') + '</span>';
+    }
+    var h = pace.hours;
+    if (h && h.today != null) foot += '<span class="fd-spacer"></span><span>' + Number(h.today).toFixed(1) + 'h worked today</span>';
+    body.innerHTML = '<div class="qs">' + cards + '</div>' + (foot ? '<div class="q-foot">' + foot + '</div>' : '');
+    FD.init(body);
+    meta.textContent = pace.computed_at ? 'Read ' + FD.rel(pace.computed_at) : '';
+  }
+
+  FD.poll(function () {
+    return Promise.all([
+      FD.fetchJSON('/api/compute/pace', { ttl: 60000 }),
+      FD.fetchJSON('/api/compute/state', { ttl: 60000 }).catch(function () { return null; })
+    ]).then(function (r) { render(r[0], r[1]); }).catch(function (e) {
+      FD.fail(body, 'Compute unavailable. The panel retries every 5 minutes.', (e && e.message) || e);
+    });
+  }, 300000);
+})();</script>

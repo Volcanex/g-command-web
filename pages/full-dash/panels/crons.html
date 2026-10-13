@@ -1,0 +1,62 @@
+<section class="card fd-panel" id="fd-crons">
+  <header class="fd-panel-head">
+    <i class="ph ph-clock"></i>
+    <h2 class="card-title">Crons</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/crons" data-tip="Open crons" aria-label="Open crons"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<style>
+#fd-crons .fd-item .d { flex: 1; min-width: 0; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#fd-crons .fd-item .t { flex: none; max-width: 50%; }
+#fd-crons .fd-group-label .badge { margin-left: auto; }
+</style>
+<script>(function () {
+  var root = document.getElementById('fd-crons');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+  var NEXT = 12;
+
+  function at(epoch) {
+    return new Date(epoch * 1000).toLocaleString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // Problems first, since a quiet cron is the normal case; then what runs next.
+  function render(d) {
+    var jobs = d.jobs || [];
+    var problems = d.problems || [];
+    var hostsDown = (d.hosts || []).filter(function (h) { return h.status !== 'ok'; });
+    meta.textContent = jobs.length + ' jobs' + (d.stale ? ', stale' : '');
+    var html = '';
+    if (problems.length || hostsDown.length) {
+      html += '<div class="fd-group"><div class="fd-group-label">Problems <span class="n">' + (problems.length + hostsDown.length) + '</span></div><ul class="fd-list">' +
+        hostsDown.map(function (h) {
+          return '<li class="fd-item"><span class="badge badge-danger">Host</span><span class="t">' + FD.esc(h.id) + '</span><span class="d" title="' + FD.esc(h.error) + '">' + FD.esc(h.error || 'Unreachable') + '</span></li>';
+        }).join('') +
+        problems.map(function (p) {
+          var fail = /fail/.test(p.problem);
+          return '<li class="fd-item"><span class="badge ' + (fail ? 'badge-danger' : 'badge-warn') + '">' + FD.esc(p.host) + '</span>' +
+            '<span class="t" title="' + FD.esc(p.name) + '">' + FD.esc(p.name) + '</span>' +
+            '<span class="d" title="' + FD.esc(p.detail) + '">' + FD.esc(p.problem) + '</span></li>';
+        }).join('') + '</ul></div>';
+    } else {
+      html += '<div class="fd-group"><span class="badge badge-ok">All ' + jobs.length + ' jobs ok</span></div>';
+    }
+    var soon = jobs.filter(function (j) { return j.next; }).sort(function (a, b) { return a.next - b.next; }).slice(0, NEXT);
+    if (soon.length) {
+      html += '<div class="fd-group"><div class="fd-group-label">Next</div><ul class="fd-list">' + soon.map(function (j) {
+        return '<li class="fd-item"><span class="t" title="' + FD.esc(j.description || j.name) + '">' + FD.esc(j.name) + '</span>' +
+          '<span class="d">' + FD.esc(j.host) + '</span><span class="k">' + at(j.next) + '</span></li>';
+      }).join('') + '</ul></div>';
+    }
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON('/api/crons/list', { ttl: 60000 }).then(render).catch(function (e) {
+      FD.fail(body, 'Crons unavailable. The panel retries every 5 minutes.', (e && e.message) || e);
+    });
+  }, 300000);
+})();</script>

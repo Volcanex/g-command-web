@@ -3,8 +3,8 @@
   "slug": "notes",
   "description": "All notes in the brain.",
   "nav": true,
-  "order": 20,
-  "nav_section": "Brain",
+  "order": 12,
+  "nav_section": "Daily",
   "nav_icon": "list-bullets",
   "nav_label": "Notes",
   "gsys": true

@@ -1,0 +1,21 @@
+<!-- seed:panel-kit -->
+<div class="fd-dash fd-ops">
+  <!-- seed:panel-compute -->
+  <div class="fd-col">
+    <!-- seed:panel-health -->
+    <!-- seed:panel-tickets -->
+  </div>
+  <div class="fd-col">
+    <!-- seed:panel-crons -->
+  </div>
+</div>
+<style>
+/* Compute across the top, where its three quotas sit side by side; the
+   panels below end where their content does rather than stretching. */
+@media (min-width: 901px) and (min-height: 561px) {
+  .fd-ops { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .fd-ops > #fd-compute { grid-column: 1 / -1; }
+  .fd-ops .fd-col { justify-content: flex-start; }
+  .fd-ops .fd-col > .fd-panel { flex: 0 1 auto; }
+}
+</style>

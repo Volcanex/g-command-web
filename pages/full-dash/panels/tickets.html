@@ -1,0 +1,39 @@
+<section class="card fd-panel" id="fd-tickets">
+  <header class="fd-panel-head">
+    <i class="ph ph-ticket"></i>
+    <h2 class="card-title">Tickets</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/tickets" data-tip="Open tickets" aria-label="Open tickets"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<script>(function () {
+  var root = document.getElementById('fd-tickets');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+  var SEV = { blocker: 'badge-danger', major: 'badge-warn', minor: 'badge-plain', polish: 'badge-plain' };
+
+  function render(d) {
+    var list = (d && d.tickets) || [];
+    var down = (d && d.degraded) || [];
+    meta.textContent = list.length + ' open';
+    var html = list.length ? '<ul class="fd-list">' + list.map(function (t) {
+      var where = (t.page && (t.page.title || t.page.path)) || t.scope || '';
+      var text = t.note || where;
+      return '<li class="fd-item">' +
+        '<span class="badge ' + (SEV[t.severity] || 'badge-plain') + '">' + FD.esc(String(t.severity || 'open').replace(/^./, function (c) { return c.toUpperCase(); })) + '</span>' +
+        '<a class="t" href="/tickets?project=' + encodeURIComponent(t.project) + '&amp;id=' + encodeURIComponent(t.id) + '" title="' + FD.esc(text) + '">' + FD.esc(text) + '</a>' +
+        '<span class="k">' + FD.esc(t.project) + '</span>' +
+        '<span class="k">' + FD.esc(FD.rel(t.created_at)) + '</span></li>';
+    }).join('') + '</ul>' : '<em class="fd-empty">No open tickets.</em>';
+    if (down.length) html += '<span class="fd-more">' + down.length + (down.length === 1 ? ' project' : ' projects') + ' did not answer</span>';
+    body.innerHTML = html;
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON('/api/gadmin_panel/tickets?status=open', { ttl: 60000 }).then(render).catch(function (e) {
+      FD.fail(body, 'Tickets unavailable. The panel retries every 2 minutes.', (e && e.message) || e);
+    });
+  }, 120000);
+})();</script>

@@ -1,0 +1,53 @@
+<section class="card fd-panel" id="fd-money">
+  <header class="fd-panel-head">
+    <i class="ph ph-wallet"></i>
+    <h2 class="card-title">Money</h2>
+    <span class="fd-spacer"></span>
+    <span class="fd-meta" data-meta></span>
+    <a class="btn btn-tertiary btn-sm btn-icon" href="/todos" data-tip="Open todos" aria-label="Open todos"><i class="ph ph-arrow-up-right"></i></a>
+  </header>
+  <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
+</section>
+<script>(function () {
+  var root = document.getElementById('fd-money');
+  var body = root.querySelector('[data-body]');
+  var meta = root.querySelector('[data-meta]');
+  var MONEY = { finance: 1, bill: 1 };
+
+  function due(t, today) {
+    if (!t.due) return '';
+    if (t.due < today) {
+      var days = Math.round((new Date(today) - new Date(t.due)) / 86400000);
+      return '<span class="k danger">' + (days === 1 ? '1 day late' : days + ' days late') + '</span>';
+    }
+    if (t.due === today) return '<span class="k warn">Today</span>';
+    return '<span class="k">' + FD.esc(FD.day(t.due)) + '</span>';
+  }
+
+  // Bills and money tasks from the open todos: late first, then by date,
+  // then the undated ones by priority.
+  function render(data) {
+    var today = FD.iso(new Date());
+    var list = (Array.isArray(data) ? data : []).filter(function (t) { return MONEY[t.category]; });
+    list.sort(function (a, b) {
+      if (!!a.due !== !!b.due) return a.due ? -1 : 1;
+      if (a.due && b.due && a.due !== b.due) return a.due < b.due ? -1 : 1;
+      if (a.priority !== b.priority) return String(a.priority).localeCompare(String(b.priority));
+      return String(a.title).localeCompare(String(b.title));
+    });
+    var late = list.filter(function (t) { return t.due && t.due < today; }).length;
+    meta.textContent = list.length + ' open' + (late ? ', ' + late + ' late' : '');
+    if (!list.length) { FD.empty(body, 'Nothing owed or to sort.'); return; }
+    body.innerHTML = '<ul class="fd-list">' + list.map(function (t) {
+      return '<li class="fd-item">' +
+        '<a class="t" href="/note/' + FD.esc(t.permalink) + '" title="' + FD.esc(t.title) + '">' + FD.esc(t.title) + '</a>' +
+        due(t, today) + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  FD.poll(function () {
+    return FD.fetchJSON(FD.BRAIN + '/api/todos?status=open', { ttl: 60000 }).then(render).catch(function (e) {
+      FD.fail(body, 'Money unavailable. The panel retries every 5 minutes.', (e && e.message) || e);
+    });
+  }, 300000);
+})();</script>

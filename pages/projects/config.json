@@ -2,11 +2,13 @@
   "title": "Projects",
   "slug": "projects",
   "description": "Every project at a glance: live thumbnail, health, and gcore compliance, derived from the manifest.",
-  "nav": true,
-  "order": 13,
+  "nav": false,
+  "order": 34,
   "body_class": "projects-page",
   "nav_section": "g-core",
   "nav_icon": "squares-four",
   "nav_label": "Projects",
-  "gsys": true
+  "gsys": true,
+  "tabs": "system",
+  "tab_label": "Projects"
 }

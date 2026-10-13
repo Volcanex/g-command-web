@@ -3,9 +3,9 @@
   "slug": "sessions",
   "description": "Attach to a tmux session on any host from anywhere.",
   "nav": true,
-  "order": 5,
+  "order": 21,
   "body_class": "sessions-page",
-  "nav_section": "Drive",
+  "nav_section": "Tools",
   "nav_icon": "terminal",
   "nav_label": "Terminal",
   "gsys": true

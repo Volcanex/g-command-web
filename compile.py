@@ -5,9 +5,11 @@ Page compiler: walks `pages/` and writes `output/{slug}.html`.
 Each page is a directory under `pages/` with:
 - `config.json`: at minimum `{"title": "..."}`. Optional: `description`,
   `slug`, `body_class`, `nav`, `nav_section`, `nav_icon`, `nav_label`,
-  `order`, anything else your shell.html wants to interpolate.
-  Pages with `nav: true` are grouped by `nav_section` and sorted by
-  `order` to build the nav drawer automatically.
+  `order`, `tabs`, `tab_label`, anything else your shell.html wants to
+  interpolate. Pages with `nav: true` are grouped by `nav_section` and
+  sorted by `order` to build the nav drawer automatically. Pages sharing a
+  `tabs` group get a tab strip in the top bar (`{{! subnav }}`), so one nav
+  entry can stand for several pages.
 - `content.html`: HTML fragment for the page body. May include a
   `<style>` block.
 
@@ -133,6 +135,7 @@ DEFAULTS = {
     "mcp_headless_host": urlsplit(MCP_HEADLESS_URL).netloc,
     # The setup page's agent prompt tells an agent where to read it from.
     "public_origin": f"https://{PUBLIC_HOST}" if PUBLIC_HOST else "https://command.example.com",
+    "subnav": "",
 }
 
 # `{{ key }}` substitutes context[key] HTML-escaped; `{{! key }}` keeps
@@ -186,6 +189,14 @@ for _key in ("mcp_url", "mcp_headless_url", "mcp_headless_host", "public_origin"
     register_token(_key, lambda context, key=_key: html.escape(str(context[key]), quote=True))
 
 
+# Panel fragments: `pages/{page}/panels/{name}.html` is the token
+# `<!-- seed:panel-{name} -->`, so several pages share one fragment instead
+# of each carrying a hand-made copy. Read at expansion time, so an edit needs
+# only a recompile.
+for _panel in sorted(PAGES_DIR.glob("*/panels/*.html")):
+    register_token(f"panel-{_panel.stem}", lambda context, path=_panel: path.read_text(encoding="utf-8"))
+
+
 def expand_seed_tokens(content: str, context: dict) -> str:
     if not _TOKEN_REGISTRY:
         return content
@@ -220,7 +231,7 @@ def render(template: str, context: dict) -> str:
     return TOKEN_RE.sub(sub, template)
 
 
-def compile_page(page_dir: Path, shell: str) -> tuple[Path | None, dict | None, bool]:
+def compile_page(page_dir: Path, shell: str, subnavs: dict | None = None) -> tuple[Path | None, dict | None, bool]:
     """Returns (output_path, config, error). `error=True` means the page
     was malformed (not just missing): main() exits non-zero so CI catches it."""
     config_file = page_dir / "config.json"
@@ -248,6 +259,7 @@ def compile_page(page_dir: Path, shell: str) -> tuple[Path | None, dict | None, 
 
     context = {**DEFAULTS, **{k: v for k, v in config.items() if isinstance(v, (str, int, float))}}
     context["slug"] = slug
+    context["subnav"] = (subnavs or {}).get(slug, "")
 
     # Expand seed:* tokens before splicing into the shell so registered
     # renderers can produce HTML the shell template doesn't know about.
@@ -411,8 +423,9 @@ def build_nav_html(configs: list[dict]) -> str:
             slug = c.get("slug", "")
             icon = c.get("nav_icon", "circle")
             label = c.get("nav_label") or c.get("title", slug)
+            tabs = f' data-tabs="{html.escape(str(c["tabs"]))}"' if c.get("tabs") else ""
             links.append(
-                f'      <a href="/{slug}">'
+                f'      <a href="/{slug}"{tabs}>'
                 f'<i class="ph ph-{icon}"></i>'
                 f'<span>{html.escape(str(label))}</span></a>'
             )
@@ -423,6 +436,36 @@ def build_nav_html(configs: list[dict]) -> str:
             + "\n    </div>"
         )
     return "\n\n".join(parts)
+
+
+def build_subnavs(configs: list[dict]) -> dict[str, str]:
+    """Tab strip HTML per slug, for every page in a `tabs` group. A group
+    holds its pages in `order`; its label is the nav entry's (the member
+    with `nav: true`)."""
+    from collections import defaultdict
+
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for c in configs:
+        if c.get("tabs"):
+            groups[str(c["tabs"])].append(c)
+
+    out = {}
+    for group, pages in groups.items():
+        pages.sort(key=lambda c: c.get("order", 999))
+        head = next((c for c in pages if c.get("nav")), pages[0])
+        label = head.get("nav_label") or head.get("title", group)
+        for page in pages:
+            links = []
+            for c in pages:
+                slug = c.get("slug", "")
+                text = c.get("tab_label") or c.get("nav_label") or c.get("title", slug)
+                current = ' aria-current="page"' if c is page else ""
+                links.append(f'<a class="tab" href="/{slug}"{current}>{html.escape(str(text))}</a>')
+            out[page.get("slug", "")] = (
+                f'<nav class="g-subnav" data-tabs="{html.escape(group)}" aria-label="{html.escape(str(label))}">'
+                + "".join(links) + "</nav>"
+            )
+    return out
 
 
 def stamp_shell_assets(shell: str) -> str:
@@ -466,6 +509,7 @@ def main() -> None:
                 pass
 
     nav_html = build_nav_html(all_configs)
+    subnavs = build_subnavs(all_configs)
     # Pre-inject nav into the shell so {{! nav_pages }} resolves without
     # per-page context pollution. Use a literal string replace so the
     # TOKEN_RE substitution loop never sees it.
@@ -479,7 +523,7 @@ def main() -> None:
     for page_dir in sorted(PAGES_DIR.iterdir()):
         if not page_dir.is_dir() or page_dir.name.startswith("_"):
             continue
-        out, config, err = compile_page(page_dir, shell)
+        out, config, err = compile_page(page_dir, shell, subnavs)
         if out:
             built += 1
         if config:

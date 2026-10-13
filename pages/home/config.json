@@ -1,11 +1,12 @@
 {
-  "title": "Brain",
+  "title": "Life",
   "slug": "home",
-  "description": "A personal MCP knowledge base.",
+  "description": "Today's calendar, open todos, money and the daily brief.",
   "nav": true,
-  "order": 10,
-  "nav_section": "Brain",
-  "nav_icon": "house",
-  "nav_label": "Overview",
-  "gsys": true
+  "order": 2,
+  "nav_section": "Dash",
+  "nav_icon": "sun-horizon",
+  "nav_label": "Life",
+  "gsys": true,
+  "body_class": "full-dash-page life-page"
 }

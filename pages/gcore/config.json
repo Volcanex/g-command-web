@@ -2,11 +2,13 @@
   "title": "gcore",
   "slug": "gcore",
   "description": "Topology source of truth: the manifest, the conventions and the secret passport.",
-  "nav": true,
-  "order": 12,
+  "nav": false,
+  "order": 62,
   "body_class": "gcore-page",
   "nav_section": "g-core",
   "nav_icon": "cube",
   "nav_label": "Passport",
-  "gsys": true
+  "gsys": true,
+  "tabs": "setup",
+  "tab_label": "Passport"
 }

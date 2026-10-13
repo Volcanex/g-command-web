@@ -3,8 +3,8 @@
   "slug": "todos",
   "description": "Open TODOs across the brain.",
   "nav": true,
-  "order": 22,
-  "nav_section": "Brain",
+  "order": 11,
+  "nav_section": "Daily",
   "nav_icon": "check-square",
   "nav_label": "Todos",
   "gsys": true

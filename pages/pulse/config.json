@@ -2,10 +2,12 @@
   "title": "Pulse",
   "slug": "pulse",
   "description": "The live layer: money, messages and deadlines. Ephemeral, and it feeds the brain's todos.",
-  "nav": true,
-  "order": 23,
+  "nav": false,
+  "order": 40,
   "nav_section": "Brain",
   "nav_icon": "pulse",
   "nav_label": "Pulse",
-  "gsys": true
+  "gsys": true,
+  "tabs": "brain",
+  "tab_label": "Pulse"
 }

@@ -40,24 +40,10 @@
 
     {{! nav_pages }}
 
-    <div class="nav-drawer-section">
-      <h3>Brain kinds</h3>
-      <a href="/notes?kind=design"><i class="ph ph-blueprint"></i><span>Designs</span></a>
-      <a href="/notes?kind=finding"><i class="ph ph-magnifying-glass"></i><span>Findings</span></a>
-      <a href="/notes?kind=idea"><i class="ph ph-lightbulb"></i><span>Ideas</span></a>
-      <a href="/notes?kind=reference"><i class="ph ph-book-open"></i><span>References</span></a>
-      <a href="/notes?kind=source"><i class="ph ph-quotes"></i><span>Sources</span></a>
-      <a href="/notes?kind=log"><i class="ph ph-clock-counter-clockwise"></i><span>Logs</span></a>
-    </div>
-
-    <div class="nav-drawer-section">
-      <h3>Elsewhere</h3>
-      <a href="{{ owner_site_url }}" rel="noopener"{{ owner_site_hidden }}><i class="ph ph-globe"></i><span>{{ owner_site_label }}</span></a>
-      <a href="/logout"><i class="ph ph-sign-out"></i><span>Log out</span></a>
-    </div>
-
     <div class="side-foot">
-      <span class="who">v1 on g-design</span>
+      <a class="btn btn-tertiary btn-sm btn-icon" href="/setup" data-tabs="setup" data-tip="Setup, install and passport" aria-label="Setup"><i class="ph ph-wrench"></i></a>
+      <a class="btn btn-tertiary btn-sm btn-icon" href="/logout" data-tip="Log out" aria-label="Log out"><i class="ph ph-sign-out"></i></a>
+      <span class="spacer"></span>
       <button class="btn btn-tertiary btn-sm" id="t-density" data-tip="Comfortable and compact">Density</button>
       <button class="btn btn-tertiary btn-sm" id="t-theme" data-tip="Dark and light">Theme</button>
     </div>
@@ -69,6 +55,7 @@
     <header class="g-top">
       <button class="btn btn-tertiary btn-sm btn-icon g-nav-toggle" aria-label="Menu" aria-expanded="false" data-icon="list" onclick="toggleNav()"></button>
       <span class="g-top-title">{{ title }}</span>
+      {{! subnav }}
       <span class="spacer"></span>
       <a href="{{ owner_site_url }}" class="g-top-link" rel="noopener"{{ owner_site_hidden }}>{{ owner_site_label }}</a>
     </header>
