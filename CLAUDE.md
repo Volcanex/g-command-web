@@ -10,6 +10,8 @@ name and the `gcommand` compat symlink on h keep the old name.
 **Licence:** GNU AGPL v3.0 only (`LICENSE`), open source. Vendored fonts and icons are listed in `THIRD_PARTY_NOTICES`.
 
 ## What it does
+- Three dashes from one set of panels (`pages/full-dash/panels/`): `/home` the life dash (calendar for today and the week, todos, money, a one-line-per-bullet brief), `/ops` the system dash (compute quotas with reset times, health showing only what is down, tickets, crons, disk) and `/full-dash`, both at once with nothing below the fold at 1280x800, where `/` lands so a down service is never a tab away.
+- The sidebar is three short sections (Dash, Daily, Tools); everything else is a tab under one of those entries (System, Brain, Files) or under the setup wrench in the sidebar foot. Every old URL still serves.
 - Renders the brain's graphs (notes, nerves, lineage, refs) by consuming the brain REST API at `BRAIN_API`.
 - `/system`: live service topology + health, from the brain L5 status index.
 - `/projects`: project gallery: a card per `manifest.projects[]` (thumbnail, health, gcore compliance, deps, lineage, last commit). Pure renderer; the list is the manifest, so a new entry self-adds.
@@ -52,5 +54,5 @@ Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `
 | `pages/sessions/CLAUDE.md` | sessions: the terminal page |
 | `pages/upload/CLAUDE.md` | upload |
 
-_Auto-compiled 2026-10-09 16:29 UTC, 9 doc(s) found._
+_Auto-compiled 2026-10-13 17:11 UTC, 9 doc(s) found._
 <!-- DOCS:END -->

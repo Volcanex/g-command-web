@@ -29,6 +29,8 @@ values into the shell template):
 - `"nav": true`: include in navigation (your shell is responsible for
   reading this; the compiler just passes it through)
 - `"order": 10`: sort order in nav
+- `"tabs": "group"` + `"tab_label"`: join a tab group shown in the top
+  bar (see `pages/CLAUDE.md`)
 
 **`content.html`**: the page body. May include a `<style>` block for
 page-specific CSS. No `<html>`, `<head>`, or `<body>` wrappers. The
