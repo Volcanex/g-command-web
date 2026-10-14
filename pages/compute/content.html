@@ -110,6 +110,7 @@
   .temp-big { display: flex; align-items: baseline; gap: var(--sp-3); }
   .temp-word { font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
   .temp-ratio { color: var(--text-secondary); font-size: var(--font-size-ui); }
+  .t-eburn { color: var(--info-text); }
   .t-burn, .t-hot { color: var(--ok-text); }
   .t-warm, .t-cool { color: var(--text-primary); }
   .t-cold { color: var(--warn-text); }
@@ -188,7 +189,8 @@
   const usd = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
   const units = (n) => n == null ? '0' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : `${Math.round(n)}`;
   const tempClass = (w) => `t-${String(w || '').toLowerCase()}`;
-  const tempBadge = (w) => ({ EBURN: 'badge-ok', BURN: 'badge-ok', HOT: 'badge-ok', WARM: 'badge-ok', COOL: 'badge-plain', COLD: 'badge-warn', FREEZING: 'badge-danger' })[w] || 'badge-plain';
+  const statusOf = (t) => t.temp === 'EBURN' && t.eburn_line != null ? 'Above the eburn line, spend down to it' : STATUS[t.temp];
+  const tempBadge = (w) => ({ EBURN: 'badge-info', BURN: 'badge-ok', HOT: 'badge-ok', WARM: 'badge-ok', COOL: 'badge-plain', COLD: 'badge-warn', FREEZING: 'badge-danger' })[w] || 'badge-plain';
   const STATUS = { EBURN: 'About to be wasted, spend all of it', BURN: 'Plenty spare, spend it', HOT: 'Ahead, spend more', WARM: 'Slightly ahead', COOL: 'On pace', COLD: 'Behind, go easy', FREEZING: 'Will run out, ration it' };
   const MEANING = {
     claude: { EBURN: 'Expiring: Claude workers as wide as they go', BURN: 'Claude fallbacks and Claude workers allowed freely', COLD: 'Claude fallbacks skipped, Claude agents need an OK', FREEZING: 'Claude fallbacks skipped, Claude agents need an OK' },
@@ -219,6 +221,7 @@
       facts.push(['Burn per work hour', q.burn_pct_per_work_hour == null ? 'Too few hours' : `${q.burn_pct_per_work_hour.toFixed(1)}% vs ${q.safe_burn_pct_per_work_hour.toFixed(1)}% safe`]);
       facts.push(['At reset', q.runs_out_at ? `Runs out ${london(q.runs_out_at)}` : q.projected_remaining_pct == null ? 'No projection yet' : `${Math.round(q.projected_remaining_pct)}% unused`]);
     }
+    if (t.eburn_line != null) facts.push(['Eburn line', `${Math.round(t.eburn_line)}% left`]);
     if (q5) facts.push(['5 hour window', `${Math.round(q5.remaining_pct)}% left, resets ${clock(q5.resets_at)}`]);
     facts.push(['Measured', t.measured ? `${cap(t.measured)}${t.ratio ? ` x${t.ratio.toFixed(1)}` : ''}` : 'No reading']);
     const over = t.temp_override || (t.speed && t.speed !== 'NORMAL');
@@ -229,7 +232,7 @@
           return `<span class="badge ${e !== base ? 'badge-info' : 'badge-plain'}" data-tip="${esc(`${r}: base ${base}, acting ${e}`)}">${esc(r)} ${esc(e)}</span>`; }).join('')}</div></div>`
       : '';
     return `<div class="card compute-card" data-provider="${p}">
-      <div class="compute-head"><span class="card-title">${NAMES[p]}</span><span class="badge ${tempBadge(t.temp)}">${esc(STATUS[t.temp] || 'Unknown')}</span></div>
+      <div class="compute-head"><span class="card-title">${NAMES[p]}</span><span class="badge ${tempBadge(t.temp)}">${esc(statusOf(t) || 'Unknown')}</span></div>
       <div class="temp-big"><span class="temp-word ${tempClass(t.temp)}">${esc(cap(t.temp))}</span>
         <span class="temp-ratio num">${t.temp_override ? 'Override' : t.ratio ? `x${t.ratio.toFixed(1)} safe over actual` : ''}${t.speed && t.speed !== 'NORMAL' ? `, ${esc(cap(t.speed))}` : ''}</span></div>
       <div class="facts">${facts.map(([k, v]) => `<div class="fact"><span class="fact-k">${esc(k)}</span><span class="fact-v num">${esc(v)}</span></div>`).join('')}</div>
@@ -261,8 +264,9 @@
       <div class="g-meter" data-value="${left}" data-max="100" aria-label="${NAMES[p]} left this week"></div>
       <div class="g-line"><span class="k">Resets</span><span class="num">${esc(london(q.resets_at))}</span></div>
       <div class="g-line"><span class="k">Pace</span><span class="num">${esc(end)}</span></div>
+      ${t.eburn_line != null ? `<div class="g-line"><span class="k">Eburn line</span><span class="num">${Math.round(t.eburn_line)}% left</span></div>` : ''}
       ${q5 ? `<div class="g-line"><span class="k">5 hour</span><span class="num">${Math.round(q5.remaining_pct)}% left, ${esc(clock(q5.resets_at))}</span></div>` : ''}
-      <span class="ctl-note">${esc((STATUS[t.temp] || '') + over)}</span>
+      <span class="ctl-note">${esc((statusOf(t) || '') + over)}</span>
     </div>`;
   }
 
