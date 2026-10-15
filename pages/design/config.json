@@ -1,0 +1,12 @@
+{
+  "title": "Design",
+  "slug": "design",
+  "description": "The g-design language: guidelines and components as they ship.",
+  "nav": true,
+  "order": 21,
+  "body_class": "design-page",
+  "nav_section": "Tools",
+  "nav_icon": "palette",
+  "nav_label": "Design",
+  "gsys": true
+}

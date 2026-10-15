@@ -1,0 +1,104 @@
+<div class="page-head">
+  <h1>Design</h1>
+  <span data-stats class="badge badge-plain">Loading</span>
+</div>
+<p class="page-sub">g-design, the house design language. Each card is the reference as it ships: use the component before modifying it, modify before creating.</p>
+
+<div class="design-layout">
+  <nav class="card design-index" data-index aria-label="Design cards"></nav>
+  <div class="card design-view">
+    <div class="design-view-head">
+      <h2 class="card-title" data-title></h2>
+      <span class="design-sub" data-sub></span>
+      <span class="spacer"></span>
+      <a class="btn btn-tertiary btn-sm btn-icon" data-open target="_blank" rel="noopener" data-tip="Open card on its own" aria-label="Open card on its own"><i class="ph ph-arrow-up-right"></i></a>
+    </div>
+    <iframe data-frame title="Design card"></iframe>
+  </div>
+</div>
+
+<style>
+  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .design-layout { display: grid; grid-template-columns: 220px 1fr; gap: var(--sp-4); align-items: start; }
+  .design-index { padding: var(--sp-3); display: flex; flex-direction: column; gap: 2px; max-width: none; position: sticky; top: var(--sp-4); }
+  .design-index h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); margin: var(--sp-3) 0 var(--sp-1); }
+  .design-index h3:first-child { margin-top: 0; }
+  .design-index button {
+    all: unset; cursor: pointer; padding: 5px 8px; border-radius: var(--radius-sm);
+    font-size: var(--font-size-ui); color: var(--text-primary);
+  }
+  .design-index button:hover { background: var(--surface-2); }
+  .design-index button[aria-current="true"] { background: var(--surface-2); font-weight: 600; }
+  .design-view { padding: 0; overflow: hidden; max-width: none; }
+  .design-view-head { display: flex; gap: var(--sp-3); align-items: baseline; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; }
+  .design-view-head .card-title { margin: 0; }
+  .design-view-head .spacer { flex: 1; }
+  .design-sub { font-size: 12px; color: var(--text-secondary); }
+  .design-view iframe { display: block; width: 100%; height: calc(100vh - 240px); min-height: 480px; border: 0; background: var(--card-bg); }
+  .design-view .msg { padding: var(--sp-5); color: var(--text-secondary); }
+  @media (max-width: 760px) {
+    .design-layout { grid-template-columns: 1fr; }
+    .design-index { position: static; flex-direction: row; flex-wrap: wrap; }
+    .design-index h3 { width: 100%; }
+  }
+</style>
+
+<script>
+(async () => {
+  const BASE = '/assets/design/';
+  const stats = document.querySelector('[data-stats]');
+  const index = document.querySelector('[data-index]');
+  const frame = document.querySelector('[data-frame]');
+  const title = document.querySelector('[data-title]');
+  const sub = document.querySelector('[data-sub]');
+  const open = document.querySelector('[data-open]');
+
+  let cards;
+  try {
+    const r = await fetch(BASE + 'cards.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error(`cards ${r.status}`);
+    cards = await r.json();
+  } catch (e) {
+    stats.textContent = 'Unavailable';
+    frame.replaceWith(Object.assign(document.createElement('p'), {
+      className: 'msg',
+      textContent: 'No g-design reference was compiled in. Set G_DESIGN_DOCS in .env to the g-design apps/docs checkout and restart.',
+    }));
+    return;
+  }
+  stats.textContent = `${cards.length} cards`;
+
+  const groups = new Map();
+  cards.forEach((c, i) => {
+    if (!groups.has(c.group)) groups.set(c.group, []);
+    groups.get(c.group).push(i);
+  });
+  index.innerHTML = '';
+  groups.forEach((ids, group) => {
+    index.appendChild(Object.assign(document.createElement('h3'), { textContent: group }));
+    ids.forEach(i => {
+      const b = Object.assign(document.createElement('button'), { type: 'button', textContent: cards[i].name });
+      b.dataset.i = i;
+      b.addEventListener('click', () => show(i));
+      index.appendChild(b);
+    });
+  });
+
+  function show(i) {
+    const c = cards[i];
+    if (!c) return;
+    frame.src = BASE + c.path;
+    open.href = BASE + c.path;
+    title.textContent = c.name;
+    sub.textContent = c.subtitle;
+    index.querySelectorAll('button').forEach(b => b.setAttribute('aria-current', String(+b.dataset.i === i)));
+    history.replaceState(null, '', '#' + encodeURIComponent(c.path));
+  }
+
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  const start = cards.findIndex(c => c.path === wanted);
+  show(start >= 0 ? start : 0);
+})();
+</script>

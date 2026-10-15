@@ -4,10 +4,10 @@
   <span class="spacer"></span>
   <span class="legend" data-legend></span>
 </div>
-<p class="page-sub">Wikilinks between notes. Drag nodes; hover for titles; click to open.</p>
+<p class="page-sub">Wikilinks between notes. Drag to orbit, scroll to zoom, hover for titles, click to open.</p>
 
 <div class="card graph-wrap">
-  <svg data-graph width="100%" height="640" role="img" aria-label="Wikilink graph"></svg>
+  <div data-graph class="graph-canvas" role="img" aria-label="Wikilink graph"></div>
 </div>
 
 <style>
@@ -20,31 +20,44 @@
   .legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
   .legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; }
   .graph-wrap { padding: 0; overflow: hidden; max-width: none; }
-  svg[data-graph] { display: block; cursor: grab; }
-  svg[data-graph]:active { cursor: grabbing; }
-  svg[data-graph] .link { stroke: var(--text-placeholder); stroke-opacity: 0.35; stroke-width: 1; }
-  svg[data-graph] .node { stroke: var(--card-bg); stroke-width: 1.5; cursor: pointer; }
-  svg[data-graph] .node.broken { stroke-dasharray: 2 2; }
-  svg[data-graph] .label {
-    font-family: var(--font-ui); font-size: 10px; fill: var(--text-secondary);
-    pointer-events: none; user-select: none;
+  .graph-canvas { height: calc(100vh - 220px); min-height: 420px; background: var(--surface-1); }
+  .graph-canvas .msg { padding: var(--sp-5); color: var(--text-secondary); font-size: var(--font-size-ui); }
+  .graph-canvas .scene-tooltip {
+    font-family: var(--font-ui); font-size: 12px; color: var(--text-primary);
+    background: var(--overlay-bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 3px 8px;
   }
 </style>
 
-<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.79.0/dist/3d-force-graph.min.js"></script>
 <script>
 (async () => {
-  const svgEl = document.querySelector('[data-graph]');
+  const el = document.querySelector('[data-graph]');
   const stats = document.querySelector('[data-stats]');
   const legend = document.querySelector('[data-legend]');
-
-  /* The chart palette is derived at build time to clear contrast on both
-     surfaces; read it live so theme flips recolour on reload. */
-  const cs = getComputedStyle(document.documentElement);
-  const palette = [1,2,3,4,5,6].map(i => (cs.getPropertyValue(`--chart-${i}`) || '').trim()).filter(Boolean);
-  const fallback = ['#2f6fe0', '#c2410c', '#4d8b3f', '#b7791f', '#7c4dbd', '#2a8a8a'];
-  const chartPalette = palette.length ? palette : fallback;
   const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const fail = (msg) => { stats.textContent = 'Unavailable'; el.innerHTML = `<p class="msg">${msg}</p>`; };
+
+  const webgl = (() => {
+    try { const c = document.createElement('canvas'); return !!(c.getContext('webgl') || c.getContext('experimental-webgl')); }
+    catch (e) { return false; }
+  })();
+  if (!webgl) return fail('This browser has no WebGL, so the 3D graph cannot draw.');
+  if (typeof ForceGraph3D !== 'function') return fail('The 3D graph library did not load. Reload to try again.');
+
+  /* WebGL needs concrete colours, not CSS vars: resolve the live theme's
+     chart palette and grounds, and again on a theme flip. */
+  const fallback = ['#2f6fe0', '#c2410c', '#4d8b3f', '#b7791f', '#7c4dbd', '#2a8a8a'];
+  const probe = document.createElement('span');
+  probe.hidden = true;
+  document.body.appendChild(probe);
+  const resolve = (name, fb) => {
+    probe.style.color = '';
+    probe.style.color = `var(${name})`;
+    const v = getComputedStyle(probe).color;
+    return v && v !== 'rgba(0, 0, 0, 0)' && getComputedStyle(document.documentElement).getPropertyValue(name).trim() ? v : fb;
+  };
+  const palette = () => [1, 2, 3, 4, 5, 6].map(i => resolve(`--chart-${i}`, fallback[i - 1]));
 
   try {
     const r = await fetch(BRAIN_API + '/api/graph');
@@ -53,56 +66,53 @@
     stats.textContent = `${nodes.length} nodes, ${links.length} links`;
 
     const kinds = Array.from(new Set(nodes.map(n => n.kind))).sort();
-    const color = kind => chartPalette[kinds.indexOf(kind) % chartPalette.length];
-
+    const slot = kind => kinds.indexOf(kind) % 6;
     legend.innerHTML = kinds.map(k =>
-      `<span class="swatch"><span class="dot" style="background:${color(k)}"></span>${cap(k)}</span>`
+      `<span class="swatch"><span class="dot" style="background:var(--chart-${slot(k) + 1})"></span>${cap(k)}</span>`
     ).join('');
 
-    const width = svgEl.clientWidth || 900;
-    const height = +svgEl.getAttribute('height') || 640;
-    const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
-    svg.selectAll('*').remove();
-
-    const g = svg.append('g');
-    svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => g.attr('transform', e.transform)));
-
-    const sim = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id(d => d.id).distance(60).strength(0.6))
-      .force('charge', d3.forceManyBody().strength(-160))
-      .force('center', d3.forceCenter(width/2, height/2))
-      .force('collide', d3.forceCollide().radius(12));
-
-    const link = g.append('g').attr('class', 'links').selectAll('line')
-      .data(links).enter().append('line').attr('class', 'link');
-
-    const node = g.append('g').attr('class', 'nodes').selectAll('circle')
-      .data(nodes).enter().append('circle')
-      .attr('class', d => `node ${d.status === 'broken' ? 'broken' : ''}`)
-      .attr('r', 6)
-      .attr('fill', d => color(d.kind))
-      .call(d3.drag()
-        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
-        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }))
-      .on('click', (_, d) => { window.location.href = `/note/${d.id}`; });
-
-    node.append('title').text(d => `${window.g.plain(d.title)}\n${d.kind}, ${d.status}\n${d.id}`);
-
-    const label = g.append('g').attr('class', 'labels').selectAll('text')
-      .data(nodes).enter().append('text')
-      .attr('class', 'label').attr('dx', 9).attr('dy', 3)
-      .text(d => window.g.plain(d.title));
-
-    sim.on('tick', () => {
-      link
-        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-      node.attr('cx', d => d.x).attr('cy', d => d.y);
-      label.attr('x', d => d.x).attr('y', d => d.y);
+    // Size by link degree, counted before the library swaps ids for objects.
+    const degree = {};
+    links.forEach(l => {
+      degree[l.source] = (degree[l.source] || 0) + 1;
+      degree[l.target] = (degree[l.target] || 0) + 1;
     });
+    nodes.forEach(n => { n.val = degree[n.id] || 1; });
+
+    let colors = palette();
+    let linkGrey = resolve('--text-placeholder', '#696e77');
+    const label = n => `${window.g.plain(n.title)} · ${n.kind}${n.status === 'broken' ? ', broken' : ''}`;
+
+    const graph = ForceGraph3D()(el)
+      .width(el.clientWidth)
+      .height(el.clientHeight)
+      .backgroundColor(resolve('--surface-1', '#111113'))
+      .showNavInfo(false)
+      .nodeRelSize(4)
+      .nodeLabel(label)
+      .nodeColor(n => colors[slot(n.kind)])
+      .linkColor(() => linkGrey)
+      .linkOpacity(0.35)
+      .onNodeClick(n => { window.location.href = `/note/${n.id}`; })
+      .graphData({ nodes, links });
+
+    try { graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); } catch (e) {}
+
+    graph.controls().autoRotate = true;
+    graph.controls().autoRotateSpeed = 0.5;
+    el.addEventListener('pointerdown', () => { graph.controls().autoRotate = false; }, { once: true });
+
+    new ResizeObserver(() => graph.width(el.clientWidth).height(el.clientHeight)).observe(el);
+
+    new MutationObserver(() => {
+      colors = palette();
+      linkGrey = resolve('--text-placeholder', '#696e77');
+      graph.backgroundColor(resolve('--surface-1', '#111113'))
+        .nodeColor(n => colors[slot(n.kind)])
+        .linkColor(() => linkGrey);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {
-    stats.textContent = `Error: ${e.message}`;
+    fail(`The brain API did not answer (${e.message}). Reload to try again.`);
   }
 })();
 </script>

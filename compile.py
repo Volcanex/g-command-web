@@ -78,7 +78,7 @@ TEMPLATES_DIR = PROJECT_ROOT / "core" / "templates"
 # Only these keys are taken, so the secrets in the same file never enter
 # this process.
 ENV_KEYS = ("BRAIN_API", "MCP_HEADLESS_URL", "MCP_URL", "OWNER_SITE_URL", "PUBLIC_HOST",
-            "SEED_MANIFEST_PATH", "SEED_MANIFEST_PREFIX", "SEED_MANIFEST_TEMPLATE")
+            "G_DESIGN_DOCS", "SEED_MANIFEST_PATH", "SEED_MANIFEST_PREFIX", "SEED_MANIFEST_TEMPLATE")
 
 
 def _load_dotenv(path: Path) -> None:
@@ -303,6 +303,38 @@ def copy_static() -> int:
             shutil.copy2(src, dst)
             count += 1
     return count
+
+
+# The g-design reference (its apps/docs: guideline and component cards) is
+# copied in at compile time for the /design page, not linked at runtime, the
+# same vendoring g-design asks of every consumer. G_DESIGN_DOCS points at that
+# checkout; unset or missing, the page says so. Each card's first line is an
+# `<!-- @dsCard group= name= subtitle= -->` comment, which becomes the index.
+DESIGN_OUT = OUTPUT_DIR / "assets" / "design"
+DS_CARD_RE = re.compile(r'<!--\s*@dsCard\s+(.*?)-->')
+DS_ATTR_RE = re.compile(r'(\w+)="([^"]*)"')
+
+
+def copy_design_docs() -> int:
+    src = Path(os.environ.get("G_DESIGN_DOCS", "")).expanduser()
+    if not os.environ.get("G_DESIGN_DOCS") or not src.is_dir():
+        return 0
+    shutil.copytree(src, DESIGN_OUT, dirs_exist_ok=True)
+    cards = []
+    for card in sorted(src.glob("*/*.card.html")):
+        with card.open(encoding="utf-8") as f:
+            m = DS_CARD_RE.search(f.readline())
+        if not m:
+            continue
+        attrs = dict(DS_ATTR_RE.findall(m.group(1)))
+        cards.append({
+            "group": attrs.get("group", card.parent.name.capitalize()),
+            "name": attrs.get("name", card.stem),
+            "subtitle": attrs.get("subtitle", ""),
+            "path": card.relative_to(src).as_posix(),
+        })
+    (DESIGN_OUT / "cards.json").write_text(json.dumps(cards), encoding="utf-8")
+    return len(cards)
 
 
 # ---------- Manifest auto-stub --------------------------------------------
@@ -540,6 +572,9 @@ def main() -> None:
     static_count = copy_static()
     if static_count:
         print(f"Copied {static_count} static file(s) from {STATIC_SRC.relative_to(PROJECT_ROOT)} → output/")
+    design_count = copy_design_docs()
+    if design_count:
+        print(f"Copied {design_count} g-design card(s) → output/assets/design/")
     print(f"Done. {built} page(s) compiled.")
     if errors:
         sys.exit(f"FAILED: {errors} page(s) had errors")
