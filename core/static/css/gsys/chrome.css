@@ -41,10 +41,13 @@ body.g-shell > aside { overflow-y: auto; }
 
 .side-foot {
   margin-top: auto; flex: none;
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 4px;
   padding: 10px 8px 2px;
 }
 .side-foot .spacer { flex: 1; }
+.side-foot .btn { flex: none; }
+.side-foot .btn:not(.btn-icon) { padding: 0 8px; }
+.side-foot .btn-icon { width: auto; min-width: var(--h-control-sm); padding: 0 8px; }
 .side-foot a.btn { text-decoration: none; color: var(--text-secondary); }
 .side-foot a.btn .ph { font-size: 15px; }
 .side-foot a[aria-current="page"] { background: var(--fill-active); color: var(--text-primary); }
