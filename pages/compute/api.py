@@ -1,7 +1,7 @@
 """compute page API, mounted at /api/compute.
 
 Serves compute caches and g-env's temperature overrides. Providers (Claude, Codex,
-OpenRouter, Jev) are never called from the request path: `compute-usage.timer`
+OpenRouter, Jev, Webshare) are never called from the request path: `compute-usage.timer`
 runs `compute-usage --refresh` every 15 minutes and this route only reads what
 it wrote, so a slow or dead provider cannot slow or break the page. Staleness
 is derived at read time from each row's own fetched_at, which means a stopped

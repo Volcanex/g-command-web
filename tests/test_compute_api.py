@@ -388,3 +388,21 @@ def test_value_bad_params_are_400(client, tmp_path, params):
 def test_value_missing_model_is_503(client):
     client.cookies.set("seed_admin", "ok")
     assert client.get("/api/compute/value").status_code == 503
+
+
+def test_webshare_rows_and_pace_pass_through(client, tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    iso = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime())
+    bw = {"provider": "webshare", "metric": "bandwidth:1", "label": "ISP bandwidth", "status": "ok",
+          "remaining": 245.0, "used": 5.0, "limit": 250.0, "unit": "GB", "resets_at": iso,
+          "period_start": iso, "fetched_at": iso, "note": "10 requests, 1 failed"}
+    rep = dict(bw, metric="replacements:1", label="ISP replacements", unit="replacements",
+               remaining=93, used=7, limit=100, resets_at=None)
+    _write_cache(tmp_path, [bw, rep])
+    pace = {"computed_at": iso, "quotas": [], "hours": {}, "webshare": [{"metric": "bandwidth:1", "used_gb": 5.0}]}
+    _write_snapshot(tmp_path, "compute-pace.json", pace)
+    client.cookies.set("seed_admin", "ok")
+    rows = client.get("/api/compute/usage").json()["rows"]
+    assert [r["metric"] for r in rows if r["provider"] == "webshare"] == ["bandwidth:1", "replacements:1"]
+    assert rows[0]["period_start"] == iso and rows[0]["unit"] == "GB"
+    assert client.get("/api/compute/pace").json()["webshare"] == pace["webshare"]

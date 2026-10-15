@@ -173,7 +173,7 @@
 
 <script>
 (() => {
-  const NAMES = { claude: 'Claude', codex: 'Codex', openrouter: 'OpenRouter', jev: 'Jev (TypeSafe)' };
+  const NAMES = { claude: 'Claude', codex: 'Codex', openrouter: 'OpenRouter', jev: 'Jev (TypeSafe)', webshare: 'Webshare proxies' };
   const PROVIDERS = ['claude', 'codex'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => (
     {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
@@ -198,7 +198,7 @@
   };
   const SPEED = { FAST: 'Fast caps Sol at medium effort', SLOW: 'Slow adds a level of effort', NORMAL: '' };
 
-  let state = null, usage = null, hours = null, ready;
+  let state = null, usage = null, hours = null, proxyPace = [], ready;
   let win = 'today';
 
   const api = async (url, opts) => {
@@ -288,7 +288,9 @@
   function renderGlance() {
     const box = document.querySelector('[data-glance]');
     const paid = ['openrouter', 'jev'].map(p => (usage || []).filter(r => r.provider === p)).filter(r => r.length);
+    const proxy = (usage || []).filter(r => r.provider === 'webshare');
     box.innerHTML = PROVIDERS.map(glanceCard).join('') + glanceToday()
+      + (proxy.length ? `<div class="card"><span class="card-title">${NAMES.webshare}</span>${proxy.map(rowHtml).join('')}</div>` : '')
       + (paid.length ? `<div class="card"><span class="card-title">Paid APIs</span>${paid.map(rs => `<span class="fact-k">${NAMES[rs[0].provider]}</span>${rs.map(rowHtml).join('')}`).join('')}</div>` : '');
     if (window.g && g.init) g.init(box);
   }
@@ -697,6 +699,21 @@
       const pct = r.limit ? Math.min(100, Math.max(0, r.used / r.limit * 100)) : 0;
       meter = `<div class="g-meter" data-value="${pct.toFixed(1)}" data-max="100" data-warn-at="70" data-danger-at="90" aria-label="Credits used"></div>`;
       sub.push(`${usd(r.used)} spent of ${usd(r.limit)} bought`);
+    } else if (r.unit === 'GB') {
+      val = `${r.remaining.toFixed(1)} GB left`;
+      meter = `<div class="g-meter" data-value="${Math.min(100, r.used / r.limit * 100).toFixed(1)}" data-max="100" data-warn-at="70" data-danger-at="90" aria-label="${esc(label(r))} used"></div>`;
+      sub.push(`${r.used.toFixed(2)} GB used of ${r.limit} GB`);
+      const w = proxyPace.find(x => x.metric === r.metric);
+      if (w) {
+        if (w.burn_gb_per_day == null) sub.push('Less than a day of data for a burn rate');
+        else sub.push(`Burn ${w.burn_gb_per_day.toFixed(2)} GB per day vs ${w.safe_burn_gb_per_day == null ? 'n/a' : w.safe_burn_gb_per_day.toFixed(2)} safe`,
+          w.runs_out_at ? `Runs out ${london(w.runs_out_at)}` : `About ${Math.round(w.projected_used_gb)} GB used at reset`);
+      }
+      if (r.note) sub.push(r.note.charAt(0).toUpperCase() + r.note.slice(1));
+    } else if (r.unit === 'replacements') {
+      val = `${r.remaining} left`;
+      meter = `<div class="g-meter" data-value="${Math.min(100, r.used / r.limit * 100).toFixed(1)}" data-max="100" data-warn-at="70" data-danger-at="90" aria-label="${esc(label(r))} used"></div>`;
+      sub.push(`${r.used} used of ${r.limit}`);
     } else {
       val = usd(r.used);
     }
@@ -708,7 +725,7 @@
   (async () => {
     const [u, p] = await Promise.allSettled([api('/api/compute/usage'), api('/api/compute/pace')]);
     if (u.status === 'fulfilled') usage = u.value.rows;
-    if (p.status === 'fulfilled') hours = p.value.hours;
+    if (p.status === 'fulfilled') { hours = p.value.hours; proxyPace = p.value.webshare || []; }
     await ready;
     if (state) renderGlance();
   })();
