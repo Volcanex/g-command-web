@@ -1,0 +1,14 @@
+{
+  "title": "Writing voice",
+  "slug": "ganti",
+  "description": "How Gabriel writes, measured: score a draft against his own style card, his word frequencies, the corpus counts and recent scores.",
+  "nav": false,
+  "order": 42,
+  "body_class": "ganti-page",
+  "nav_section": "Brain",
+  "nav_icon": "pen-nib",
+  "nav_label": "Writing voice",
+  "gsys": true,
+  "tabs": "brain",
+  "tab_label": "Writing voice"
+}

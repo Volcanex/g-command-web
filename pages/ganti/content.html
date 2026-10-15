@@ -1,0 +1,321 @@
+<div class="page-head">
+  <h1>Writing voice</h1>
+  <span class="badge badge-plain" data-overall>Loading</span>
+</div>
+<p class="page-sub">How Gabriel writes, measured from his own corpus. Paste a draft to see how loud it is against him, then read the numbers behind the score. Pasted text is scored and dropped: it is not stored or logged.</p>
+
+<h2 class="section-head">Score a draft</h2>
+<div class="card gv-card">
+  <label class="gv-label" for="gv-text">Draft text</label>
+  <textarea class="textarea" id="gv-text" rows="8" maxlength="60000" placeholder="Paste a draft here"></textarea>
+  <div class="gv-actions">
+    <button class="btn" data-score>Score draft</button>
+    <button class="btn btn-ghost" data-clear>Clear</button>
+    <span class="dim num" data-count>0 words</span>
+    <span class="dim" data-score-note></span>
+  </div>
+  <div class="gv-result" data-result hidden>
+    <div class="gv-gauge">
+      <div class="gv-reg" data-reg hidden>
+        <span class="dim">Threshold from his</span>
+        <div class="g-segmented g-segmented-sm" role="radiogroup" aria-label="Register threshold">
+          <label><input type="radio" name="gv-reg" value="diary" checked>Diary</label>
+          <label><input type="radio" name="gv-reg" value="formal">Formal</label>
+        </div>
+      </div>
+      <div class="gv-gauge-top">
+        <span class="gv-big num" data-loud>0</span>
+        <span class="dim">loudness out of 100</span>
+        <span class="badge badge-plain" data-verdict></span>
+      </div>
+      <div class="gv-meter-wrap">
+        <div class="g-meter" data-meter data-value="0" data-max="100" aria-label="Loudness"></div>
+        <span class="gv-tick" data-tick></span>
+      </div>
+      <p class="gv-sub" data-gauge-sub></p>
+    </div>
+    <div data-findings></div>
+  </div>
+</div>
+
+<div class="section-row">
+  <h2 class="section-head">His words</h2>
+</div>
+<div class="gv-two">
+  <div class="card gv-card">
+    <div class="gv-head"><span class="card-title">Most used words</span><span class="dim">Uses per 10,000 words</span></div>
+    <div class="gv-bars" data-top></div>
+    <button class="btn btn-sm btn-ghost" data-more hidden>Show more words</button>
+  </div>
+  <div class="card gv-card">
+    <div class="gv-head"><span class="card-title">Machine-sounding words he does use</span><span class="dim">Uses per 10,000 words</span></div>
+    <div class="gv-legend">
+      <span class="gv-key"><i class="used"></i>Used and not flagged</span>
+      <span class="gv-key"><i class="flag"></i>Used but still flagged</span>
+    </div>
+    <div class="gv-bars" data-ai></div>
+    <div class="gv-absent" data-absent></div>
+  </div>
+</div>
+
+<h2 class="section-head">Corpus</h2>
+<p class="page-sub">Where the style card comes from. Names, registers and word counts only: the text itself stays private and no route here returns it.</p>
+<div class="card gv-card gv-flush">
+  <div class="table-wrap" data-density="compact"><table class="table" aria-label="Corpus sources" data-sources></table></div>
+</div>
+
+<h2 class="section-head">Style card</h2>
+<p class="page-sub">Headline features by register. Diary and formal are separate poles and the scorer picks one, so do not read the overall column as a target.</p>
+<div class="card gv-card gv-flush">
+  <div class="table-wrap" data-density="compact"><table class="table" aria-label="Style card by register" data-card></table></div>
+</div>
+
+<h2 class="section-head">Recent scores</h2>
+<div class="card gv-card">
+  <div class="gv-head"><span class="card-title">Loudness over the last scores</span><span class="dim" data-recent-note></span></div>
+  <div class="gv-spark" data-spark></div>
+  <div data-recent></div>
+</div>
+
+<p class="api-note" data-note hidden></p>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: 10px; }
+  .page-head h1 { font-size: 18px; margin: 0; }
+  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); max-width: 72ch; }
+  .section-head { font-size: 16px; margin: var(--sp-5) 0 var(--sp-2); }
+  .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
+  .gv-card { margin: var(--sp-3) 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+  .gv-flush { padding: 0; overflow: hidden; }
+  .gv-label { font-size: 12px; color: var(--text-secondary); }
+  .gv-actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+  .gv-actions .dim:first-of-type { margin-left: var(--sp-2); }
+  .gv-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+  .gv-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
+
+  .gv-result { display: flex; flex-direction: column; gap: var(--sp-4); border-top: 1px solid var(--border); padding-top: var(--sp-3); }
+  .gv-gauge { display: flex; flex-direction: column; gap: var(--sp-2); max-width: 560px; }
+  .gv-reg { display: flex; align-items: center; gap: var(--sp-2); }
+  .gv-gauge-top { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+  .gv-big { font-size: 28px; line-height: 32px; font-weight: 500; letter-spacing: -.02em; }
+  .gv-meter-wrap { position: relative; padding: 5px 0; }
+  .gv-tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text-primary); border-radius: 1px; }
+  .gv-sub { margin: 0; font-size: 12px; color: var(--text-secondary); }
+
+  .gv-tier { border-top: 1px solid var(--border-subtle); padding: var(--sp-2) 0; }
+  .gv-tier:first-child { border-top: 0; }
+  .gv-tier-head { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--font-size-ui); font-weight: 500; }
+  .gv-tier-note { font-size: 12px; color: var(--text-secondary); margin: 2px 0 var(--sp-2); }
+  .gv-find { display: grid; grid-template-columns: minmax(96px, 180px) minmax(0, 1fr) 48px; gap: var(--sp-3); padding: 6px 0; font-size: 12px; align-items: baseline; }
+  .gv-find b { font-weight: 500; font-size: var(--font-size-ui); word-break: break-word; }
+  .gv-find span { color: var(--text-secondary); word-break: break-word; }
+  .gv-find .num { text-align: right; color: var(--text-placeholder); }
+
+  .gv-bars { display: flex; flex-direction: column; gap: 6px; }
+  .gv-bar { display: grid; grid-template-columns: 112px 1fr 56px; gap: var(--sp-2); align-items: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .gv-bar .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gv-bar .vl { text-align: right; font-weight: 500; }
+  .gv-tr { position: relative; height: 12px; background: var(--well-bg); border-radius: 3px; overflow: hidden; }
+  .gv-fl { position: absolute; inset: 0 auto 0 0; border-radius: 0 3px 3px 0; background: var(--chart-1); }
+  .gv-fl.flag { background: var(--chart-3); }
+  .gv-legend { display: flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  .gv-key { display: inline-flex; align-items: center; gap: 6px; }
+  .gv-key i { width: 9px; height: 9px; border-radius: 2px; background: var(--chart-1); }
+  .gv-key i.flag { background: var(--chart-3); }
+  .gv-absent { font-size: 12px; color: var(--text-secondary); line-height: 20px; }
+  .gv-absent b { font-weight: 500; color: var(--text-primary); }
+
+  .gv-spark { height: 56px; }
+  .gv-row { display: grid; grid-template-columns: 148px 72px 56px minmax(0, 1fr) 64px; gap: var(--sp-3); align-items: baseline; padding: 6px 0; border-top: 1px solid var(--border-subtle); font-size: 12px; }
+  .gv-row .lb { color: var(--text-primary); font-size: var(--font-size-ui); word-break: break-word; }
+  .gv-row .num, .gv-row .dim { color: var(--text-secondary); }
+  .gv-empty { font-size: var(--font-size-ui); color: var(--text-secondary); margin: 0; }
+  .table td.num, .table th.num { text-align: right; }
+  .api-note { margin-top: var(--sp-4); padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-secondary); font-size: var(--font-size-ui); }
+
+  @media (max-width: 880px) { .gv-two { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 640px) {
+    .gv-bar { grid-template-columns: 88px 1fr 52px; }
+    .gv-find { grid-template-columns: minmax(0, 1fr) 40px; }
+    .gv-find span { grid-column: 1 / -1; grid-row: 2; }
+    .gv-find .num { grid-column: 2; grid-row: 1; }
+    .gv-gauge-top .badge { max-width: 100%; white-space: normal; }
+    .gv-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+<script>
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  // Tool output carries em dashes and markdown; flatten at the boundary.
+  const clean = (s) => {
+    const t = String(s == null ? '' : s).replace(/\s*[\u2014\u2013\u00b7]\s*/g, ', ').replace(/[*`]/g, '').replace(/\[\[|\]\]/g, '');
+    return window.g && g.plain ? g.plain(t) : t;
+  };
+  const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const n1 = (v) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(v);
+  const n0 = (v) => new Intl.NumberFormat('en').format(v);
+  const pct = (v) => (v * 100).toFixed(1) + '%';
+  const TIERS = [
+    ['absolute', 'Absolute', 'Fix these. None of them appear in his corpus.'],
+    ['generic', 'Generic', 'Machine phrasing that reads badly whoever wrote it.'],
+    ['structural', 'Structural', 'Sentence shapes that survive paraphrasing.'],
+    ['distribution', 'Distribution', 'Rhythm and length. Nudge it, do not contort a good sentence.'],
+    ['vocabulary', 'Vocabulary', 'Words absent from his corpus. The fix is a plainer word or a cut.'],
+  ];
+  let low = 15, over = 40, lastScore = null, regLows = null;
+  const note = $('[data-note]');
+
+  // ---- score box ----
+  const box = $('#gv-text'), count = $('[data-count]');
+  box.addEventListener('input', () => {
+    const w = (box.value.match(/\S+/g) || []).length;
+    count.textContent = n0(w) + (w === 1 ? ' word' : ' words');
+  });
+  $('[data-clear]').addEventListener('click', () => {
+    box.value = ''; box.dispatchEvent(new Event('input'));
+    $('[data-result]').hidden = true; $('[data-score-note]').textContent = '';
+  });
+  function showScore(r) {
+    lastScore = r;
+    const res = $('[data-result]');
+    res.hidden = false;
+    const loud = Number(r.loudness) || 0;
+    $('[data-loud]').textContent = n1(loud);
+    const m = $('[data-meter]');
+    m.dataset.warnAt = low; m.dataset.dangerAt = over; m.dataset.value = Math.min(100, loud);
+    $('[data-tick]').style.left = 'calc(' + Math.min(100, low) + '% - 1px)';
+    const v = $('[data-verdict]');
+    const abs = r.absolutes_clear === false;
+    v.className = 'badge ' + (abs ? 'badge-danger' : loud <= low ? 'badge-ok' : loud <= over ? 'badge-warn' : 'badge-danger');
+    v.textContent = cap(clean(r.verdict || (abs ? 'absolute found' : 'scored')).toLowerCase());
+    $('[data-gauge-sub]').textContent = 'The mark is his low threshold at ' + n1(low) + '. Under it reads like him; past it, each finding below is a reason.';
+    const by = {};
+    (r.findings || []).forEach(f => (by[f.tier] = by[f.tier] || []).push(f));
+    let h = '';
+    TIERS.forEach(([k, label, blurb]) => {
+      const fs = by[k]; if (!fs) return;
+      h += '<div class="gv-tier"><div class="gv-tier-head">' + label +
+        ' <span class="badge ' + (k === 'absolute' ? 'badge-danger' : 'badge-plain') + '">' + fs.length + '</span></div>' +
+        '<div class="gv-tier-note">' + esc(blurb) + '</div>' +
+        fs.map(f => '<div class="gv-find"><b>' + esc(clean(f.term)) + '</b><span>' + esc(clean(f.fix || f.detail)) +
+          (f.count > 1 ? (/[.!?]$/.test(clean(f.fix || f.detail)) ? ' ' : '. ') + 'Found ' + f.count + ' times.' : '') + '</span><span class="num">' + n1(f.loudness || 0) + '</span></div>').join('') + '</div>';
+    });
+    $('[data-findings]').innerHTML = h || '<p class="gv-empty">No findings. The draft reads close to his own writing.</p>';
+  }
+  $('[data-score]').addEventListener('click', async (ev) => {
+    const text = box.value;
+    const noteEl = $('[data-score-note]');
+    if (!text.trim()) { noteEl.textContent = 'Paste a draft first.'; return; }
+    ev.target.disabled = true; noteEl.textContent = 'Scoring.';
+    try {
+      const r = await fetch('/api/ganti/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+      if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).detail) || ('HTTP ' + r.status));
+      showScore(await r.json()); noteEl.textContent = '';
+    } catch (e) {
+      noteEl.textContent = 'The draft was not scored: ' + clean(e.message) + '. Try again in a moment.';
+    } finally { ev.target.disabled = false; }
+  });
+
+  // ---- snapshot ----
+  let snap;
+  try {
+    const r = await fetch('/api/ganti/snapshot');
+    if (!r.ok) throw new Error(r.status);
+    snap = await r.json();
+  } catch (e) {
+    $('[data-overall]').className = 'badge badge-danger'; $('[data-overall]').textContent = 'Unavailable';
+    note.hidden = false; note.textContent = 'The style card did not load, so the sections below are empty. Reload to try again; the score box still works if g-anti-ai is installed.';
+    return;
+  }
+  const th = snap.thresholds || {};
+  const br = th.by_register || {};
+  if (Number.isFinite(Number(th.low))) low = Number(th.low);
+  else if (br.diary && Number.isFinite(Number(br.diary.low))) {
+    regLows = br; low = Number(br.diary.low);
+    $('[data-reg]').hidden = false;
+    document.querySelectorAll('input[name="gv-reg"]').forEach(i => i.addEventListener('change', () => {
+      const v = Number(((regLows[i.value] || {}).low));
+      if (i.checked && Number.isFinite(v)) { low = v; over = Math.max(40, v); if (lastScore) showScore(lastScore); }
+    }));
+  }
+  if (Number.isFinite(Number(th.over))) over = Number(th.over);
+  const logged = snap.source !== 'card';
+  const badge = $('[data-overall]');
+  badge.className = 'badge ' + (logged ? 'badge-ok' : 'badge-warn');
+  badge.textContent = logged ? 'Score log live' : 'Style card only';
+  if (!logged) { note.hidden = false; note.textContent = 'No score log yet. This page is reading the style card file directly, so recent scores stay empty until ganti writes its log.'; }
+
+  // ---- bars ----
+  const bar = (name, v, max, cls) => '<div class="gv-bar"><span class="nm" title="' + esc(name) + '">' + esc(name) + '</span>' +
+    '<span class="gv-tr"><span class="gv-fl ' + (cls || '') + '" style="width:' + Math.max(1, v / max * 100) + '%"></span></span>' +
+    '<span class="vl">' + n1(v) + '</span></div>';
+  const top = (snap.freq.top || []).filter(r => r && r.length >= 2);
+  const topBox = $('[data-top]'), more = $('[data-more]');
+  let shown = 30;
+  const drawTop = () => {
+    const max = Math.max(1, ...top.map(r => r[1]));
+    topBox.innerHTML = top.slice(0, shown).map(r => bar(r[0], r[1], max)).join('') || '<p class="gv-empty">No word counts in the card.</p>';
+    more.hidden = shown >= top.length;
+    more.textContent = 'Show ' + Math.min(70, top.length - shown) + ' more words';
+  };
+  more.addEventListener('click', () => { shown += 70; drawTop(); });
+  drawTop();
+
+  const ai = (snap.freq.ai_words || []).filter(r => r && r.length >= 2);
+  const used = ai.filter(r => r[1] > 0), absent = ai.filter(r => !(r[1] > 0));
+  const amax = Math.max(1, ...used.map(r => r[1]));
+  $('[data-ai]').innerHTML = used.map(r => bar(r[0], r[1], amax, r[2] ? 'flag' : '')).join('') || '<p class="gv-empty">He does not write any of the listed words.</p>';
+  $('[data-absent]').innerHTML = absent.length ? '<b>Not in his writing (' + absent.length + '):</b> ' + absent.map(r => esc(r[0])).join(', ') + '.' : '';
+
+  // ---- corpus ----
+  const srcs = snap.card.sources || [];
+  const total = srcs.reduce((a, s) => a + s.words, 0);
+  const regs = {};
+  srcs.forEach(s => (regs[s.register] = (regs[s.register] || 0) + s.words));
+  $('[data-sources]').innerHTML = '<thead><tr><th>Source</th><th>Register</th><th class="num">Words</th><th class="num">Share</th></tr></thead><tbody>' +
+    srcs.slice().sort((a, b) => b.words - a.words).map(s => '<tr><td>' + esc(clean(s.name.replace(/\.txt$/i, '').replace(/_/g, ' ').replace(/[\s-]+$/, '').trim())) + '</td><td>' + esc(cap(s.register)) +
+      '</td><td class="num">' + n0(s.words) + '</td><td class="num">' + (total ? pct(s.words / total) : '') + '</td></tr>').join('') +
+    Object.keys(regs).map(k => '<tr><td><b>' + esc(cap(k)) + ' total</b></td><td></td><td class="num">' + n0(regs[k]) + '</td><td class="num">' + (total ? pct(regs[k] / total) : '') + '</td></tr>').join('') +
+    '<tr><td><b>All sources</b></td><td></td><td class="num"><b>' + n0(total) + '</b></td><td class="num"></td></tr></tbody>';
+
+  // ---- style card ----
+  const cols = [['overall', snap.card.overall]].concat(Object.entries(snap.card.by_register || {}));
+  const g_ = (o, path) => path.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+  const ROWS = [
+    ['Words', 'words', n0], ['Sentences', 'sentences', n0],
+    ['Mean sentence length', 'sentence_lengths.mean', n1], ['Sentence length spread', 'sentence_lengths.sd', n1],
+    ['Burstiness', 'sentence_lengths.burstiness', (v) => v.toFixed(2)], ['Short sentences', 'sentence_lengths.short_rate', pct],
+    ['Sentences per paragraph', 'paragraph_sentences.mean', n1], ['Contraction rate', 'contractions.rate', pct],
+    ['Commas per 10k words', 'punctuation.comma', n1], ['Questions per 10k', 'punctuation.question', n1],
+    ['Colons per 10k', 'punctuation.colon', n1], ['Spaced hyphen asides per 10k', 'punctuation.hyphen_aside', n1],
+    ['Exclamations per 10k', 'punctuation.exclamation', n1], ['Semicolons per 10k', 'punctuation.semicolon', n1],
+    ['Em dashes per 10k', 'punctuation.em_dash', n1], ['Mean word length', 'lexical.mean_word_len', (v) => v.toFixed(2)],
+    ['Words used once', 'lexical.hapax_rate', pct], ['Fronted causal clauses', 'structural.fronted_causal_rate', pct],
+    ['Passives per sentence', 'structural.passive_per_sentence', (v) => v.toFixed(3)],
+  ];
+  $('[data-card]').innerHTML = '<thead><tr><th>Feature</th>' + cols.map(c => '<th class="num">' + esc(cap(c[0])) + '</th>').join('') + '</tr></thead><tbody>' +
+    ROWS.map(([label, path, f]) => '<tr><td>' + esc(label) + '</td>' + cols.map(c => {
+      const v = g_(c[1] || {}, path); return '<td class="num">' + (Number.isFinite(Number(v)) && v !== null ? f(Number(v)) : '') + '</td>';
+    }).join('') + '</tr>').join('') + '</tbody>';
+
+  // ---- recent ----
+  const recent = (snap.recent || []).slice().sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+  const rbox = $('[data-recent]');
+  if (!recent.length) {
+    $('[data-spark]').hidden = true;
+    rbox.innerHTML = '<p class="gv-empty">' + (logged ? 'The score log is empty. Scores ganti logs will appear here.' : 'Nothing to chart yet.') + '</p>';
+  } else {
+    $('[data-recent-note]').textContent = 'Last ' + recent.length + ', oldest to newest';
+    if (window.g && g.chart) g.chart.sparkline($('[data-spark]'), recent.map(r => r.loudness), { min: 0, max: Math.max(over, ...recent.map(r => r.loudness || 0)) });
+    const when = (ts) => { const d = new Date(ts); return isNaN(d) ? '' : d.toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+    rbox.innerHTML = recent.slice().reverse().map(r => {
+      const cls = r.verdict === 'low' ? 'badge-ok' : r.verdict === 'absolute' ? 'badge-danger' : 'badge-warn';
+      return '<div class="gv-row"><span class="dim num">' + esc(when(r.ts)) + '</span><span class="badge ' + cls + '">' + esc(cap(clean(r.verdict || ''))) + '</span>' +
+        '<span class="num">' + n1(r.loudness || 0) + '</span><span class="lb">' + esc(clean(r.label || r.source || 'Unlabelled')) + '</span>' +
+        '<span class="dim num">' + n0(r.words || 0) + ' words</span></div>';
+    }).join('');
+  }
+})();
+</script>

@@ -21,7 +21,7 @@ is the sidebar entry, the rest set `nav: false`, and every member gets the
 group's tab strip in the top bar, labelled by `tab_label` and ordered by
 `order`. Groups: `system` (Overview `/ops`, Services `/system`, Compute,
 Crons, Tickets, Projects, Hours), `brain` (Overview `/brain`, Pulse,
-Voice, Graph, Nerves, References, Lineage), `files` (Workspaces `/drive`,
+Voice, Writing voice, Graph, Nerves, References, Lineage), `files` (Workspaces `/drive`,
 Upload, Photos, Blog) and `setup` (Setup, Install, Passport, reached from
 the wrench in the sidebar foot). A page left out of the nav keeps its
 route: hide pages, never delete or rename them, since the Mac app and old
