@@ -29,6 +29,8 @@
   }
 </style>
 
+<!-- the UMD build reads process.env.NODE_ENV, which browsers lack -->
+<script>window.process = window.process || { env: { NODE_ENV: 'production' } };</script>
 <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.79.0/dist/3d-force-graph.min.js"></script>
 <script>
 (async () => {
@@ -48,14 +50,18 @@
   /* WebGL needs concrete colours, not CSS vars: resolve the live theme's
      chart palette and grounds, and again on a theme flip. */
   const fallback = ['#2f6fe0', '#c2410c', '#4d8b3f', '#b7791f', '#7c4dbd', '#2a8a8a'];
-  const probe = document.createElement('span');
-  probe.hidden = true;
-  document.body.appendChild(probe);
+  /* The theme's tokens are oklch, which the scene's colour parser rejects,
+     so paint each into a 1px canvas and read it back as rgb. */
+  const px = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
   const resolve = (name, fb) => {
-    probe.style.color = '';
-    probe.style.color = `var(${name})`;
-    const v = getComputedStyle(probe).color;
-    return v && v !== 'rgba(0, 0, 0, 0)' && getComputedStyle(document.documentElement).getPropertyValue(name).trim() ? v : fb;
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (!v) return fb;
+    px.clearRect(0, 0, 1, 1);
+    px.fillStyle = fb;
+    px.fillStyle = v;
+    px.fillRect(0, 0, 1, 1);
+    const [r, g, b] = px.getImageData(0, 0, 1, 1).data;
+    return `rgb(${r}, ${g}, ${b})`;
   };
   const palette = () => [1, 2, 3, 4, 5, 6].map(i => resolve(`--chart-${i}`, fallback[i - 1]));
 

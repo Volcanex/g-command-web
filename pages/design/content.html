@@ -99,6 +99,6 @@
 
   const wanted = decodeURIComponent(location.hash.slice(1));
   const start = cards.findIndex(c => c.path === wanted);
-  show(start >= 0 ? start : 0);
+  show(start >= 0 ? start : Math.max(0, cards.findIndex(c => c.name === 'Buttons')));
 })();
 </script>
