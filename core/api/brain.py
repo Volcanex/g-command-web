@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 
 router = APIRouter(tags=["brain"])
 
@@ -35,7 +35,7 @@ def _send(method, url, body, headers):
 
 @router.api_route("/api/{path:path}", methods=["GET", "POST", "PATCH", "PUT", "DELETE"])
 async def proxy(path: str, request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     url = f"{UPSTREAM}/api/{urllib.parse.quote(path)}"
     if request.url.query:

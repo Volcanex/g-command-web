@@ -53,7 +53,7 @@ if str(_ROOT) not in sys.path:
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import ADMIN_COOKIE, ADMIN_VALUE, cookie_ok
 
 router = APIRouter(tags=["admin"])
 
@@ -115,7 +115,7 @@ def _record_login_failure(ip: str) -> None:
 
 def is_admin(request: Request) -> bool:
     """Public helper: other API modules can import this to gate endpoints."""
-    return request.cookies.get(ADMIN_COOKIE) == ADMIN_VALUE
+    return cookie_ok(request.cookies)
 
 
 def require_admin(request: Request) -> None:
@@ -138,7 +138,7 @@ def login(req: LoginRequest, request: Request, response: Response):
         raise HTTPException(503, "Login is disabled until ADMIN_PASSWORD is set.")
     # Constant-time comparison so a remote attacker can't lift the
     # password byte-by-byte off response timing. Trivial cost, real win.
-    if not hmac.compare_digest(req.password, _admin_password()):
+    if not hmac.compare_digest(req.password.encode(), _admin_password().encode()):
         _record_login_failure(ip)
         raise HTTPException(401, "wrong password")
     # Successful login: clear the bucket so legit usage isn't penalised.

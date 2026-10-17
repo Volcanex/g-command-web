@@ -16,7 +16,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 from core.instance import sibling
 
 router = APIRouter()
@@ -55,7 +55,7 @@ def _runs():
 
 @router.get("/list")
 def listing(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     try:
         data = json.loads(_cache_path().read_text())

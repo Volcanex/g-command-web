@@ -12,8 +12,8 @@ from pages.crons import api as crons_api  # noqa: E402
 def client(tmp_path, monkeypatch):
     app = FastAPI()
     app.include_router(crons_api.router, prefix="/api/crons")
-    monkeypatch.setattr(crons_api, "ADMIN_COOKIE", "seed_admin")
-    monkeypatch.setattr(crons_api, "ADMIN_VALUE", "ok")
+    monkeypatch.setattr("core.auth.ADMIN_COOKIE", "seed_admin")
+    monkeypatch.setattr("core.auth.ADMIN_VALUE", "ok")
     monkeypatch.setenv("CRONS_CACHE", str(tmp_path / "g-cron.json"))
     monkeypatch.setenv("CRONS_RUNS", str(tmp_path / "runs.jsonl"))
     return TestClient(app)

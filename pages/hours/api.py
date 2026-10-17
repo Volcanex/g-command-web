@@ -17,7 +17,7 @@ import urllib.request
 
 from fastapi import APIRouter, HTTPException, Request
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 
 router = APIRouter()
 
@@ -33,7 +33,7 @@ TRACKER_FIELDS = (
 
 @router.get("/week")
 def week(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     url = f"{WAGES_URL}/api/ledger/sessions/week"
     try:

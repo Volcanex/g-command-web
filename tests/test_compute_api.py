@@ -21,8 +21,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("COMPUTE_TEMPERATURE_PY", str(context / "temperature.py"))
     app = FastAPI()
     app.include_router(compute_api.router, prefix="/api/compute")
-    monkeypatch.setattr(compute_api, "ADMIN_COOKIE", "seed_admin")
-    monkeypatch.setattr(compute_api, "ADMIN_VALUE", "ok")
+    monkeypatch.setattr("core.auth.ADMIN_COOKIE", "seed_admin")
+    monkeypatch.setattr("core.auth.ADMIN_VALUE", "ok")
     return TestClient(app)
 
 

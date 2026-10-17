@@ -29,11 +29,11 @@ import uvicorn
 # The matching login/logout/verify endpoints live in core/api/admin.py.
 # core/auth.py reads the cookie name and secret for every router and stops
 # the process here, before any router mounts, if the secret is unset.
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import ADMIN_COOKIE, cookie_ok
 
 
 def _is_admin(request: Request) -> bool:
-    return request.cookies.get(ADMIN_COOKIE) == ADMIN_VALUE
+    return cookie_ok(request.cookies)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent

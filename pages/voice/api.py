@@ -13,7 +13,7 @@ import urllib.request
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ class ChatIn(BaseModel):
 
 @router.post("/chat")
 def chat(body: ChatIn, request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     payload = json.dumps({"message": body.message, "session": "web"}).encode()
     req = urllib.request.Request(

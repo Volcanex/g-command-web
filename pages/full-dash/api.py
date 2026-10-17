@@ -13,7 +13,7 @@ import urllib.request
 
 from fastapi import APIRouter, HTTPException, Request
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 from core.instance import gcore_dir
 
 router = APIRouter()
@@ -24,7 +24,7 @@ VOICE_URL = os.environ.get("VOICE_URL", "http://127.0.0.1:8077")
 
 @router.get("/diagram")
 def diagram(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     try:
         if GCORE not in sys.path:
@@ -37,7 +37,7 @@ def diagram(request: Request):
 
 @router.get("/voice-health")
 def voice_health(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     try:
         with urllib.request.urlopen(f"{VOICE_URL}/health", timeout=10) as resp:

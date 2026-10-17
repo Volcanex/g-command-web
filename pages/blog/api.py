@@ -18,7 +18,7 @@ import uuid
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 
 router = APIRouter()
 
@@ -31,7 +31,7 @@ _LONG_PATHS = ("preview", "publish")
 
 
 def _gate(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
 
 

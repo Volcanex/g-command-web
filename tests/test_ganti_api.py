@@ -28,8 +28,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(ganti_api, "_run", lambda args, stdin=None: None)
     app = FastAPI()
     app.include_router(ganti_api.router, prefix="/api/ganti")
-    monkeypatch.setattr(ganti_api, "ADMIN_COOKIE", "seed_admin")
-    monkeypatch.setattr(ganti_api, "ADMIN_VALUE", "ok")
+    monkeypatch.setattr("core.auth.ADMIN_COOKIE", "seed_admin")
+    monkeypatch.setattr("core.auth.ADMIN_VALUE", "ok")
     c = TestClient(app)
     return c
 

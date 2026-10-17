@@ -24,7 +24,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 from core.instance import sibling
 
 router = APIRouter()
@@ -40,7 +40,7 @@ def _dir():
 
 
 def _auth(request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
 
 

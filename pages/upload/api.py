@@ -19,7 +19,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 from core.instance import ROOT
 
 router = APIRouter()
@@ -30,7 +30,7 @@ _UNSAFE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 def _gate(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
 
 

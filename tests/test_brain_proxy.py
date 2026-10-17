@@ -17,8 +17,8 @@ def sent(monkeypatch):
 
     monkeypatch.setattr(brain_api, "_send", fake_send)
     monkeypatch.setattr(brain_api, "UPSTREAM", "http://brain.test")
-    monkeypatch.setattr(brain_api, "ADMIN_COOKIE", "seed_admin")
-    monkeypatch.setattr(brain_api, "ADMIN_VALUE", "ok")
+    monkeypatch.setattr("core.auth.ADMIN_COOKIE", "seed_admin")
+    monkeypatch.setattr("core.auth.ADMIN_VALUE", "ok")
     return calls
 
 

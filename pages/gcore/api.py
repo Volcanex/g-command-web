@@ -14,7 +14,7 @@ import json
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 from core.instance import gcore_dir
 
 router = APIRouter()
@@ -34,7 +34,7 @@ def _parse_env(text):
 
 
 def _gate(request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
 
 

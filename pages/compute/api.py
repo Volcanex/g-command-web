@@ -24,7 +24,7 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 from core.instance import sibling
 
 router = APIRouter()
@@ -72,7 +72,7 @@ def _mode_state(temperature):
 
 @router.get("/usage")
 def usage(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     try:
         mod = _module()
@@ -87,7 +87,7 @@ def usage(request: Request):
 @router.get("/pace")
 def pace(request: Request):
     """Quota burn against working hours, from compute-pace's cache (never computed here)."""
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     try:
         mod = _module("compute_pace", PACE_BIN)
@@ -101,7 +101,7 @@ def pace(request: Request):
 
 @router.get("/state")
 def state(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE and not _bearer_ok(request):
+    if not cookie_ok(request.cookies) and not _bearer_ok(request):
         raise HTTPException(401, "unauthorized")
     path = _temperature_path()
     temperature = _optional(lambda: _module("compute_temperature", str(path)))
@@ -155,7 +155,7 @@ def value_map(request: Request, role: str = "build", stakes: str = "normal", dom
     Query `claude_temp`, `claude_speed`, `codex_temp` and `codex_speed` preview a mode without
     saving it; the reply then carries the live grid and pick beside the previewed ones.
     """
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE and not _bearer_ok(request):
+    if not cookie_ok(request.cookies) and not _bearer_ok(request):
         raise HTTPException(401, "unauthorized")
     try:
         value = _value_module()
@@ -181,7 +181,7 @@ def value_map(request: Request, role: str = "build", stakes: str = "normal", dom
 
 @router.post("/mode")
 async def mode(request: Request):
-    if request.cookies.get(ADMIN_COOKIE) != ADMIN_VALUE:
+    if not cookie_ok(request.cookies):
         raise HTTPException(401, "unauthorized")
     origin = request.headers.get("Origin")
     if origin is not None:

@@ -12,8 +12,8 @@ def client(tmp_path, monkeypatch):
     app = FastAPI()
     app.include_router(gcore_api.router, prefix="/api/gcore")
     monkeypatch.setattr(gcore_api, "GCORE", tmp_path)
-    monkeypatch.setattr(gcore_api, "ADMIN_COOKIE", "seed_admin")
-    monkeypatch.setattr(gcore_api, "ADMIN_VALUE", "ok")
+    monkeypatch.setattr("core.auth.ADMIN_COOKIE", "seed_admin")
+    monkeypatch.setattr("core.auth.ADMIN_VALUE", "ok")
     return TestClient(app)
 
 

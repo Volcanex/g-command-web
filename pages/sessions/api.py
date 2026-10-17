@@ -23,7 +23,7 @@ import termios
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from core.auth import ADMIN_COOKIE, ADMIN_VALUE
+from core.auth import cookie_ok
 
 router = APIRouter()
 
@@ -81,7 +81,7 @@ def _tmux_attach_cmd(host: str, name: str) -> list[str]:
 
 
 def _is_admin(request_or_ws) -> bool:
-    return request_or_ws.cookies.get(ADMIN_COOKIE) == ADMIN_VALUE
+    return cookie_ok(request_or_ws.cookies)
 
 
 def _tmux_ls(host: str):
