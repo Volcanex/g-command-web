@@ -1,8 +1,24 @@
 <div class="page-head">
   <h1>Voice</h1>
-  <span class="badge badge-plain">Text transport</span>
+  <span class="badge badge-plain">Text and voice</span>
 </div>
 <p class="page-sub">Chat with the brain. The same agent that answers on WhatsApp.</p>
+
+<div class="card talk" data-talk>
+  <div class="talk-row">
+    <button type="button" class="btn btn-primary talk-btn" data-talk-btn aria-pressed="false">
+      <i class="ph ph-microphone"></i><span data-talk-label>Start talking</span>
+    </button>
+    <span class="talk-state" data-talk-state>Off</span>
+  </div>
+  <p class="talk-partial" data-talk-partial aria-live="polite"></p>
+  <form class="talk-type" data-talk-form>
+    <input class="input" data-talk-input placeholder="Or type, and hear the answer" autocomplete="off">
+    <button type="submit" class="btn">Say</button>
+  </form>
+  <p class="talk-metrics" data-talk-metrics></p>
+  <p class="talk-note">Speech recognition runs in the browser. The voice is Kokoro, running on h. Headphones stop the bot hearing itself. Start speaking while it talks and it stops.</p>
+</div>
 
 <div class="card chat" data-chat>
   <div class="chat-log" data-log>
@@ -51,6 +67,18 @@
   .chat-form { display: flex; gap: var(--sp-2); align-items: flex-end; }
   .chat-form textarea { flex: 1; resize: none; max-height: 160px; min-height: var(--h-control); line-height: 1.5; }
   .chat-msg { color: var(--danger-text); font-size: 12px; min-height: 1em; }
+
+  .talk { display: flex; flex-direction: column; gap: var(--sp-2); max-width: 720px; margin-bottom: var(--sp-4); }
+  .talk-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+  .talk-btn { display: inline-flex; align-items: center; gap: 8px; }
+  .talk-btn[aria-pressed="true"] { background: var(--danger-fill, var(--accent-fill)); }
+  .talk-state { font-size: var(--font-size-ui); color: var(--text-secondary); }
+  .talk-state.live { color: var(--text-primary); }
+  .talk-partial { margin: 0; min-height: 1.5em; font-size: var(--font-size-ui); color: var(--text-secondary); font-style: italic; }
+  .talk-type { display: flex; gap: var(--sp-2); }
+  .talk-type .input { flex: 1; min-height: var(--h-control); }
+  .talk-metrics { margin: 0; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-height: 1em; }
+  .talk-note { margin: 0; font-size: 12px; color: var(--text-placeholder); }
 </style>
 
 <script>
@@ -127,6 +155,197 @@
       log.scrollTop = log.scrollHeight;
       input.focus();
     }
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // Talk: browser speech recognition in, NDJSON sentence stream from /api/voice/talk,
+  // one Kokoro WAV per sentence from /api/voice/tts, played in order. Speaking over
+  // the bot (barge-in) stops the audio and drops the rest of that turn.
+  const btn = document.querySelector('[data-talk-btn]');
+  const label = document.querySelector('[data-talk-label]');
+  const stateEl = document.querySelector('[data-talk-state]');
+  const partialEl = document.querySelector('[data-talk-partial]');
+  const metricsEl = document.querySelector('[data-talk-metrics]');
+  const typeForm = document.querySelector('[data-talk-form]');
+  const typeInput = document.querySelector('[data-talk-input]');
+  const log = document.querySelector('[data-log]');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  let live = false, rec = null, gen = 0, abort = null;
+  let queue = [], playing = null, speaking = '', busy = false;
+  window.talkMetrics = [];
+
+  const setState = (t) => { stateEl.textContent = t; stateEl.classList.toggle('live', live); };
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function bubble(role, text) {
+    const w = document.createElement('div');
+    w.className = 'msg ' + role;
+    w.innerHTML = `<div class="bubble">${esc(text)}</div>`;
+    log.appendChild(w); log.scrollTop = log.scrollHeight;
+    return w.querySelector('.bubble');
+  }
+
+  // Stop whatever the bot is saying and forget the rest of its turn.
+  function bargeIn() {
+    gen++;
+    if (abort) { abort.abort(); abort = null; }
+    if (playing) { playing.pause(); playing = null; }
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    queue = []; speaking = ''; busy = false;
+    if (live) setState('Listening');
+  }
+
+  function fetchAudio(text) {
+    return fetch('/api/voice/tts', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text }),
+    }).then(r => r.ok ? r.blob() : null).catch(() => null);
+  }
+
+  function speakFallback(text, g) {
+    return new Promise(res => {
+      if (!window.speechSynthesis || g !== gen) return res();
+      const u = new SpeechSynthesisUtterance(text);
+      u.onend = u.onerror = () => res();
+      speechSynthesis.speak(u);
+    });
+  }
+
+  async function pump(g, m) {
+    if (busy) return;
+    busy = true;
+    while (queue.length && g === gen) {
+      const item = queue.shift();
+      const blob = await item.audio;
+      if (g !== gen) break;
+      speaking = item.text.toLowerCase();
+      setState('Speaking');
+      if (!m.firstAudio) { m.firstAudio = performance.now(); report(m); }
+      if (blob) {
+        await new Promise(res => {
+          const a = new Audio(URL.createObjectURL(blob));
+          playing = a;
+          a.onended = a.onerror = () => { URL.revokeObjectURL(a.src); res(); };
+          a.play().catch(res);
+        });
+      } else {
+        await speakFallback(item.text, g);
+      }
+    }
+    if (g === gen) { playing = null; speaking = ''; busy = false; setState(live ? 'Listening' : 'Off'); }
+  }
+
+  function report(m) {
+    const f = (a, b) => (a && b) ? Math.round(a - b) + ' ms' : '-';
+    metricsEl.textContent =
+      `heard to first sentence ${f(m.firstSentence, m.sent)}, to first audio ${f(m.firstAudio, m.sent)}` +
+      (m.tools ? `, tools ${m.tools}` : '');
+    window.talkMetrics.push({ ...m });
+  }
+
+  async function turn(text) {
+    bargeIn();
+    const g = gen;
+    const m = { text, sent: performance.now() };
+    bubble('me', text);
+    const out = bubble('brain', '');
+    setState('Thinking');
+    abort = new AbortController();
+    try {
+      const r = await fetch('/api/voice/talk', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: text }), signal: abort.signal,
+      });
+      if (!r.ok || !r.body) throw new Error('talk ' + r.status);
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done || g !== gen) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
+          if (!line.trim()) continue;
+          const ev = JSON.parse(line);
+          if (ev.t === 's') {
+            if (!m.firstSentence) { m.firstSentence = performance.now(); m.serverFirstMs = ev.ms; }
+            out.textContent += (out.textContent ? ' ' : '') + ev.text;
+            log.scrollTop = log.scrollHeight;
+            queue.push({ text: ev.text, audio: fetchAudio(ev.text) });
+            pump(g, m);
+          } else if (ev.t === 'tool') {
+            m.tools = (m.tools ? m.tools + ',' : '') + ev.name;
+            setState('Looking it up');
+          } else if (ev.t === 'error') {
+            out.textContent = '(error: ' + ev.error + ')';
+          }
+        }
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') { out.textContent = '(could not reach the brain: ' + e.message + ')'; setState(live ? 'Listening' : 'Off'); }
+    }
+  }
+
+  function startRec() {
+    rec = new SR();
+    rec.lang = 'en-GB';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      let interim = '', finalText = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t; else interim += t;
+      }
+      const heard = (finalText || interim).trim();
+      partialEl.textContent = heard;
+      // Barge-in: two words that are not the bot's own sentence coming back
+      // through the speakers.
+      if ((playing || queue.length) && heard.split(/\s+/).length >= 2 && !speaking.includes(heard.toLowerCase())) {
+        bargeIn();
+      }
+      if (finalText.trim()) {
+        partialEl.textContent = '';
+        if (!speaking.includes(finalText.trim().toLowerCase())) turn(finalText.trim());
+      }
+    };
+    rec.onerror = (e) => { if (e.error === 'not-allowed') { stop(); setState('Microphone blocked'); } };
+    rec.onend = () => { if (live) { try { rec.start(); } catch (_) {} } };
+    rec.start();
+  }
+
+  function stop() {
+    live = false;
+    bargeIn();
+    if (rec) { rec.onend = null; try { rec.stop(); } catch (_) {} rec = null; }
+    btn.setAttribute('aria-pressed', 'false');
+    label.textContent = 'Start talking';
+    partialEl.textContent = '';
+    setState('Off');
+  }
+
+  btn.addEventListener('click', () => {
+    if (live) return stop();
+    if (!SR) { setState('This browser has no speech recognition. Type below instead.'); return; }
+    live = true;
+    btn.setAttribute('aria-pressed', 'true');
+    label.textContent = 'Stop';
+    setState('Listening');
+    startRec();
+  });
+
+  typeForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const t = typeInput.value.trim();
+    if (!t) return;
+    typeInput.value = '';
+    turn(t);
   });
 })();
 </script>
