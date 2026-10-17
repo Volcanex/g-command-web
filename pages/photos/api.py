@@ -37,6 +37,7 @@ FN_RE = re.compile(r"^[^/\\\x00]{1,255}$")
 REFRESH_S = 300
 _cache = {"at": 0.0, "data": None}
 _lock = threading.Lock()
+_fetch_lock = threading.Lock()
 _refreshing = threading.Event()
 
 
@@ -52,12 +53,19 @@ def _fetch(path, method="GET", headers=None, timeout=30):
 
 
 def _refresh():
-    with _fetch("/files/all", timeout=90) as r:
-        data = json.load(r)
-    with _lock:
-        _cache["data"] = data
-        _cache["at"] = time.time()
-    return data
+    # One R2 walk at a time: a cold call that lands while the warm-up is in
+    # flight waits for it and takes its result instead of starting another.
+    asked = time.time()
+    with _fetch_lock:
+        with _lock:
+            if _cache["data"] is not None and _cache["at"] >= asked:
+                return _cache["data"]
+        with _fetch("/files/all", timeout=90) as r:
+            data = json.load(r)
+        with _lock:
+            _cache["data"] = data
+            _cache["at"] = time.time()
+        return data
 
 
 def _refresh_bg():
