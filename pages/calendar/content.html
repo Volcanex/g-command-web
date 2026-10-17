@@ -273,7 +273,7 @@
 
 <script>
 (async () => {
-  const API_BASE = 'https://api.brain.gabrielpenman.com';
+  const API_BASE = window.BRAIN_API;
 
   // Categories map onto the chart ramp so a colour means the same thing on
   // every surface that reads the brain.
@@ -489,16 +489,18 @@
   }
 
   function dayRow(it, i) {
+    // A habit's day either happened or it did not, and that is worth keeping
+    // per day. A one-off that is not happening gets moved or dropped; the
+    // brain keeps a late drop on its own date as missed.
     const reopen = `<button class="btn btn-tertiary btn-sm" type="button" data-act="reopen" data-i="${i}">Reopen</button>`;
-    const move = it.recurring ? '' : `
-      <button class="btn btn-tertiary btn-sm" type="button" data-act="tomorrow" data-i="${i}">Tomorrow</button>
-      <button class="btn btn-tertiary btn-sm" type="button" data-act="nextweek" data-i="${i}">Next week</button>
-      <button class="btn btn-tertiary btn-sm" type="button" data-act="drop" data-i="${i}">Drop it</button>`;
-    const actions = it.done ? reopen
-      : it.failed ? reopen + move
-      : `<button class="btn btn-secondary btn-sm" type="button" data-act="done" data-i="${i}">Done</button>
-         <button class="btn btn-tertiary btn-sm" type="button" data-act="failed" data-i="${i}">Did not happen</button>
-         ${move}`;
+    const done = `<button class="btn btn-secondary btn-sm" type="button" data-act="done" data-i="${i}">Done</button>`;
+    const actions = it.done || it.failed ? reopen
+      : it.recurring ? `${done}
+         <button class="btn btn-tertiary btn-sm" type="button" data-act="failed" data-i="${i}">Did not happen</button>`
+      : `${done}
+         <button class="btn btn-tertiary btn-sm" type="button" data-act="tomorrow" data-i="${i}">Tomorrow</button>
+         <button class="btn btn-tertiary btn-sm" type="button" data-act="nextweek" data-i="${i}">Next week</button>
+         <button class="btn btn-tertiary btn-sm" type="button" data-act="drop" data-i="${i}">Drop it</button>`;
     return `
       <div class="drow${stateClass(it)}${it.urgent ? ' is-urgent' : ''}${it.vital ? ' is-vital' : ''}"
            style="${dotStyle(it)}">

@@ -19,6 +19,10 @@
   .page-head .spacer { flex: 1; }
   .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   [data-stats] { font-variant-numeric: tabular-nums; }
+  @media (max-width: 600px) {
+    /* Three counts and sizes do not fit one badge line on a phone. */
+    [data-stats] { white-space: normal; height: auto; max-width: 100%; padding-block: var(--sp-1); }
+  }
   .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
 
   #ph-root, .ph-more-wrap { max-width: none; }
