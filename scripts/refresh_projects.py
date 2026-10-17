@@ -102,6 +102,24 @@ def depends(repo):
         return []
 
 
+LATE_SETTLE_MS = 5000
+
+
+def _near_blank(path):
+    """True when almost every pixel matches the frame's median shade. Pillow
+    is optional here (the timer runs system python3); without it the check is
+    skipped and the first shot stands."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return False
+    with Image.open(path) as im:
+        px = list(im.convert("L").resize((160, 100)).getdata())
+    mid = sorted(px)[len(px) // 2]
+    off = sum(1 for v in px if abs(v - mid) > 24)
+    return off < len(px) * 0.005
+
+
 def screenshot(url, dest, pw):
     browser = pw.chromium.launch()
     try:
@@ -115,6 +133,13 @@ def screenshot(url, dest, pw):
         # JPEG, not PNG: thumbnails are decorative and /api/* is no-store, so
         # they re-download every page load: a photo-heavy PNG ran to ~2 MB.
         page.screenshot(path=str(tmp), type="jpeg", quality=72)  # above-the-fold
+        # A near-blank frame (a site still playing its intro: blog-new's CRT
+        # turn-on is a lone dot for ~5s) gets one longer settle and a second
+        # shot rather than a black tile. A genuinely sparse page just costs
+        # the extra wait.
+        if _near_blank(tmp):
+            page.wait_for_timeout(LATE_SETTLE_MS)
+            page.screenshot(path=str(tmp), type="jpeg", quality=72)
         os.replace(tmp, dest)
         return True
     finally:

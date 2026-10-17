@@ -4,12 +4,17 @@ non-GET/POST from outside, so this gated proxy is the only delete path. The
 site-wide page gate in server.py does not cover /api/*, so each route
 re-checks the cookie inline (same pattern as pages/projects/api.py).
 
-Listing comes from /files/all cached ~60s in-process: the store is 11k+
-objects and the R2 listing behind it is slow; thumbnails stream through
-unbuffered. DELETE forwards the shared PHOTO_DELETE_TOKEN (instance passport) that
+Listing comes from /files/all, cached in-process: the store is 11k+ objects
+and the R2 listing behind it takes ~25s, which left the page on "Loading"
+for half a minute. So the listing is fetched once at import, a cache older
+than REFRESH_S is served as-is while a background thread refreshes it, and
+/stats is counted from the same cached listing instead of walking R2 a
+second time. Only a cold cache (first call after a failed warm-up) waits on
+R2. Thumbnails stream through unbuffered. DELETE forwards the shared PHOTO_DELETE_TOKEN (instance passport) that
 photo-sync-server requires.
 """
 import json
+import threading
 import os
 import re
 import time
@@ -29,7 +34,10 @@ DELETE_TOKEN = os.environ.get("PHOTO_DELETE_TOKEN", "")
 CATS = ("raw", "masters", "compressed")
 FN_RE = re.compile(r"^[^/\\\x00]{1,255}$")
 
+REFRESH_S = 300
 _cache = {"at": 0.0, "data": None}
+_lock = threading.Lock()
+_refreshing = threading.Event()
 
 
 def _gate(request: Request):
@@ -43,14 +51,48 @@ def _fetch(path, method="GET", headers=None, timeout=30):
     return urllib.request.urlopen(req, timeout=timeout)
 
 
+def _refresh():
+    with _fetch("/files/all", timeout=90) as r:
+        data = json.load(r)
+    with _lock:
+        _cache["data"] = data
+        _cache["at"] = time.time()
+    return data
+
+
+def _refresh_bg():
+    if _refreshing.is_set():
+        return
+    _refreshing.set()
+
+    def run():
+        try:
+            _refresh()
+        except Exception:
+            pass  # keep serving the last good listing; the next call retries
+        finally:
+            _refreshing.clear()
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def _listing():
+    with _lock:
+        data, at = _cache["data"], _cache["at"]
+    if data is None:
+        return _refresh()
+    if time.time() - at > REFRESH_S:
+        _refresh_bg()
+    return data
+
+
+_refresh_bg()  # warm the cache at startup so the first visit does not wait
+
+
 @router.get("/list")
 def list_photos(request: Request):
     _gate(request)
-    if time.time() - _cache["at"] > 60 or _cache["data"] is None:
-        with _fetch("/files/all", timeout=60) as r:
-            _cache["data"] = json.load(r)
-        _cache["at"] = time.time()
-    d = _cache["data"]
+    d = _listing()
     out = {}
     for cat in CATS:
         files = d.get(cat, {}).get("files", [])
@@ -62,8 +104,13 @@ def list_photos(request: Request):
 @router.get("/stats")
 def stats(request: Request):
     _gate(request)
-    with _fetch("/storage") as r:
-        return json.load(r)
+    d = _listing()
+    counts = {c: len(d.get(c, {}).get("files", [])) for c in CATS}
+    totals = {c: sum(f.get("size_bytes") or 0 for f in d.get(c, {}).get("files", []))
+              for c in CATS}
+    return {"counts": counts, "bytes": totals,
+            "total_count": sum(counts.values()),
+            "total_bytes": sum(totals.values())}
 
 
 @router.get("/thumb/{cat}/{filename}")
@@ -119,7 +166,16 @@ def delete(cat: str, filename: str, request: Request):
     try:
         with _fetch(f"/{cat}/{q}", method="DELETE",
                     headers={"X-Delete-Token": DELETE_TOKEN}) as r:
-            _cache["at"] = 0.0
-            return json.load(r)
+            out = json.load(r)
+        # Drop the file from the cached listing now: the stale-while-refresh
+        # cache would otherwise show it again until the next refresh lands.
+        with _lock:
+            d = _cache["data"] or {}
+            entry = d.get(cat) or {}
+            entry["files"] = [f for f in entry.get("files", [])
+                              if f.get("name") != filename]
+            entry["count"] = len(entry["files"])
+        _refresh_bg()
+        return out
     except urllib.error.HTTPError as e:
         raise HTTPException(e.code, e.read().decode(errors="replace")[:200])

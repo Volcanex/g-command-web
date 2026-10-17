@@ -28,7 +28,7 @@
   var meta = root.querySelector('[data-meta]');
 
   // The brief's bullets only: one line each, a click opens the rest. The
-  // services line is the health panel's job and stale by mid-morning, and
+  // services line is the health panel's job (skipped below) and stale by mid-morning, and
   // everything from the first subheading on is the compactor's working.
   function render(data) {
     meta.textContent = data && data.date ? FD.day(String(data.date)) : '';
@@ -39,8 +39,11 @@
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (line.indexOf('## ') === 0) break;
-      if (line.indexOf('- ') !== 0) continue;
-      line = FD.plain(line.slice(2)).trim();
+      // The compactor writes either "- " bullets or one short paragraph per
+      // fact ("Overdue: ..."); take both, skipping the title and blank lines.
+      if (!line.trim() || line.indexOf('#') === 0) continue;
+      line = FD.plain(line.indexOf('- ') === 0 ? line.slice(2) : line).trim();
+      if (/^Services:/.test(line)) continue;
       if (/^Promote to brain\?/.test(line)) { asks++; continue; }
       bullets.push(line);
     }

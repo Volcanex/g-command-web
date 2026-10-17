@@ -80,6 +80,7 @@
 
   .table td.name { max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .table td.when { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .table td.size { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .table td.act { text-align: right; }
 
   @media (max-width: 720px) {
@@ -132,7 +133,7 @@
     tbody.innerHTML = files.map(function (f) {
       return '<tr>'
         + '<td class="name"><a href="' + API + '/file/' + encodeURIComponent(f.name) + '" download>' + esc(f.name) + '</a></td>'
-        + '<td class="r">' + bytes(f.size) + '</td>'
+        + '<td class="r size">' + bytes(f.size) + '</td>'
         + '<td class="when">' + esc(fmtWhen(f.mtime)) + '</td>'
         + '<td class="act"><button class="btn btn-tertiary btn-sm btn-icon hold-btn" data-hold-ms="900"'
         + ' data-tip="Hold to delete" data-del="' + esc(f.name)

@@ -112,7 +112,7 @@
 <script>
 (async () => {
   // /note/<path...>: strip the /note/ prefix to get the brain path
-  const slug = decodeURIComponent(location.pathname.replace(/^\/note\//, '').replace(/\/$/, ''));
+  const slug = decodeURIComponent(location.pathname.replace(/^\/note(\/|$)/, '').replace(/\/$/, ''));
   const titleEl = document.querySelector('[data-title]');
 
   function escapeHtml(s) {

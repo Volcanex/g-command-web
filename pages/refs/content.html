@@ -39,7 +39,7 @@
   [data-summary], [data-ref-stats] { font-variant-numeric: tabular-nums; }
   .dim { color: var(--text-placeholder); }
   .refs-card { padding-top: 4px; padding-bottom: 4px; }
-  .refs-table td.url { word-break: break-all; }
+  .refs-table td.url { word-break: break-all; min-width: 224px; }
   .refs-table td.url a { color: var(--text-primary); text-decoration: none; }
   .refs-table td.url a:hover { text-decoration: underline; }
   .refs-table th.r, .refs-table td.n, .refs-table td.v {
@@ -77,10 +77,10 @@
     }
     rows.innerHTML = data.top.map(r => {
       const broken = r.status && (r.status.startsWith('http-4') || r.status.startsWith('http-5') || r.status.startsWith('error-'));
-      const safeUrl = r.url.replace(/"/g, '&quot;');
+      const safeUrl = r.url.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const badge = broken ? 'badge-danger' : (r.status ? 'badge-plain' : '');
       return `<tr class="${broken ? 'broken' : ''}">
-        <td class="url"><a href="${safeUrl}" target="_blank" rel="noopener">${r.url}</a></td>
+        <td class="url"><a href="${safeUrl}" target="_blank" rel="noopener">${safeUrl}</a></td>
         <td class="n">${r.notes}</td>
         <td class="v">${r.variants}</td>
         <td class="status">${r.status ? `<span class="badge ${badge}">${r.status}</span>` : ''}</td>
