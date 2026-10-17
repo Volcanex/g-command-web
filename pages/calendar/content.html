@@ -103,6 +103,15 @@
     /* Not enough room for the word at this size, the number still reads. */
     .day .dnum .routine::after { content: ""; }
   }
+  .chip.more .more-short { display: none; }
+  @media (max-width: 600px) {
+    /* A phone cell is about 36px wide: the routine count wraps under the
+       date instead of running out of the cell, and "2 more" becomes "+2". */
+    .day { padding: var(--sp-1); min-width: 0; overflow: hidden; }
+    .day .dnum { flex-wrap: wrap; column-gap: var(--sp-1); }
+    .chip.more .more-long { display: none; }
+    .chip.more .more-short { display: inline; }
+  }
 
   .chip {
     display: flex; align-items: center; gap: 6px;
@@ -447,7 +456,7 @@
             <span class="n">${d.getDate()}</span>
             ${routine.length ? `<span class="routine">${routine.length}</span>` : ''}
           </span>
-          ${shown}${extra ? `<span class="chip more">${extra} more</span>` : ''}
+          ${shown}${extra ? `<span class="chip more"><span class="more-long">${extra} more</span><span class="more-short">+${extra}</span></span>` : ''}
         </button>`);
     }
     grid.innerHTML = cells.join('');
