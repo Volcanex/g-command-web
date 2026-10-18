@@ -270,6 +270,9 @@
     const payload = {
       title,
       priority: fd.get('priority') || 'P1',
+      requester: 'gabriel',
+      composer: 'gabriel',
+      source: 'gcommand:todos',
     };
     const due = (fd.get('due') || '').toString().trim();
     if (due) payload.due = due;
