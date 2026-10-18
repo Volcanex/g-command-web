@@ -1,0 +1,278 @@
+<section class="lv-section" id="lv-results">
+  <div class="lvr-head">
+    <h2>Results</h2>
+    <a class="lvr-jump" href="#lv-taste">Grade verdicts</a>
+  </div>
+  <div class="lvr-body"><p class="lv-dim" data-lv-loading>Loading</p></div>
+
+<style>
+  /* Result colours: caught and impossible are the ones that matter, so they get full status
+     colour. The rest sit back as tinted versions of their status. */
+  #lv-results {
+    --r-caught: var(--danger-text);
+    --r-impossible: var(--warn-text);
+    --r-attempted: color-mix(in oklab, var(--info-text) 45%, transparent);
+    --r-waived: color-mix(in oklab, var(--text-placeholder) 55%, transparent);
+    --r-met: color-mix(in oklab, var(--ok-text) 40%, transparent);
+  }
+  #lv-results .lvr-head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-1); }
+  #lv-results .lvr-head h2 { margin: 0; }
+  #lv-results .lvr-jump { margin-left: auto; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-results .lvr-jump:hover { color: var(--text-primary); }
+  #lv-results .lvr-lede { margin: 0 0 var(--sp-4); color: var(--text-secondary); max-width: var(--col-text); line-height: var(--lh-2); }
+  #lv-results .c-caught { --c: var(--r-caught); }
+  #lv-results .c-impossible { --c: var(--r-impossible); }
+  #lv-results .c-attempted { --c: var(--r-attempted); }
+  #lv-results .c-waived { --c: var(--r-waived); }
+  #lv-results .c-met { --c: var(--r-met); }
+
+  /* Totals and the log timeline */
+  #lv-results .lvr-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-3); }
+  #lv-results .lvr-card { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+  #lv-results .lvr-k { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-results .lvr-big { display: flex; align-items: baseline; gap: var(--sp-2); }
+  #lv-results .lvr-big .v { font-size: 24px; line-height: var(--lh-5); font-weight: 500; letter-spacing: -0.01em; }
+  #lv-results .lvr-big .u { font-size: 13px; line-height: var(--lh-2); color: var(--text-secondary); }
+  #lv-results .lvr-stack { display: flex; height: var(--sp-3); border-radius: var(--radius-sm); overflow: hidden; background: var(--fill-active); gap: 2px; }
+  #lv-results .lvr-stack i { display: block; background: var(--c); min-width: 3px; }
+  #lv-results .lvr-legend { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: 0; padding: 0; list-style: none; }
+  #lv-results .lvr-legend li { display: flex; align-items: center; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-results .lvr-legend li::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+  #lv-results .lvr-legend b { font-weight: 500; color: var(--text-primary); }
+  #lv-results .lvr-legend .zero b { color: var(--text-placeholder); font-weight: 450; }
+
+  /* Day strip: a fixed run of slots, so one day of data reads as the start of a timeline */
+  #lv-results .lvr-days { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 3px; align-items: end; }
+  #lv-results .lvr-days .slot { position: relative; display: flex; flex-direction: column-reverse; height: var(--hgt, 64px); }
+  #lv-results .lvr-days .slot i { display: block; background: var(--c); flex: none; }
+  #lv-results .lvr-days .slot i + i { margin-bottom: 1px; }
+  #lv-results .lvr-days .slot.none::after,
+  #lv-results .lvr-days .slot.ahead::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 1px; background: var(--border-subtle); }
+  #lv-results .lvr-days .slot.ahead::after { background: none; border-bottom: 2px dotted var(--border-subtle); height: 0; }
+  #lv-results .lvr-days .slot.today::before { content: ""; position: absolute; left: 50%; bottom: -6px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: var(--text-secondary); }
+  #lv-results .lvr-axis { display: flex; justify-content: space-between; font-size: 11px; line-height: var(--lh-1); color: var(--text-placeholder); margin-top: var(--sp-2); }
+
+  /* Silent gates */
+  #lv-results .lvr-alert { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-3); border: 1px solid var(--danger-edge); border-radius: var(--radius-card); background: color-mix(in oklab, var(--danger-text) 8%, transparent); }
+  #lv-results .lvr-alert .mark { flex: none; width: var(--sp-2); height: var(--sp-2); margin-top: 6px; border-radius: 50%; background: var(--danger-text); box-shadow: 0 0 0 4px color-mix(in oklab, var(--danger-text) 20%, transparent); }
+  #lv-results .lvr-alert p { margin: 0; line-height: var(--lh-2); color: var(--text-primary); }
+  #lv-results .lvr-alert p + p { color: var(--text-secondary); font-size: 12px; line-height: var(--lh-1); margin-top: var(--sp-1); }
+  #lv-results .lvr-alert .mono { color: var(--danger-text); }
+
+  /* Per gate rows */
+  #lv-results .lvr-gates { padding: 0; overflow: hidden; }
+  #lv-results .lvr-colhead,
+  #lv-results .lvr-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.5fr) 128px 104px; gap: var(--sp-4); align-items: center; padding: var(--sp-3) var(--sp-4); }
+  #lv-results .lvr-colhead { padding-block: var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle); }
+  #lv-results .lvr-row + .lvr-row { border-top: 1px solid var(--border-subtle); }
+  #lv-results .lvr-row.silent { box-shadow: inset 2px 0 0 var(--danger-text); }
+  #lv-results .lvr-name { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  #lv-results .lvr-id { font-family: var(--font-mono); font-size: 12px; line-height: var(--lh-1); color: var(--text-primary); overflow-wrap: anywhere; }
+  #lv-results .lvr-id .pre { color: var(--text-placeholder); }
+  #lv-results .lvr-meta { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-results .lvr-bar { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+  #lv-results .lvr-bar .track { flex: 1; min-width: 0; display: flex; height: var(--sp-2); gap: 2px; }
+  #lv-results .lvr-bar .fill { display: flex; gap: 2px; height: 100%; border-radius: 2px; overflow: hidden; }
+  #lv-results .lvr-bar .fill i { display: block; height: 100%; background: var(--c); min-width: 3px; }
+  #lv-results .lvr-bar .n { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); min-width: 2ch; text-align: right; }
+  #lv-results .lvr-bar .hole { flex: 1; height: var(--sp-5); border: 1px dashed var(--danger-edge); border-radius: var(--radius-sm); display: flex; align-items: center; padding: 0 var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--danger-text); }
+  #lv-results .lvr-taste { font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); display: flex; flex-direction: column; gap: var(--sp-1); }
+  #lv-results .lvr-taste.has { color: var(--text-primary); }
+  #lv-results .lvr-taste .g-meter { height: 4px; }
+  #lv-results .lvr-foot { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-subtle); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-results .lvr-foot a { color: var(--text-primary); }
+
+  /* Quieter groups: pinned but waiting, and not pinned */
+  #lv-results .lvr-quiet { margin-top: var(--sp-4); display: grid; gap: var(--sp-4); }
+  #lv-results .lvr-group h3 { display: flex; align-items: center; gap: var(--sp-2); font-size: 13px; line-height: var(--lh-2); font-weight: 500; margin: 0 0 var(--sp-1); color: var(--text-secondary); }
+  #lv-results .lvr-group p { margin: 0 0 var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); }
+  #lv-results .lvr-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+  #lv-results .lvr-chips li { display: inline-flex; align-items: center; gap: var(--sp-2); height: var(--h-1); padding: 0 var(--sp-2); border: 1px dashed var(--border); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #lv-results .lvr-chips li span { color: var(--text-placeholder); font-family: var(--font-ui); }
+  #lv-results .lvr-group.dim { opacity: .55; }
+
+  @media (max-width: 720px) {
+    #lv-results .lvr-top { grid-template-columns: minmax(0, 1fr); }
+    #lv-results .lvr-colhead { display: none; }
+    #lv-results .lvr-row { grid-template-columns: minmax(0, 1fr) 96px; grid-template-areas: "name name" "bar bar" "days taste"; gap: var(--sp-2) var(--sp-4); }
+    #lv-results .lvr-row .lvr-name { grid-area: name; }
+    #lv-results .lvr-row .lvr-bar { grid-area: bar; }
+    #lv-results .lvr-row .lvr-days { grid-area: days; max-width: 160px; }
+    #lv-results .lvr-row .lvr-taste { grid-area: taste; }
+  }
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById("lv-results");
+  const body = root.querySelector(".lvr-body");
+  const ORDER = ["caught", "impossible", "attempted", "waived", "met"];
+  const SLOTS = 14;
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const esc = s => LV.esc(s);
+
+  const dayKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const parseDay = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+  const short = d => d.getDate() + " " + MON[d.getMonth()];
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+
+  function when(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (isNaN(d)) return LV.plain(ts);
+    const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    const diff = Math.round((parseDay(dayKey(new Date())) - parseDay(dayKey(d))) / 864e5);
+    if (diff === 0) return "today at " + hm;
+    if (diff === 1) return "yesterday at " + hm;
+    return short(d) + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
+  }
+
+  // The window starts on the first logged day and runs for SLOTS days, so early on the
+  // empty future shows as dotted slots. Once the log is longer, it shows the latest days.
+  function slotDays(days) {
+    const today = parseDay(dayKey(new Date()));
+    const first = days.length ? parseDay(days[0]) : today;
+    let start = first;
+    if (Math.round((today - first) / 864e5) >= SLOTS) start = addDays(today, -(SLOTS - 1));
+    return Array.from({ length: SLOTS }, (_, i) => addDays(start, i));
+  }
+
+  const sumCounts = c => ORDER.reduce((n, k) => n + (c[k] || 0), 0);
+  const tipFor = c => ORDER.filter(k => c[k]).map(k => c[k] + " " + k).join(", ");
+
+  function strip(slots, byDay, max, hgt) {
+    const todayK = dayKey(new Date());
+    const cells = slots.map(d => {
+      const k = dayKey(d), c = byDay[k], n = c ? sumCounts(c) : 0;
+      const cls = (k > todayK ? "ahead" : n ? "" : "none") + (k === todayK ? " today" : "");
+      const tip = short(d) + ": " + (k > todayK ? "still to come" : n ? tipFor(c) : "nothing logged");
+      const segs = n ? ORDER.filter(r => c[r]).map(r =>
+        `<i class="c-${r}" style="height:calc(${(c[r] / max * 100).toFixed(2)}% - 1px)"></i>`).join("") : "";
+      return `<div class="slot ${cls}" data-tip="${esc(tip)}">${segs}</div>`;
+    }).join("");
+    return `<div class="lvr-days" style="--n:${slots.length};--hgt:${hgt}px">${cells}</div>`;
+  }
+
+  function stackBar(c, total, scale) {
+    if (!total) return "";
+    const segs = ORDER.filter(r => c[r]).map(r =>
+      `<i class="c-${r}" style="flex:${c[r]} 0 0" data-tip="${esc(c[r] + " " + r)}"></i>`).join("");
+    return `<span class="fill" style="width:${(total / scale * 100).toFixed(2)}%">${segs}</span>`;
+  }
+
+  function idHtml(id) {
+    const s = LV.plain(id), i = s.indexOf(".");
+    return i < 0 ? esc(s) : `<span class="pre">${esc(s.slice(0, i + 1))}</span>${esc(s.slice(i + 1))}`;
+  }
+
+  function render(d) {
+    const res = d.results || {};
+    const gates = res.gates || [];
+    const reg = {};
+    ((d.registry || {}).gates || []).forEach(g => { reg[g.id] = g; });
+    const totals = res.totals || {};
+    const total = sumCounts(totals);
+    const days = (res.days || []).slice().sort();
+    const slots = slotDays(days);
+
+    // Overall per day, summed from the per gate days
+    const overall = {};
+    gates.forEach(g => (g.days || []).forEach(x => {
+      const o = overall[x.day] || (overall[x.day] = {});
+      ORDER.forEach(r => { o[r] = (o[r] || 0) + (x[r] || 0); });
+    }));
+    const dayMax = Math.max(1, ...Object.values(overall).map(sumCounts));
+
+    const silent = gates.filter(g => g.silent);
+    const active = gates.filter(g => g.total > 0 && !g.silent).sort((a, b) => b.total - a.total || a.gate.localeCompare(b.gate));
+    const waiting = gates.filter(g => !g.total && !g.silent && g.pinned);
+    const unpinned = gates.filter(g => !g.total && !g.silent && !g.pinned);
+    const pinned = gates.filter(g => g.pinned).length;
+    const reporting = gates.filter(g => g.pinned && g.total > 0).length;
+    const scale = Math.max(1, ...gates.map(g => g.total || 0));
+
+    let gateDayMax = 1;
+    gates.forEach(g => (g.days || []).forEach(x => { gateDayMax = Math.max(gateDayMax, sumCounts(x)); }));
+
+    const since = days.length ? short(parseDay(days[0])) : "";
+    let html = `<p class="lvr-lede">What each gate reported on its runs${since ? ", from the log that began on " + esc(since) : ""}. Caught means the sensor stopped the work, impossible means the gate could not run.</p>`;
+
+    // Totals and timeline
+    const legend = ORDER.map(r => `<li class="c-${r}${totals[r] ? "" : " zero"}"><b class="num">${totals[r] || 0}</b> ${r}</li>`).join("");
+    html += `<div class="lvr-top">
+      <div class="card lvr-card">
+        <span class="lvr-k">All results</span>
+        <div class="lvr-big"><span class="v num">${total}</span><span class="u">from ${reporting} of ${pinned} pinned gates</span></div>
+        <div class="lvr-stack">${total ? ORDER.filter(r => totals[r]).map(r => `<i class="c-${r}" style="flex:${totals[r]} 0 0" data-tip="${esc(totals[r] + " " + r)}"></i>`).join("") : ""}</div>
+        <ul class="lvr-legend">${legend}</ul>
+      </div>
+      <div class="card lvr-card">
+        <span class="lvr-k">Per day</span>
+        ${strip(slots, overall, dayMax, 64)}
+        <div class="lvr-axis"><span>${esc(short(slots[0]))}</span><span>${esc(short(slots[slots.length - 1]))}</span></div>
+      </div>
+    </div>`;
+
+    if (silent.length) {
+      const names = silent.map(g => `<span class="mono">${esc(LV.plain(g.gate))}</span>`).join(", ");
+      html += `<div class="lvr-alert" role="status"><span class="mark"></span><div>
+        <p>${silent.length === 1 ? "One gate is silent" : silent.length + " gates are silent"}: ${names}.</p>
+        <p>${silent.length === 1 ? "It is" : "They are"} pinned to run on every check and nothing has been logged. Silence is the one failure a gate is not allowed.</p>
+      </div></div>`;
+    }
+
+    // Gate rows: silent first, then by volume
+    const rows = silent.concat(active).map(g => {
+      const r = reg[g.gate] || {};
+      const trig = LV.plain(g.trigger || r.trigger || "");
+      const kind = LV.plain(r.kind || "");
+      const meta = [kind, trig].filter(Boolean).join(", ") + (g.registered === false ? ", not in the registry" : "");
+      const last = g.last ? "last " + when(g.last) : "never reported";
+      const byDay = {};
+      (g.days || []).forEach(x => { byDay[x.day] = x; });
+      const bar = g.silent
+        ? `<span class="hole">Silent, nothing logged</span>`
+        : `<span class="track">${stackBar(g.counts || {}, g.total, scale)}</span><span class="n num">${g.total}</span>`;
+      const taste = g.graded
+        ? `<div class="lvr-taste has"><span class="num">${g.agreed} of ${g.graded} agreed</span><span class="g-meter" data-zone="${g.taste >= .8 ? "ok" : g.taste >= .5 ? "warn" : "danger"}"><span class="g-meter-fill" style="width:${(g.taste * 100).toFixed(0)}%"></span></span></div>`
+        : `<div class="lvr-taste">Not graded</div>`;
+      return `<div class="lvr-row${g.silent ? " silent" : ""}">
+        <div class="lvr-name"><span class="lvr-id">${idHtml(g.gate)}</span><span class="lvr-meta">${esc(meta)}${meta ? ", " : ""}${esc(last)}</span></div>
+        <div class="lvr-bar">${bar}</div>
+        ${strip(slots, byDay, gateDayMax, 24)}
+        ${taste}
+      </div>`;
+    }).join("");
+
+    const graded = totals.graded || 0, agreed = totals.agreed || 0;
+    const foot = graded
+      ? `You agreed with <span class="num">${agreed}</span> of <span class="num">${graded}</span> graded verdicts. <a href="#lv-taste">Grade more below</a>.`
+      : `Nothing is graded yet, so the taste column is empty. <a href="#lv-taste">Grade a few verdicts below</a> and it fills in.`;
+
+    html += rows
+      ? `<div class="card lvr-gates">
+          <div class="lvr-colhead"><span>Gate</span><span>Results</span><span>Per day</span><span>Taste</span></div>
+          ${rows}
+          <div class="lvr-foot">${foot}</div>
+        </div>`
+      : `<div class="card empty"><span class="e-title">No results yet</span><span class="e-desc">Gates log here once an agent runs glevels check.</span></div>`;
+
+    const chips = list => list.map(g => `<li data-tip="${esc(LV.plain(g.gate))}">${esc(LV.plain(g.gate))} <span>${esc(LV.plain(g.trigger || ""))}</span></li>`).join("");
+    if (waiting.length || unpinned.length) {
+      html += `<div class="lvr-quiet">`;
+      if (waiting.length) html += `<div class="lvr-group"><h3>Pinned, no result yet <span class="badge badge-plain num">${waiting.length}</span></h3>
+        <p>Milestone and on-demand gates report when that work happens, so a gap here is expected for now.</p>
+        <ul class="lvr-chips">${chips(waiting)}</ul></div>`;
+      if (unpinned.length) html += `<div class="lvr-group dim"><h3>Not pinned <span class="badge badge-plain num">${unpinned.length}</span></h3>
+        <p>Registered, but no charter runs ${unpinned.length === 1 ? "it" : "them"}.</p>
+        <ul class="lvr-chips">${chips(unpinned)}</ul></div>`;
+      html += `</div>`;
+    }
+
+    body.innerHTML = html;
+  }
+
+  LV.on(render);
+})();
+</script>
+</section>

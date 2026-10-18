@@ -1,0 +1,14 @@
+{
+  "title": "Levels",
+  "slug": "levels",
+  "description": "g-levels: the gates and charters that check agent work, what they caught, the backlog of gates still to write, and where Gabriel spends his prompts.",
+  "nav": false,
+  "order": 36,
+  "body_class": "levels-page",
+  "nav_section": "g-core",
+  "nav_icon": "stairs",
+  "nav_label": "Levels",
+  "gsys": true,
+  "tabs": "system",
+  "tab_label": "Levels"
+}

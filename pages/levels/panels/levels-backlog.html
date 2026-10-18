@@ -1,0 +1,284 @@
+<section class="lv-section" id="lv-backlog">
+  <div class="lvb-head">
+    <h2>Gates still to write</h2>
+    <span class="lvb-meta" data-lvb-meta></span>
+  </div>
+  <div data-lvb-body><p class="lv-dim" data-lv-loading>Loading</p></div>
+
+<style>
+  #lv-backlog .lvb-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); margin: 0 0 var(--sp-3); }
+  #lv-backlog h2 { margin: 0; font-size: 18px; line-height: var(--lh-3); font-weight: 500; }
+  #lv-backlog .lvb-meta { font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); }
+  #lv-backlog .sub { font-size: 12px; line-height: var(--lh-2); color: var(--text-secondary); }
+  #lv-backlog .card-title { display: block; }
+
+  #lv-backlog .lvb-top { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-3); margin: 0 0 var(--sp-3); }
+  #lv-backlog .lvb-split, #lv-backlog .lvb-him { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+
+  #lv-backlog .lvb-strip { display: flex; height: var(--sp-5); border-radius: var(--radius-sm); overflow: hidden; gap: 2px; }
+  #lv-backlog .lvb-strip span { display: block; min-width: 2px; }
+  #lv-backlog .lvb-parts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+  #lv-backlog .lvb-part { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+  #lv-backlog .lvb-part .k { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-backlog .lvb-part .k i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+  #lv-backlog .lvb-part .v { font-size: 24px; line-height: var(--lh-4); font-weight: 500; color: var(--text-primary); letter-spacing: -0.01em; }
+  #lv-backlog .lvb-part .v small { font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-left: var(--sp-1); letter-spacing: 0; }
+  #lv-backlog .lvb-part .m { font-size: 12px; line-height: var(--lh-2); color: var(--text-secondary); }
+
+  #lv-backlog .lvb-hbars { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+  #lv-backlog .lvb-hbars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-1) var(--sp-2); font-size: 12px; line-height: var(--lh-1); }
+  #lv-backlog .lvb-hbars .l { color: var(--text-primary); min-width: 0; }
+  #lv-backlog .lvb-hbars .l em { font-style: normal; color: var(--text-secondary); }
+  #lv-backlog .lvb-hbars .n { color: var(--text-secondary); text-align: right; }
+  #lv-backlog .lvb-hbars .t { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--fill-hover); overflow: hidden; }
+  #lv-backlog .lvb-hbars .t span { display: block; height: 100%; border-radius: 2px; background: var(--text-placeholder); }
+
+  #lv-backlog .lvb-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-3); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-backlog .lvb-legend span { display: inline-flex; align-items: center; gap: var(--sp-2); }
+  #lv-backlog .lvb-legend i { width: 8px; height: 8px; border-radius: 2px; }
+  #lv-backlog .pip { width: 8px; height: 8px; border-radius: 2px; flex: none; box-sizing: border-box; display: inline-block; }
+  #lv-backlog .pip.built { background: var(--ok-text); }
+  #lv-backlog .pip.direct { border: 1.5px solid var(--info-text); }
+  #lv-backlog .pip.partial { border: 1.5px dashed var(--warn-text); }
+  #lv-backlog .pip.open { background: var(--fill-active); }
+
+  #lv-backlog .lvb-groups { columns: 2; column-gap: var(--sp-3); }
+  #lv-backlog .lvb-group { break-inside: avoid; margin: 0 0 var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+  #lv-backlog .lvb-ghead { display: flex; flex-direction: column; gap: var(--sp-1); }
+  #lv-backlog .lvb-gtitle { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+  #lv-backlog .lvb-gtitle .card-title { min-width: 0; }
+  #lv-backlog .lvb-gtitle .n { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  #lv-backlog .lvb-built { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-backlog .lvb-pips { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+  #lv-backlog .lvb-built b { color: var(--text-primary); font-weight: 500; }
+  #lv-backlog .lvb-plan { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-1) var(--sp-3); font-size: 12px; line-height: var(--lh-2); }
+  #lv-backlog .lvb-plan dt { color: var(--text-placeholder); }
+  #lv-backlog .lvb-plan dd { margin: 0; color: var(--text-secondary); }
+
+  #lv-backlog .lvb-list { display: flex; flex-direction: column; border-top: 1px solid var(--border-subtle); }
+  #lv-backlog details.lvb-c { border-bottom: 1px solid var(--border-subtle); }
+  #lv-backlog details.lvb-c > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto 12px; align-items: center; gap: var(--sp-1) var(--sp-2); padding: var(--sp-2) 0; }
+  #lv-backlog details.lvb-c > summary::-webkit-details-marker { display: none; }
+  #lv-backlog details.lvb-c > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+  #lv-backlog .rk { font-size: 11px; line-height: var(--lh-1); color: var(--text-placeholder); }
+  #lv-backlog .nm { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  #lv-backlog .nm .t { font-size: 13px; line-height: var(--lh-1); color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #lv-backlog .nm .bar { display: flex; align-items: center; gap: var(--sp-2); }
+  #lv-backlog .nm .bar span { display: block; height: 4px; border-radius: 2px; }
+  #lv-backlog .nm .bar b { font-size: 11px; line-height: var(--lh-1); font-weight: 400; color: var(--text-secondary); }
+  #lv-backlog .st { display: inline-flex; justify-content: flex-end; min-width: 0; }
+  #lv-backlog .st .badge { max-width: 200px; }
+  #lv-backlog .chev { width: 8px; height: 8px; border-right: 1.5px solid var(--text-placeholder); border-bottom: 1.5px solid var(--text-placeholder); rotate: -45deg; translate: -2px 0; }
+  #lv-backlog details[open] .chev { rotate: 45deg; translate: 0 -2px; }
+  #lv-backlog .lvb-x { display: flex; flex-direction: column; gap: var(--sp-2); padding: 0 0 var(--sp-3) 28px; font-size: 12px; line-height: var(--lh-2); color: var(--text-secondary); }
+  #lv-backlog .lvb-x .pr { color: var(--text-primary); font-size: 13px; }
+  #lv-backlog .lvb-x .mono { color: var(--text-primary); overflow-wrap: anywhere; }
+  #lv-backlog .lvb-x .ex { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+  #lv-backlog .lvb-x .ex li { padding: var(--sp-2) var(--sp-3); border-left: 2px solid var(--border-subtle); background: var(--fill-hover); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; overflow-wrap: anywhere; }
+  #lv-backlog [data-more] { display: contents; }
+  #lv-backlog [data-more][hidden] { display: none; }
+  #lv-backlog .lvb-more { align-self: flex-start; }
+
+  /* Masked reveal, once, left to right. */
+  #lv-backlog [data-reveal] { clip-path: inset(0 100% 0 0); }
+  #lv-backlog [data-reveal][data-on] { clip-path: inset(0 0 0 0); transition: clip-path 900ms var(--ease-out); }
+  @media (prefers-reduced-motion: reduce) {
+    #lv-backlog [data-reveal] { clip-path: none; transition: none; }
+  }
+
+  @media (max-width: 960px) {
+    #lv-backlog .lvb-top { grid-template-columns: 1fr; }
+    #lv-backlog .lvb-groups { columns: 1; }
+  }
+  @media (max-width: 520px) {
+    #lv-backlog .lvb-parts { grid-template-columns: 1fr; gap: var(--sp-2); }
+    #lv-backlog .lvb-part { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--sp-3); }
+    #lv-backlog .lvb-part .v { grid-column: 2; grid-row: 1; font-size: 18px; line-height: var(--lh-2); }
+    #lv-backlog .lvb-part .m { grid-column: 1 / -1; }
+    #lv-backlog details.lvb-c > summary { grid-template-columns: 20px minmax(0, 1fr) 12px; }
+    #lv-backlog .st { grid-column: 2; grid-row: 2; justify-content: flex-start; }
+    #lv-backlog .lvb-x { padding-left: 0; }
+  }
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById("lv-backlog");
+  const body = root.querySelector("[data-lvb-body]");
+  const esc = (s) => LV.esc(s);
+  const plain = (s) => LV.plain(s);
+  const num = (n) => Number(n || 0).toLocaleString("en-GB");
+  const WORDS = { ui: "UI", lod: "LOD", api: "API", mcp: "MCP", crm: "CRM" };
+  const human = (id) => {
+    const raw = String(id || "");
+    if (/^g-levels/.test(raw)) return "g-levels" + human(raw.slice(8)).replace(/^./, (c) => " " + c.toLowerCase());
+    const s = raw.replace(/[-_]+/g, " ").trim().split(" ").map((w) => WORDS[w] || w).join(" ");
+    return s ? s[0].toUpperCase() + s.slice(1) : "";
+  };
+  const gateShort = (id) => String(id || "").split(".").pop();
+  // Backlog text comes from a classifier that writes semicolons, which house copy does not use.
+  const prose = (s) => plain(s).replace(/;\s*(\w)/g, (m, c) => ". " + c.toUpperCase());
+  const TOP = 3;
+
+  const KIND = { correcting: "var(--chart-5)", design: "var(--chart-2)", none: "var(--text-placeholder)" };
+  const SPLIT = [
+    ["correcting", "Correcting", "You fixed agent work. A gate can catch this class next time."],
+    ["design", "Design", "You made a design call. A gate can ask the question first."],
+    ["none", "Needed you", "Direction, decisions and go-aheads. No gate absorbs these."],
+  ];
+  const HIM = {
+    "new-direction": "you set where to go next",
+    "operator-decision": "a call that was yours",
+    "status-or-explanation": "you asked what was going on",
+    "task-authorization": "you said go",
+    "insufficient-context": "the agent lacked context",
+    "user-context": "facts only you had",
+  };
+  const RECO = {
+    "new-gate": "Write a new gate",
+    "reuse-and-check-scope": "Reuse the existing gate and check its scope",
+    "extend-existing-and-add-sensor": "Extend the existing gate and add a sensor",
+  };
+
+  // A cluster is built when it names a registered gate, covered when an existing gate overlaps it.
+  function status(c) {
+    if (c.built) return { k: "built", gate: c.built };
+    const ov = (c.overlap || []).filter((o) => o && o.gate);
+    const direct = ov.find((o) => o.coverage === "direct");
+    if (direct) return { k: "direct", gate: direct.gate };
+    if (ov.length) return { k: "partial", gate: ov[0].gate };
+    return { k: "open" };
+  }
+
+  function badge(s) {
+    if (s.k === "built") return `<span class="badge badge-ok" data-tip="${esc("Registered as " + s.gate)}">Built</span>`;
+    if (s.k === "direct") return `<span class="badge badge-info" data-tip="${esc(s.gate + " covers this directly")}">Covered by ${esc(gateShort(s.gate))}</span>`;
+    if (s.k === "partial") return `<span class="badge badge-warn" data-tip="${esc(s.gate + " covers part of this")}">Partly ${esc(gateShort(s.gate))}</span>`;
+    return "";
+  }
+
+  function cluster(c, maxCount) {
+    const s = status(c);
+    const w = Math.max(2, Math.round((c.count || 0) / maxCount * 100));
+    const projects = Object.entries(c.projects || {}).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${plain(p)} ${n}`).join(", ");
+    const ex = (c.examples || []).slice(0, 2);
+    const overlaps = (c.overlap || []).filter((o) => o && o.gate && o.gate !== c.built);
+    return `<details class="lvb-c">
+      <summary>
+        <span class="rk num">${esc(c.rank)}</span>
+        <span class="nm"><span class="t">${esc(human(c.class))}</span>
+          <span class="bar"><span style="width:max(3px, calc(${w}% - 32px));background:${KIND[c.kind] || KIND.none}"></span><b class="num">${num(c.count)}</b></span></span>
+        <span class="st">${badge(s)}</span>
+        <span class="chev" aria-hidden="true"></span>
+      </summary>
+      <div class="lvb-x">
+        ${c.principle ? `<div class="pr">${esc(prose(c.principle))}</div>` : ""}
+        <div>${esc(human(c.kind))} cluster. Proposal: ${esc((RECO[c.recommendation] || human(c.recommendation)).toLowerCase())}${c.built ? `. Built as <span class="mono">${esc(c.built)}</span>` : ""}</div>
+        ${overlaps.length ? `<div>Existing cover: ${overlaps.map((o) => `<span class="mono">${esc(o.gate)}</span> ${esc(o.coverage === "direct" ? "directly" : "in part")}`).join(", ")}</div>` : ""}
+        ${projects ? `<div>Seen in ${esc(projects)}</div>` : ""}
+        ${ex.length ? `<ul class="ex">${ex.map((e) => `<li>${esc(plain(e))}</li>`).join("")}</ul>` : ""}
+      </div>
+    </details>`;
+  }
+
+  function group(g, byId, maxCount) {
+    const cs = (g.clusters || []).map((id) => byId[id]).filter(Boolean)
+      .sort((a, b) => (b.count || 0) - (a.count || 0) || (a.rank || 0) - (b.rank || 0));
+    const sts = cs.map(status);
+    const built = sts.filter((s) => s.k === "built").length;
+    const covered = sts.filter((s) => s.k === "direct" || s.k === "partial").length;
+    const pips = sts.map((s) => `<span class="pip ${s.k}"></span>`).join("");
+    const rest = cs.length - TOP;
+    return `<div class="card lvb-group" data-group="${esc(g.id)}">
+      <div class="lvb-ghead">
+        <div class="lvb-gtitle"><span class="card-title">${esc(human(g.id))}</span><span class="n num">${num(g.prompt_count)} prompts</span></div>
+        <div class="lvb-built"><span class="lvb-pips" aria-hidden="true">${pips}</span><span><b class="num">${built}</b> of <span class="num">${cs.length}</span> built${covered ? `, <span class="num">${covered}</span> already covered` : ""}</span></div>
+      </div>
+      <dl class="lvb-plan">
+        ${g.proposed_scope ? `<dt>Scope</dt><dd>${esc(prose(g.proposed_scope))}</dd>` : ""}
+        ${g.proposed_action ? `<dt>Action</dt><dd>${esc(prose(g.proposed_action))}</dd>` : ""}
+      </dl>
+      <div class="lvb-list">
+        ${cs.slice(0, TOP).map((c) => cluster(c, maxCount)).join("")}
+        ${rest > 0 ? `<div data-more hidden>${cs.slice(TOP).map((c) => cluster(c, maxCount)).join("")}</div>` : ""}
+      </div>
+      ${rest > 0 ? `<button type="button" class="btn btn-tertiary btn-sm lvb-more" data-more-btn data-n="${rest}">Show ${rest} more</button>` : ""}
+    </div>`;
+  }
+
+  function render(d) {
+    const B = d.backlog;
+    const meta = root.querySelector("[data-lvb-meta]");
+    if (!B) {
+      meta.textContent = "";
+      body.innerHTML = `<div class="card"><p class="lv-dim" style="margin:0">The backlog file is missing, so there are no clusters to show. It comes back when the next backlog run writes one.</p></div>`;
+      return;
+    }
+    const sm = B.summary || {};
+    const split = sm.split || {};
+    const total = sm.selected_prompts || SPLIT.reduce((a, [k]) => a + ((split[k] || {}).count || 0), 0);
+    const clusters = B.clusters || [];
+    const groups = (B.groups || []).slice().sort((a, b) => (b.prompt_count || 0) - (a.prompt_count || 0));
+    const byId = Object.fromEntries(clusters.map((c) => [c.class, c]));
+    const maxCount = Math.max(1, ...clusters.map((c) => c.count || 0));
+    const builtAll = clusters.filter((c) => c.built).length;
+    meta.textContent = `${num(total)} prompts sorted, ${B.created ? "run " + B.created : ""}`.replace(/, $/, "");
+
+    const strip = SPLIT.map(([k, label]) => {
+      const p = (split[k] || {}).percent || 0;
+      return `<span style="flex:${p} 1 0;background:${KIND[k]}" data-tip="${esc(label + ", " + num((split[k] || {}).count) + " prompts")}"></span>`;
+    }).join("");
+    const parts = SPLIT.map(([k, label, m]) => {
+      const s = split[k] || {};
+      return `<div class="lvb-part"><span class="k"><i style="background:${KIND[k]}"></i>${esc(label)}</span>
+        <span class="v num">${Math.round(s.percent || 0)}%<small>${num(s.count)}</small></span><span class="m">${esc(m)}</span></div>`;
+    }).join("");
+
+    const him = (B.needed_him || []).slice().sort((a, b) => (b.count || 0) - (a.count || 0));
+    const himMax = Math.max(1, ...him.map((h) => h.count || 0));
+    const himRows = him.map((h) => `<li><span class="l">${esc(human(h.class))} <em>${esc(HIM[h.class] || "")}</em></span><span class="n num">${num(h.count)}</span>
+      <span class="t"><span style="width:${Math.max(1, (h.count || 0) / himMax * 100)}%"></span></span></li>`).join("");
+
+    body.innerHTML = `
+      <div class="lvb-top">
+        <div class="card lvb-split">
+          <div><span class="card-title">What your prompts were doing</span>
+          <span class="sub">${num(sm.gate_addressable_prompts)} of ${num(total)} could become gates. The rest needed you.</span></div>
+          <div class="lvb-strip" data-reveal>${strip}</div>
+          <div class="lvb-parts">${parts}</div>
+        </div>
+        <div class="card lvb-him">
+          <div><span class="card-title">Prompts that needed you</span>
+          <span class="sub">No gate can absorb these. Sorted by count.</span></div>
+          <ul class="lvb-hbars" data-reveal>${himRows || `<li class="lv-dim">None recorded</li>`}</ul>
+        </div>
+      </div>
+      <div class="lvb-legend">
+        <span><i style="background:${KIND.correcting}"></i>Correcting</span>
+        <span><i style="background:${KIND.design}"></i>Design</span>
+        <span><span class="pip built"></span>Built as a gate</span>
+        <span><span class="pip direct"></span>Covered by an existing gate</span>
+        <span><span class="pip partial"></span>Partly covered</span>
+        <span><span class="pip open"></span>Still to write</span>
+        <span class="num">${num(clusters.length)} clusters in ${num(groups.length)} proposed charters, ${num(builtAll)} built</span>
+      </div>
+      <div class="lvb-groups">${groups.map((g) => group(g, byId, maxCount)).join("") || `<div class="card lv-dim">No clusters in this run.</div>`}</div>`;
+
+    body.querySelectorAll("[data-more-btn]").forEach((btn) => btn.addEventListener("click", () => {
+      const box = btn.closest(".lvb-group").querySelector("[data-more]");
+      const open = box.hidden;
+      box.hidden = !open;
+      btn.textContent = open ? "Show fewer" : `Show ${btn.dataset.n} more`;
+    }));
+
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const marks = body.querySelectorAll("[data-reveal]");
+    if (root._lvbShown || reduce) marks.forEach((m) => m.removeAttribute("data-reveal"));
+    else requestAnimationFrame(() => requestAnimationFrame(() => marks.forEach((m) => m.setAttribute("data-on", ""))));
+    root._lvbShown = true;
+  }
+
+  LV.on(render);
+})();
+</script>
+</section>
