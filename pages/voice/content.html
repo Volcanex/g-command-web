@@ -176,6 +176,11 @@
 
   let live = false, rec = null, gen = 0, abort = null;
   let queue = [], playing = null, speaking = '', busy = false;
+  // Echo guard: the whole of the bot's last reply, normalised, and a quiet
+  // window after playback ends so its tail is not sent back as a new turn.
+  let lastReply = '', echoUntil = 0;
+  const norm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const isEcho = (heard) => { const h = norm(heard); return !!h && (lastReply.includes(h) || norm(speaking).includes(h)); };
   window.talkMetrics = [];
 
   const setState = (t) => { stateEl.textContent = t; stateEl.classList.toggle('live', live); };
@@ -195,7 +200,7 @@
     if (abort) { abort.abort(); abort = null; }
     if (playing) { playing.pause(); playing = null; }
     if (window.speechSynthesis) speechSynthesis.cancel();
-    queue = []; speaking = ''; busy = false;
+    queue = []; speaking = ''; busy = false; echoUntil = 0;
     if (live) setState('Listening');
   }
 
@@ -236,7 +241,7 @@
         await speakFallback(item.text, g);
       }
     }
-    if (g === gen) { playing = null; speaking = ''; busy = false; setState(live ? 'Listening' : 'Off'); }
+    if (g === gen) { playing = null; speaking = ''; busy = false; echoUntil = performance.now() + 1000; setState(live ? 'Listening' : 'Off'); }
   }
 
   function report(m) {
@@ -276,6 +281,7 @@
           if (ev.t === 's') {
             if (!m.firstSentence) { m.firstSentence = performance.now(); m.serverFirstMs = ev.ms; }
             out.textContent += (out.textContent ? ' ' : '') + ev.text;
+            lastReply = norm(out.textContent);
             log.scrollTop = log.scrollHeight;
             queue.push({ text: ev.text, audio: fetchAudio(ev.text) });
             pump(g, m);
@@ -307,12 +313,15 @@
       partialEl.textContent = heard;
       // Barge-in: two words that are not the bot's own sentence coming back
       // through the speakers.
-      if ((playing || queue.length) && heard.split(/\s+/).length >= 2 && !speaking.includes(heard.toLowerCase())) {
+      if ((playing || queue.length) && heard.split(/\s+/).length >= 2 && !isEcho(heard)) {
         bargeIn();
       }
+      const audible = playing || queue.length || performance.now() < echoUntil;
       if (finalText.trim()) {
         partialEl.textContent = '';
-        if (!speaking.includes(finalText.trim().toLowerCase())) turn(finalText.trim());
+        // Final results are dropped while the bot is audible and for a second
+        // after, and whenever they match anything in its last reply.
+        if (!audible && !isEcho(finalText)) turn(finalText.trim());
       }
     };
     rec.onerror = (e) => { if (e.error === 'not-allowed') { stop(); setState('Microphone blocked'); } };
