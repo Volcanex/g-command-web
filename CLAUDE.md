@@ -11,7 +11,7 @@ name and the `gcommand` compat symlink on h keep the old name.
 
 ## What it does
 - Three dashes from one set of panels (`pages/full-dash/panels/`): `/home` the life dash (calendar for today and the week, todos, money, a one-line-per-bullet brief), `/ops` the system dash (compute quotas with reset times, health showing only what is down, tickets, crons, disk) and `/full-dash`, both at once with nothing below the fold at 1280x800, where `/` lands so a down service is never a tab away.
-- The sidebar is three short sections (Dash, Daily, Tools: Brain, Design, Files); everything else is a tab under one of those entries (System, Brain, Files) or under the setup wrench in the sidebar foot. Every old URL still serves.
+- The sidebar is three short sections (Dash, Daily, Tools: Brain, Design, Files, Runners); everything else is a tab under one of those entries (System, Brain, Files) or under the setup wrench in the sidebar foot. Every old URL still serves.
 - Renders the brain's graphs (notes, nerves, lineage, refs) by consuming the brain REST API at `BRAIN_API`.
 - `/design`: the g-design reference (guideline and component cards) in an index beside a frame. `compile.py` copies the checkout at `G_DESIGN_DOCS` (g-design's `apps/docs`) into `output/assets/design/` and indexes the cards by their `@dsCard` comment, so a g-design change shows here on the next restart.
 - `/graph`: the brain's wikilink graph in 3D (3d-force-graph, WebGL).
@@ -21,6 +21,7 @@ name and the `gcommand` compat symlink on h keep the old name.
 
   Two gotchas. Only the **regular** Phosphor weight is vendored here, so `ph-fill` renders an empty box: a starred row lost its star that way, and state has to be carried by colour. And the reminder ladder is shown short (`3 reminders, last 1 day before`) with the full list in a `data-tip`, because a five-rung vital ladder spelled out wrapped over three lines and buried the two facts worth reading. Recurrence is expanded server-side by `/api/todos/calendar`, which also carries overdue one-offs onto today rather than letting them vanish. Items show done (green, struck), failed (red, struck) or late, and vital ones carry a mark. The day panel ticks a single occurrence of a recurring todo without retiring the whole habit, and offers did-not-happen, tomorrow, next week and drop. Each item states the reminder ladder it will fire, so the page explains its own behaviour rather than leaving you to guess when ntfy pings.
 - `/tickets`: every g-admin ticket across every project that speaks the contract, aggregated live via `core/api/gadmin_panel.py`. No local store; same pattern as `/system`. Deep link `/tickets?project=<id>&id=<ticket>` filters to the project and opens that ticket (the desktop app, g-command-mac, uses it); `project` alone just filters.
+- `/runners`: the g-runner device fleet (devices online or stale, the queue, recent results with runner page rAF frame times and posted values), read live through `core/api/runners.py`, which holds the g-runner token server-side. Read only, refreshes every 5 s while visible.
 - Whole site is password-gated (one shared password, once per browser session).
 
 ## Stack
@@ -56,5 +57,5 @@ Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `
 | `pages/sessions/CLAUDE.md` | sessions: the terminal page |
 | `pages/upload/CLAUDE.md` | upload |
 
-_Auto-compiled 2026-10-13 17:11 UTC, 9 doc(s) found._
+_Auto-compiled 2026-10-18 13:32 UTC, 9 doc(s) found._
 <!-- DOCS:END -->

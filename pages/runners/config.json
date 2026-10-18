@@ -1,0 +1,12 @@
+{
+  "title": "Runners",
+  "slug": "runners",
+  "description": "The g-runner device fleet: devices, the queue and recent results.",
+  "nav": true,
+  "order": 23,
+  "body_class": "runners-page",
+  "nav_section": "Tools",
+  "nav_icon": "devices",
+  "nav_label": "Runners",
+  "gsys": true
+}

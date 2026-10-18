@@ -1,0 +1,258 @@
+<div class="page-head">
+  <h1>Runners</h1>
+  <span class="badge badge-plain num" id="run-count">Loading</span>
+  <span class="spacer"></span>
+  <span class="run-checked num" id="run-checked"></span>
+  <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="run-refresh"
+          aria-label="Refresh runners" data-tip="Refresh runners"></button>
+</div>
+<p class="page-sub">Real browsers that run test pages for agents, with the jobs they have queued and what came back. This page only reads the fleet, and agents queue jobs with <code>g-run</code>.</p>
+
+<div id="run-error" class="card run-error" hidden>
+  <i class="ph ph-warning-circle" aria-hidden="true"></i>
+  <div>
+    <div class="run-error-title" id="run-error-title">Can't reach g-runner</div>
+    <div class="muted" id="run-error-msg"></div>
+  </div>
+</div>
+
+<section class="run-section">
+  <h2>Devices</h2>
+  <div class="card run-card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Device</th><th>Status</th><th>GPU adapter</th><th>WebGPU</th><th>Screen</th><th>Current job</th></tr></thead>
+        <tbody id="run-devices"><tr><td colspan="6" class="muted">Loading devices</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="run-section">
+  <h2>Queue</h2>
+  <div class="card run-card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>URL</th><th>Device</th><th>By</th><th>State</th><th class="r">Age</th><th class="r">Attempts</th></tr></thead>
+        <tbody id="run-queue"><tr><td colspan="6" class="muted">Loading queue</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="run-section">
+  <h2>Recent results</h2>
+  <p class="run-note muted">Frame times are the runner page's own rAF, not the framed page's frames. A page that cares posts its own numbers, shown under posted.</p>
+  <div class="card run-card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Result</th><th>Device</th><th>URL</th><th class="r">Runner page rAF (ms)</th><th>Posted</th><th>Ended</th><th class="r">Finished</th></tr></thead>
+        <tbody id="run-results"><tr><td colspan="7" class="muted">Loading results</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .run-checked { font-size: 12px; color: var(--text-placeholder); white-space: nowrap; }
+  .page-sub { margin: var(--sp-1) 0 var(--sp-5); color: var(--text-secondary); font-size: var(--font-size-ui); }
+  .muted { color: var(--text-secondary); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .run-section { margin-bottom: var(--sp-6); }
+  .run-section h2 { font-size: 14px; font-weight: 500; margin: 0 0 var(--sp-2); }
+  .run-note { font-size: 12px; margin: 0 0 var(--sp-2); }
+  .run-card { padding: 0; overflow: hidden; }
+  .run-card .table th:first-child, .run-card .table td:first-child { padding-left: var(--pad-card); }
+  .run-card .table th:last-child, .run-card .table td:last-child { padding-right: var(--pad-card); }
+  .table td.mono { font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+  .page-sub code { white-space: nowrap; }
+  .table td.url { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .table td.r, .table th.r { text-align: right; white-space: nowrap; }
+  .table td.gpu { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .run-sub { display: block; font-size: 12px; color: var(--text-secondary); }
+  .run-kv { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .run-empty { padding: var(--sp-3) 0; }
+  .run-empty code { font-family: var(--font-mono); }
+
+  .run-error {
+    display: flex; gap: var(--sp-3); align-items: flex-start;
+    padding: var(--pad-card); margin-bottom: var(--sp-5);
+    border-color: var(--warn-text);
+  }
+  .run-error i { font-size: 20px; color: var(--warn-text); }
+  .run-error-title { font-weight: 500; margin-bottom: var(--sp-1); }
+
+  @media (max-width: 720px) {
+    .table td.url { max-width: 140px; }
+    .table td.gpu { max-width: 120px; }
+    .run-kv { max-width: 140px; }
+    .run-card .table-wrap { overflow-x: auto; }
+  }
+</style>
+
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  const countEl = $('run-count'), checkedEl = $('run-checked'), refreshBtn = $('run-refresh');
+  const errEl = $('run-error'), errTitle = $('run-error-title'), errMsg = $('run-error-msg');
+  const devEl = $('run-devices'), queueEl = $('run-queue'), resEl = $('run-results');
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+  const plain = s => (window.g && g.plain) ? g.plain(String(s ?? '')) : String(s ?? '');
+  const sentence = s => { s = String(s ?? ''); return s ? s[0].toUpperCase() + s.slice(1) : s; };
+
+  function ago(ms, now) {
+    if (!ms) return '';
+    const s = Math.max(0, Math.round((now - ms) / 1000));
+    if (s < 90) return `${s} s ago`;
+    const m = Math.round(s / 60);
+    if (m < 90) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 36) return `${h} h ago`;
+    return `${Math.round(h / 24)} d ago`;
+  }
+  function age(ms, now) { return ago(ms, now).replace(' ago', ''); }
+  function clock(ms) {
+    if (!ms) return '';
+    return new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  function ms(v) { return (v == null || v === '') ? '' : (Math.round(Number(v) * 10) / 10); }
+  function shortUrl(u) {
+    try { const x = new URL(u); return x.host + x.pathname + x.search; } catch { return u || ''; }
+  }
+
+  const STATE_BADGE = { queued: 'badge-plain', claimed: 'badge-info' };
+  const EMPTY_DEVICES = `<div class="run-empty muted">No devices paired yet. Run <code>g-run --pair NAME</code> on h, then open the link it prints on the device.</div>`;
+
+  function renderDevices(devices, now) {
+    if (!devices.length) {
+      devEl.innerHTML = `<tr><td colspan="6">${EMPTY_DEVICES}</td></tr>`;
+      return;
+    }
+    devEl.innerHTML = devices.map(d => {
+      const info = d.info || {};
+      const gpu = info.gpu || {};
+      const sc = info.screen || {};
+      const screen = sc.w ? `${sc.w} x ${sc.h}${sc.dpr ? ` @${sc.dpr}x` : ''}` : '';
+      const status = d.online
+        ? `<span class="badge badge-ok">Online</span>`
+        : `<span class="badge badge-warn">Stale</span>`;
+      const seen = d.seen ? ago(d.seen, now) : 'never';
+      const job = d.job
+        ? `<span class="mono">${esc(typeof d.job === 'string' ? d.job : (d.job.id || ''))}</span>`
+        : '<span class="muted">Idle</span>';
+      const webgpu = info.webgpu === true ? 'Yes' : info.webgpu === false ? 'No' : '';
+      const unknown = '<span class="muted">Unknown</span>';
+      const adapter = gpu.adapter || gpu.description || info.webgl2_renderer || '';
+      return `<tr>
+        <td class="mono">${esc(d.name)}<span class="run-sub">${esc(info.platform || '')}</span></td>
+        <td>${status}<span class="run-sub num">Seen ${esc(seen)}</span></td>
+        <td class="gpu" title="${esc(adapter)}">${esc(adapter) || unknown}</td>
+        <td>${webgpu || unknown}</td>
+        <td class="num">${esc(screen) || unknown}</td>
+        <td>${job}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderQueue(queue, now, noDevices) {
+    if (!queue.length) {
+      const hint = noDevices ? ' Pair a device first, or jobs will sit here.' : '';
+      queueEl.innerHTML = `<tr><td colspan="6" class="muted">Nothing queued. Agents add jobs with <code>g-run URL</code>.${hint}</td></tr>`;
+      return;
+    }
+    queueEl.innerHTML = queue.map(j => `<tr>
+      <td class="url" title="${esc(j.url)}">${esc(shortUrl(j.url))}</td>
+      <td class="mono">${esc(j.state === 'claimed' && j.claimed_by ? j.claimed_by : j.device)}</td>
+      <td>${esc(plain(j.by || '')) || '<span class="muted">None</span>'}</td>
+      <td><span class="badge ${STATE_BADGE[j.state] || 'badge-plain'}">${esc(sentence(j.state))}</span></td>
+      <td class="r num">${esc(age(j.created, now))}</td>
+      <td class="r num">${esc(j.attempts ?? 0)}</td>
+    </tr>`).join('');
+  }
+
+  function renderResults(results) {
+    if (!results.length) {
+      resEl.innerHTML = `<tr><td colspan="7" class="muted">No finished jobs yet.</td></tr>`;
+      return;
+    }
+    resEl.innerHTML = results.map(j => {
+      const r = j.result || {};
+      const ok = j.state === 'done' && r.ok !== false;
+      const badge = ok
+        ? '<span class="badge badge-ok">Ok</span>'
+        : `<span class="badge ${j.state === 'failed' ? 'badge-danger' : 'badge-plain'}">${esc(sentence(j.state))}</span>`;
+      const f = r.frames;
+      const frames = f && f.count != null
+        ? `p50 ${ms(f.p50)}, p95 ${ms(f.p95)}<span class="run-sub">worst ${ms(f.worst)}, ${f.stalls ?? 0} stalls</span>`
+        : '<span class="muted">None</span>';
+      const posted = r.posted && Object.keys(r.posted).length
+        ? Object.entries(r.posted).map(([k, v]) => {
+            const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
+            return `<div class="run-kv" title="${esc(k)}: ${esc(val)}">${esc(k)}: ${esc(val)}</div>`;
+          }).join('')
+        : '<span class="muted">None</span>';
+      const why = j.reason || r.error || '';
+      return `<tr>
+        <td>${badge}</td>
+        <td class="mono">${esc(j.claimed_by || j.device)}</td>
+        <td class="url" title="${esc(j.url)}">${esc(shortUrl(j.url))}${why ? `<span class="run-sub">${esc(plain(why))}</span>` : ''}</td>
+        <td class="r num">${frames}</td>
+        <td>${posted}</td>
+        <td>${esc(sentence(r.ended || '')) || '<span class="muted">None</span>'}</td>
+        <td class="r num">${esc(clock(j.finished))}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function showError(e) {
+    errEl.hidden = false;
+    errTitle.textContent = e.code === 'no_token' ? 'No g-runner token set'
+      : e.code === 'rejected' ? 'g-runner refused the token'
+      : "Can't reach g-runner";
+    errMsg.textContent = e.message || '';
+    if (!loaded) {
+      const none = n => `<tr><td colspan="${n}" class="muted">Nothing to show until g-runner answers.</td></tr>`;
+      devEl.innerHTML = none(6); queueEl.innerHTML = none(6); resEl.innerHTML = none(7);
+    }
+  }
+  let loaded = false;
+
+  let busy = false;
+  async function load() {
+    if (busy) return;
+    busy = true;
+    try {
+      const r = await fetch('/api/runners/state', { credentials: 'same-origin' });
+      if (r.status === 401) { location.href = '/admin/login'; return; }
+      const data = await r.json().catch(() => ({ error: { code: 'bad', message: `This server answered ${r.status}.` } }));
+      checkedEl.textContent = `Checked ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+      if (data.error) { showError(data.error); countEl.textContent = 'Offline'; return; }
+      errEl.hidden = true;
+      const now = data.now || Date.now();
+      const devices = data.devices || [];
+      const online = devices.filter(d => d.online).length;
+      countEl.textContent = `${online} of ${devices.length} online`;
+      renderDevices(devices, now);
+      renderQueue(data.queue || [], now, !devices.length);
+      renderResults(data.results || []);
+      loaded = true;
+    } catch {
+      showError({ message: 'This page lost touch with the command server. It tries again every 5 s.' });
+    } finally {
+      busy = false;
+    }
+  }
+
+  refreshBtn.addEventListener('click', load);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  setInterval(() => { if (!document.hidden) load(); }, 5000);
+  load();
+})();
+</script>

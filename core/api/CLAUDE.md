@@ -12,6 +12,7 @@ for the discovery code.
 | `admin.py` | `/api/admin` | Cookie-based single-user auth: login / logout / verify, plus a browser-runnable test runner |
 | `gadmin.py` | `/api/gadmin` | This project's own g-admin ticket store (annotate/edit overlay backend) |
 | `gadmin_panel.py` | `/api/gadmin_panel` | Cross-project tickets panel: proxies every project that speaks the g-admin contract |
+| `runners.py` | `/api/runners` | Read-only, admin-gated proxy to g-runner (`GET /state`, `GET /jobs/{id}`) for `/runners`; adds the bearer token server-side |
 | `brain.py` | `/api/brain` | Admin-gated proxy to the g-brain REST API at `BRAIN_UPSTREAM`, so brain pages work without a public brain host |
 
 ## admin.py
@@ -73,6 +74,21 @@ raises past `_http`: a dead project shows up in the aggregate
 response's `degraded` list, never a 500. The admin-cookie gate is
 checked inline, same as `pages/gcore/api.py`, since the site-wide page
 gate in `server.py` doesn't cover `/api/*`.
+
+## runners.py
+
+Backs `/runners`. `GET /api/runners/state` fetches `${G_RUNNER_URL}/api/state`
+and `GET /api/runners/jobs/{id}` fetches one job, both with
+`Authorization: Bearer <token>` added here, so the token never reaches the
+browser. 3 s timeout. A missing token, a refused token or a dead upstream
+answers 200 with `{"error": {"code", "message"}, "upstream"}`, which the page
+shows as a card; never a 500. No enqueue or cancel from gcommand.
+
+| Env var | Default | What |
+|---|---|---|
+| `G_RUNNER_URL` | `http://127.0.0.1:8160` | g-runner base URL |
+| `G_RUNNER_TOKEN` | none | g-runner agent token (`RUNNER_TOKEN` there) |
+| `G_RUNNER_TOKEN_FILE` | `/etc/g-runner/token` | Read when `G_RUNNER_TOKEN` is unset; must be readable by the gcommand unit's user |
 
 ## How the gate works
 
