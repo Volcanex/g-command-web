@@ -1,0 +1,259 @@
+<section class="lv-section" id="lv-where">
+  <div class="lvw-head">
+    <h2>Where you work</h2>
+    <span class="lvw-unit" data-lvw-unit></span>
+  </div>
+  <div data-lvw-body><p class="lv-dim" data-lv-loading>Loading</p></div>
+
+<style>
+  #lv-where .lvw-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); margin: 0 0 var(--sp-3); }
+  #lv-where h2 { margin: 0; font-size: 18px; line-height: var(--lh-3); font-weight: 500; }
+  #lv-where .lvw-unit { font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); }
+
+  #lv-where .lvw-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin: 0 0 var(--sp-3); }
+  #lv-where .lvw-stat { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+  #lv-where .lvw-stat .k { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-where .lvw-stat .v { font-size: 28px; line-height: var(--lh-5); font-weight: 500; letter-spacing: -0.01em; color: var(--text-primary); }
+  #lv-where .lvw-stat .v small { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: var(--sp-1); letter-spacing: 0; }
+  #lv-where .lvw-stat .vs { font-size: 12px; line-height: var(--lh-2); color: var(--text-secondary); }
+  #lv-where .lvw-stat .vs b { font-weight: 450; color: var(--text-primary); }
+  #lv-where .lvw-stat .lead { font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); }
+  #lv-where .lvw-stat.is-lead .v { color: var(--text-primary); }
+  #lv-where .lvw-stat.is-lead { box-shadow: inset 3px 0 0 var(--text-primary); }
+
+  #lv-where .lvw-chart { display: flex; flex-direction: column; gap: var(--sp-3); }
+  #lv-where .lvw-chart .card-title { display: block; }
+  #lv-where .lvw-chart .sub { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-where .lvw-plot { position: relative; min-width: 0; }
+  #lv-where .lvw-plot svg { display: block; width: 100%; overflow: visible; }
+  #lv-where .lvw-plot text { font-family: var(--font-ui); font-size: 11px; fill: var(--text-placeholder); font-variant-numeric: tabular-nums; }
+  #lv-where .lvw-plot text.wk { fill: var(--text-secondary); }
+  #lv-where .lvw-plot text.n { fill: var(--text-secondary); }
+  #lv-where .lvw-plot text.flag { fill: var(--text-placeholder); font-size: 10px; }
+  #lv-where .lvw-plot text.rate { fill: var(--text-primary); font-weight: 500; }
+  #lv-where .lvw-plot .thin { opacity: 0.32; }
+  #lv-where .lvw-plot .partial-edge { fill: none; stroke: var(--text-secondary); stroke-width: 1; stroke-dasharray: 3 3; }
+  #lv-where .lvw-plot .halo { fill: none; stroke: var(--card-bg); stroke-width: 4.5; stroke-linejoin: round; stroke-linecap: round; }
+  #lv-where .lvw-plot .rate-line { fill: none; stroke: var(--text-primary); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+  #lv-where .lvw-plot .rate-line.thin-line { stroke-dasharray: 2 3; opacity: 1; }
+  #lv-where .lvw-plot .dot { fill: var(--text-primary); stroke: var(--card-bg); stroke-width: 2; }
+  #lv-where .lvw-plot .dot.hollow { fill: var(--card-bg); stroke: var(--text-primary); stroke-width: 1.5; }
+  #lv-where .lvw-plot .nbar { fill: var(--fill-active); }
+  #lv-where .lvw-plot .hit { fill: transparent; }
+  #lv-where .lvw-plot .rule { stroke: var(--border-subtle); stroke-width: 1; }
+
+  /* Masked reveal, once, left to right. */
+  #lv-where .lvw-plot[data-reveal] svg { clip-path: inset(0 100% 0 0); }
+  #lv-where .lvw-plot[data-reveal][data-on] svg { clip-path: inset(0 0 0 0); transition: clip-path 900ms var(--ease-out); }
+  @media (prefers-reduced-motion: reduce) {
+    #lv-where .lvw-plot[data-reveal] svg { clip-path: none; transition: none; }
+  }
+
+  #lv-where .lvw-key { display: grid; grid-template-columns: repeat(3, minmax(0, max-content)); gap: var(--sp-2) var(--sp-6); margin: 0; padding: 0; list-style: none; }
+  #lv-where .lvw-key li { display: grid; grid-template-columns: 8px 40px minmax(0, 1fr) 32px; align-items: baseline; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-1); min-width: 0; }
+  #lv-where .lvw-key i { width: 8px; height: 8px; border-radius: 2px; translate: 0 -1px; }
+  #lv-where .lvw-key .lv { color: var(--text-primary); font-weight: 500; }
+  #lv-where .lvw-key .m { color: var(--text-secondary); min-width: 0; }
+  #lv-where .lvw-key .s { color: var(--text-primary); text-align: right; }
+  #lv-where .lvw-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-where .lvw-legend span { display: inline-flex; align-items: center; gap: var(--sp-2); }
+  #lv-where .lvw-legend svg { width: 20px; height: 8px; overflow: visible; }
+  #lv-where .lvw-note { margin: 0; font-size: 12px; line-height: var(--lh-2); color: var(--text-placeholder); max-width: var(--col-text); }
+
+  @media (max-width: 720px) {
+    #lv-where .lvw-stats { grid-template-columns: 1fr 1fr; }
+    #lv-where .lvw-stat.is-lead { grid-column: 1 / -1; }
+    #lv-where .lvw-key { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById("lv-where");
+  const body = root.querySelector("[data-lvw-body]");
+  const NS = "http://www.w3.org/2000/svg";
+  const esc = (s) => LV.esc(s);
+  const pct = (x) => (x == null ? "-" : Math.round(x * 100) + "%");
+  const THIN = 50;
+
+  const COLOR = { "L-1": "var(--chart-5)", "L0": "var(--chart-4)", "L1": "var(--chart-1)", "L2": "var(--chart-3)", "L3": "var(--chart-6)", "other": "var(--text-placeholder)" };
+  const MEANING = {
+    "L-1": "You spell out the output by hand",
+    "L0": "Code makes the thing",
+    "L1": "Agents do the work, you re-prompt",
+    "L2": "Gates check agent work",
+    "L3": "You work on charters",
+    "other": "Not about the work level",
+  };
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const shortDate = (iso) => { const p = String(iso || "").split("-"); return p.length === 3 ? `${+p[2]} ${MONTHS[+p[1] - 1]}` : ""; };
+  const wkLabel = (w) => "W" + String(w.iso_week || "").split("W").pop();
+  const pp = (x) => (x == null ? "" : (x > 0 ? "+" : "") + x.toFixed(1) + " pts");
+
+  let state = null;
+
+  function node(tag, attrs, parent) {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(el);
+    return el;
+  }
+
+  function stats(L) {
+    const weeks = L.weeks || [];
+    const cur = weeks[weeks.length - 1];
+    const t = L.trend || {};
+    const a = t.first_four_weeks || {}, b = t.last_four_weeks || {};
+    if (!cur) return "";
+    const so = cur.partial_week ? "so far" : "";
+    return `<div class="lvw-stats">
+      <div class="card lvw-stat is-lead">
+        <span class="k">Correction rate this week</span>
+        <span class="v num">${pct(cur.correction_rate)}<small>${esc(so)}</small></span>
+        <span class="vs">First four weeks <b class="num">${pct(a.correction_rate)}</b>, last four <b class="num">${pct(b.correction_rate)}</b></span>
+        <span class="lead">Prompts where you fixed agent work. Push this down.</span>
+      </div>
+      <div class="card lvw-stat">
+        <span class="k">At gate or charter level</span>
+        <span class="v num">${pct(cur.l2_l3_share)}<small>${esc(so)}</small></span>
+        <span class="vs">First four weeks <b class="num">${pct(a.l2_l3_share)}</b>, last four <b class="num">${pct(b.l2_l3_share)}</b></span>
+      </div>
+      <div class="card lvw-stat">
+        <span class="k">Prompts this week</span>
+        <span class="v num">${(cur.prompts || 0).toLocaleString("en-GB")}<small>${esc(so)}</small></span>
+        <span class="vs"><b class="num">${cur.sessions || 0}</b> sessions, ${esc(wkLabel(cur))} from ${esc(shortDate(cur.week_start))}</span>
+      </div>
+    </div>`;
+  }
+
+  function draw(host, L) {
+    const weeks = L.weeks || [];
+    const levels = L.levels || [];
+    const W = Math.max(280, Math.floor(host.clientWidth));
+    const narrow = W < 560;
+    const padL = 40, padR = narrow ? 30 : 40, top = 22, plotH = narrow ? 150 : 190;
+    const labY = top + plotH + 16, dateY = labY + 14;
+    const nTop = (narrow ? labY : dateY) + 14, nH = 18, nTextY = nTop + nH + 14;
+    const H = nTextY + 4;
+    const n = weeks.length;
+    const slot = (W - padL - padR) / Math.max(n, 1);
+    const bw = Math.min(64, slot * (narrow ? 0.72 : 0.62));
+    const cx = (i) => padL + slot * i + slot / 2;
+    const y = (v) => top + plotH * (1 - v);
+    const maxN = Math.max(1, ...weeks.map((w) => w.prompts || 0));
+
+    host.innerHTML = "";
+    const svg = node("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img",
+      "aria-label": "Share of prompts at each level per week, with the correction rate drawn over it" }, host);
+
+    node("text", { x: padL - 6, y: top + 4, "text-anchor": "end" }, svg).textContent = "100%";
+    node("text", { x: padL - 6, y: top + plotH / 2 + 4, "text-anchor": "end" }, svg).textContent = "50%";
+    node("text", { x: padL - 6, y: top + plotH + 4, "text-anchor": "end" }, svg).textContent = "0";
+
+    weeks.forEach((w, i) => {
+      const thin = (w.prompts || 0) < THIN;
+      const g = node("g", { class: thin ? "thin" : "" }, svg);
+      let acc = 0;
+      const x0 = cx(i) - bw / 2;
+      levels.forEach((lv) => {
+        const s = (w.level_shares || {})[lv] || 0;
+        if (s <= 0) return;
+        const y1 = y(acc + s), y0 = y(acc);
+        node("rect", { x: x0, y: y1, width: bw, height: Math.max(0, y0 - y1 - (acc + s < 0.999 ? 1 : 0)), fill: COLOR[lv] || "var(--text-placeholder)", rx: 1 }, g);
+        acc += s;
+      });
+      if (w.partial_week) node("rect", { class: "partial-edge", x: x0 - 3, y: top - 3, width: bw + 6, height: plotH + 6, rx: 3 }, svg);
+      if (thin || w.partial_week) {
+        node("text", { class: "flag", x: cx(i), y: top - 8, "text-anchor": "middle" }, svg).textContent = w.partial_week ? "so far" : "few";
+      }
+      node("text", { class: "wk", x: cx(i), y: labY, "text-anchor": "middle" }, svg).textContent = wkLabel(w);
+      if (!narrow) node("text", { x: cx(i), y: dateY, "text-anchor": "middle" }, svg).textContent = shortDate(w.week_start);
+      const nh = Math.max(1, nH * (w.prompts || 0) / maxN);
+      node("rect", { class: "nbar", x: cx(i) - bw / 2, y: nTop + nH - nh, width: bw, height: nh, rx: 1 }, svg);
+      node("text", { class: "n", x: cx(i), y: nTextY, "text-anchor": "middle" }, svg).textContent = (w.prompts || 0).toLocaleString("en-GB");
+    });
+    node("line", { class: "rule", x1: padL, x2: W - padR, y1: nTop + nH + 0.5, y2: nTop + nH + 0.5 }, svg);
+
+    const pts = weeks.map((w, i) => [cx(i), y(w.correction_rate || 0), (w.prompts || 0) < THIN]);
+    const seg = (a, b) => `M${a[0].toFixed(1)},${a[1].toFixed(1)}L${b[0].toFixed(1)},${b[1].toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) {
+      const d = seg(pts[i - 1], pts[i]);
+      const thinSeg = pts[i - 1][2] || pts[i][2];
+      node("path", { class: "halo", d }, svg);
+      node("path", { class: "rate-line" + (thinSeg ? " thin-line" : ""), d }, svg);
+    }
+    pts.forEach((p) => node("circle", { class: "dot" + (p[2] ? " hollow" : ""), cx: p[0], cy: p[1], r: 3 }, svg));
+    const last = pts[pts.length - 1];
+    if (last) {
+      const t = node("text", { class: "rate", x: last[0] + bw / 2 + 6, y: last[1] + 4 }, svg);
+      t.textContent = pct(weeks[weeks.length - 1].correction_rate);
+    }
+
+    weeks.forEach((w, i) => {
+      const parts = levels.map((lv) => `${lv} ${pct((w.level_shares || {})[lv] || 0)}`).join(", ");
+      const tip = `${wkLabel(w)}${w.partial_week ? " so far" : ""}: ${(w.prompts || 0)} prompts, correction rate ${pct(w.correction_rate)}. ${parts}`;
+      const r = node("rect", { class: "hit", x: padL + slot * i, y: 0, width: slot, height: H }, svg);
+      r.setAttribute("data-tip", tip);
+    });
+  }
+
+  function render(d) {
+    const L = d.levels;
+    const unitEl = root.querySelector("[data-lvw-unit]");
+    if (!L) {
+      unitEl.textContent = "";
+      body.innerHTML = `<div class="card"><p class="lv-dim" style="margin:0">The levels summary file is missing, so this panel has nothing to draw. It comes back when the weekly classifier writes a new one.</p></div>`;
+      return;
+    }
+    unitEl.textContent = "Counted in human prompts, not hours or sessions";
+    const weeks = L.weeks || [];
+    const cur = weeks[weeks.length - 1] || {};
+    const t = L.trend || {};
+    const v = L.validation || {};
+    const levels = L.levels || [];
+
+    const key = levels.map((lv) => `<li><i style="background:${COLOR[lv] || "var(--text-placeholder)"}"></i><span class="lv">${esc(lv === "other" ? "Other" : lv)}</span><span class="m">${esc(MEANING[lv] || "")}</span><span class="s num">${pct((cur.level_shares || {})[lv] || 0)}</span></li>`).join("");
+
+    const notes = [];
+    // The classifier writes its caution with semicolons, which house copy does not use.
+    if (t.caution) notes.push(esc(LV.plain(t.caution).replace(/;\s*(\w)/g, (m, c) => ". " + c.toUpperCase())));
+    if (v.sample_size) notes.push(`A hand check of ${v.sample_size} prompts agreed with the classifier on ${pct(v.level_agreement)} of levels and ${pct(v.correction_agreement)} of corrections.`);
+
+    body.innerHTML = `${stats(L)}
+      <div class="card lvw-chart">
+        <div>
+          <span class="card-title">Level share per week</span>
+          <span class="sub">Bars add to 100% of each week's prompts. The line is the correction rate on the same scale.</span>
+        </div>
+        <div class="lvw-plot" data-lvw-plot></div>
+        <div class="lvw-legend">
+          <span><svg viewBox="0 0 20 8"><path d="M1,4L19,4" stroke="var(--text-primary)" stroke-width="1.5"/><circle cx="10" cy="4" r="3" fill="var(--text-primary)"/></svg>Correction rate</span>
+          <span><svg viewBox="0 0 20 8"><path d="M1,4L19,4" stroke="var(--text-primary)" stroke-width="1.5" stroke-dasharray="2 3"/><circle cx="10" cy="4" r="2.5" fill="var(--card-bg)" stroke="var(--text-primary)" stroke-width="1.5"/></svg>Fewer than ${THIN} prompts, weak signal</span>
+          <span><svg viewBox="0 0 20 8"><rect x="2" y="0" width="16" height="8" rx="2" fill="none" stroke="var(--text-secondary)" stroke-dasharray="3 3"/></svg>Week still running</span>
+        </div>
+        <ul class="lvw-key">${key}</ul>
+        ${notes.map((n) => `<p class="lvw-note">${n}</p>`).join("")}
+      </div>`;
+
+    const host = body.querySelector("[data-lvw-plot]");
+    state = { host, L, w: 0 };
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!root._lvwShown && !reduce) host.setAttribute("data-reveal", "");
+    draw(host, L);
+    state.w = host.clientWidth;
+    if (!root._lvwShown && !reduce) requestAnimationFrame(() => requestAnimationFrame(() => host.setAttribute("data-on", "")));
+    root._lvwShown = true;
+  }
+
+  new ResizeObserver(() => {
+    if (!state || !state.host.isConnected) return;
+    const w = state.host.clientWidth;
+    if (Math.abs(w - state.w) < 2) return;
+    state.w = w;
+    draw(state.host, state.L);
+  }).observe(root);
+
+  LV.on(render);
+})();
+</script>
+</section>

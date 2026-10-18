@@ -1,0 +1,489 @@
+<section class="lv-section" id="lv-registry">
+  <div class="rg-head">
+    <h2>Registry</h2>
+    <p class="rg-sum lv-dim" data-rg-sum></p>
+  </div>
+  <div class="rg-fig" data-rg-fig><p class="lv-dim" data-lv-loading>Loading</p></div>
+  <div class="rg-key" data-rg-key></div>
+  <div class="rg-lint" data-rg-lint></div>
+</section>
+
+<style>
+  #lv-registry .rg-head { display: grid; gap: var(--sp-1); margin-bottom: var(--sp-3); }
+  #lv-registry .rg-sum { margin: 0; max-width: var(--col-text); }
+  #lv-registry .rg-fig { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-1); padding: var(--sp-3); min-width: 0; }
+  #lv-registry .rg-fig > svg { display: block; width: 100%; height: auto; overflow: visible; }
+  #lv-registry svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--text-secondary); }
+  #lv-registry svg .t-title { font-family: var(--font-ui); font-size: 13px; font-weight: 500; fill: var(--text-primary); }
+  #lv-registry svg .t-name { fill: var(--text-primary); }
+  #lv-registry svg .t-muted { fill: var(--text-muted); }
+  #lv-registry svg .t-kind { font-family: var(--font-ui); font-size: 12px; font-weight: 500; fill: var(--text-primary); }
+  #lv-registry svg .t-col { font-family: var(--font-ui); font-size: 12px; fill: var(--text-muted); }
+  #lv-registry svg .t-warn { fill: var(--warn-text); }
+  #lv-registry .box { fill: var(--bg); stroke: var(--border); }
+  #lv-registry .box.unpinned { stroke-dasharray: 4 3; stroke: var(--border-strong); }
+  #lv-registry .band { fill: var(--surface-2); stroke: none; }
+  #lv-registry .rule { stroke: var(--border); }
+  #lv-registry .stripe { fill: var(--c); }
+  #lv-registry .pin { fill: none; stroke: var(--c); stroke-width: 1.25; }
+  #lv-registry .pin.blocking { stroke-width: 2.75; }
+  #lv-registry .pin.waiver { stroke-dasharray: 3 3; }
+  #lv-registry .ext { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+  #lv-registry .ext-head { fill: var(--text-muted); }
+  #lv-registry .use { fill: none; stroke: var(--text-muted); stroke-width: 1; }
+  #lv-registry .blk { fill: var(--danger-text); }
+  #lv-registry .trig { fill: var(--text-secondary); }
+  #lv-registry .trig.hollow { fill: none; stroke: var(--text-secondary); stroke-width: 1.25; }
+  #lv-registry .tag-bg { fill: var(--surface-1); }
+  #lv-registry .nd { cursor: default; outline: none; }
+  #lv-registry .nd:focus-visible .box { stroke: var(--accent-fill); stroke-width: 2; }
+  #lv-registry .tag { outline: none; }
+  #lv-registry .tag:focus-visible .tag-bg { stroke: var(--accent-fill); stroke-width: 1.5; }
+  #lv-registry svg.lit .nd:not(.on),
+  #lv-registry svg.lit .lk:not(.on),
+  #lv-registry svg.lit .band-g:not(.on) { opacity: .2; }
+  #lv-registry svg.lit .pin.on { stroke-width: 2; }
+  #lv-registry svg.lit .pin.blocking.on { stroke-width: 3.5; }
+  #lv-registry .links { clip-path: inset(0 0 0 0); }
+  #lv-registry .links.reveal { animation: rg-wipe var(--dur-slow) var(--ease-out) both; }
+  @keyframes rg-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @media (prefers-reduced-motion: reduce) { #lv-registry .links.reveal { animation: none; } }
+
+  #lv-registry .rg-key { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin-top: var(--sp-3); font-size: 12px; line-height: var(--lh-2); color: var(--text-muted); }
+  #lv-registry .rg-key span { display: inline-flex; align-items: center; gap: var(--sp-2); }
+  #lv-registry .rg-key svg { width: 28px; height: 12px; flex: none; }
+  #lv-registry .rg-lint { margin-top: var(--sp-3); font-size: 13px; line-height: var(--lh-2); color: var(--text-secondary); display: grid; gap: var(--sp-1); }
+  #lv-registry .rg-lint .bad { color: var(--danger-text); }
+  #lv-registry .rg-lint .meh { color: var(--warn-text); }
+
+  /* phone: charter tree on top, gates as a list with their pins as marks */
+  #lv-registry .ph-h { font-size: 12px; line-height: var(--lh-2); color: var(--text-muted); margin: 0 0 var(--sp-2); }
+  #lv-registry .ph-ch { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-5); }
+  #lv-registry .ph-c { display: grid; grid-template-columns: 4px 1fr; gap: var(--sp-3); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3) var(--sp-2) 0; overflow: hidden; }
+  #lv-registry .ph-c::before { content: ""; background: var(--c); border-radius: 0 2px 2px 0; }
+  #lv-registry .ph-c.child { margin-left: var(--sp-5); position: relative; overflow: visible; }
+  #lv-registry .ph-c.child::after { content: ""; position: absolute; left: calc(-1 * var(--sp-4)); top: calc(-1 * var(--sp-2) - 1px); width: var(--sp-3); height: calc(50% + var(--sp-2)); border-left: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); border-bottom-left-radius: 6px; }
+  #lv-registry .ph-c b { display: block; font-weight: 500; font-size: 13px; line-height: var(--lh-2); color: var(--text-primary); }
+  #lv-registry .ph-c small { display: block; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-registry .ph-c small .mono { color: var(--text-primary); }
+  #lv-registry .ph-cols { columns: 2 320px; column-gap: var(--sp-3); }
+  #lv-registry .ph-cols > * { break-inside: avoid; }
+  #lv-registry .ph-cols > .ph-kind { break-after: avoid; }
+  #lv-registry .ph-kind::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--k); margin-right: var(--sp-2); }
+  #lv-registry .ph-kind { font-size: 12px; font-weight: 500; line-height: var(--lh-2); color: var(--text-primary); margin: var(--sp-3) 0 var(--sp-2); }
+  #lv-registry .ph-band { background: var(--surface-2); border-radius: var(--radius); padding: var(--sp-2); margin-bottom: var(--sp-2); }
+  #lv-registry .ph-band > p { margin: 0 0 var(--sp-1); font-family: var(--font-mono); font-size: 11px; line-height: var(--lh-1); color: var(--text-secondary); }
+  #lv-registry .ph-g { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--sp-2); margin-top: var(--sp-1); display: grid; gap: var(--sp-1); }
+  #lv-registry .ph-g.unpinned { border-style: dashed; border-color: var(--border-strong); }
+  #lv-registry .ph-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); min-width: 0; }
+  #lv-registry .ph-name { font-family: var(--font-mono); font-size: 12px; line-height: var(--lh-1); color: var(--text-primary); overflow-wrap: anywhere; min-width: 0; }
+  #lv-registry .ph-meta { font-family: var(--font-mono); font-size: 11px; line-height: var(--lh-1); color: var(--text-secondary); display: inline-flex; align-items: center; gap: var(--sp-2); flex: none; }
+  #lv-registry .ph-meta svg { width: 10px; height: 10px; }
+  #lv-registry .ph-pins { display: flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
+  #lv-registry .mk { display: inline-flex; align-items: center; gap: var(--sp-1); font-family: var(--font-mono); font-size: 11px; line-height: 18px; padding: 0 var(--sp-2); border-radius: var(--radius-full); border: 1.25px solid var(--c); color: var(--text-primary); outline: none; }
+  #lv-registry .mk.blocking { border-width: 2.5px; }
+  #lv-registry .mk.blocking::before { content: ""; width: 6px; height: 6px; background: var(--danger-text); }
+  #lv-registry .mk.waived { border-style: dashed; border-color: var(--text-muted); color: var(--text-secondary); }
+  #lv-registry .mk.behind { border-color: var(--warn-text); color: var(--warn-text); }
+  #lv-registry .mk:focus-visible { box-shadow: 0 0 0 2px var(--accent-fill); }
+  #lv-registry .ph-skill { font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+  #lv-registry .ph-un { font-size: 11px; color: var(--text-muted); }
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById("lv-registry");
+  const fig = root.querySelector("[data-rg-fig]");
+  const NS = "http://www.w3.org/2000/svg";
+  const SENSOR = { command: "cmd", review: "rev", hook: "hook" };
+  const TRIGGER = { "every-run": "every run", milestone: "at milestones", "on-demand": "on demand" };
+  const MONO = 6.6;
+  const KIND_C = p => p === "design" ? "var(--chart-2)" : p === "correct" ? "var(--chart-5)" : "var(--text-muted)";
+  let last = null, lastMode = null, lastW = 0, revealed = false;
+
+  function el(parent, tag, a, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in (a || {})) e.setAttribute(k, a[k]);
+    if (text != null) e.textContent = text;
+    parent.appendChild(e);
+    return e;
+  }
+  const P = s => LV.plain(s);
+  const H = s => LV.esc(LV.plain(s));
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : (many || one + "s"));
+  const clip = (s, px) => { const n = Math.max(4, Math.floor(px / MONO)); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+
+  function scope(c) {
+    if (!c.repos || !c.repos.length) return "reusable, via extends";
+    if (c.repos.includes("*")) return "every repo";
+    return (c.repos.length === 1 ? "repo " : "repos ") + c.repos.join(", ");
+  }
+  function waiverText(x) {
+    return "Waived for " + (x.repo === "*" ? "every repo" : x.repo) + ". " + (x.reason || "No reason given.") +
+      (x.review ? " Review by " + x.review + "." : "") + (x.approved_by ? " Approved by " + x.approved_by + "." : "");
+  }
+  function waiverLabel(link) {
+    const repos = [...new Set(link.exceptions.map(x => x.repo === "*" ? "every repo" : x.repo))];
+    return "waived for " + repos.join(", ");
+  }
+  function trigGlyph(svg, x, y, trigger) {
+    if (trigger === "every-run") return el(svg, "circle", { cx: x, cy: y, r: 3.5, class: "trig" });
+    if (trigger === "milestone") return el(svg, "path", { d: `M${x} ${y - 4.5}L${x + 4.5} ${y}L${x} ${y + 4.5}L${x - 4.5} ${y}Z`, class: "trig" });
+    return el(svg, "circle", { cx: x, cy: y, r: 3.25, class: "trig hollow" });
+  }
+
+  /* Shared model: gates grouped kind then domain, charter colours, links by end. */
+  function model(d) {
+    const reg = d.registry || { gates: [], charters: [], links: [], lint: {} };
+    const gates = reg.gates.slice();
+    const gateById = new Map(gates.map(g => [g.id, g]));
+    const charters = reg.charters.slice();
+    /* charters avoid chart-5 and chart-2, which the page uses for gate kinds */
+    const colour = new Map(charters.map((c, i) => [c.id, `var(--chart-${[6, 1, 3, 4, 5, 2][i % 6]})`]));
+    const links = reg.links.filter(l => gateById.has(l.gate) && colour.has(l.charter));
+    const pinned = new Set(links.filter(l => !l.waiver_only).map(l => l.gate));
+    const kindOrder = k => (k === "correct" ? "0" : "1") + k;
+    const kinds = [];
+    const byKind = new Map();
+    gates.sort((a, b) => kindOrder(a.prefix).localeCompare(kindOrder(b.prefix)) || a.domain.localeCompare(b.domain) || a.name.localeCompare(b.name));
+    for (const g of gates) {
+      if (!byKind.has(g.prefix)) { const k = { prefix: g.prefix, kind: g.kind, domains: [], byDomain: new Map() }; byKind.set(g.prefix, k); kinds.push(k); }
+      const k = byKind.get(g.prefix);
+      if (!k.byDomain.has(g.domain)) { const dm = { domain: g.domain, gates: [] }; k.byDomain.set(g.domain, dm); k.domains.push(dm); }
+      k.byDomain.get(g.domain).gates.push(g);
+    }
+    const skills = [...new Set(gates.filter(g => g.skill).map(g => g.skill))];
+    return { reg, gates, gateById, charters, colour, links, pinned, kinds, skills };
+  }
+
+  function summary(m) {
+    const pins = m.links.filter(l => !l.waiver_only);
+    const blocking = pins.filter(l => l.blocking).length;
+    const exc = m.links.reduce((n, l) => n + l.exceptions.length, 0);
+    const groups = m.kinds.reduce((n, k) => n + k.domains.length, 0);
+    const unpinned = m.gates.filter(g => !m.pinned.has(g.id)).length;
+    const behind = pins.filter(l => !l.current).length;
+    const parts = [plural(m.gates.length, "gate") + " in " + plural(groups, "group"), plural(m.charters.length, "charter"),
+      plural(pins.length, "pin") + (blocking ? ` (${blocking} blocking)` : ""), plural(exc, "exception"), plural(unpinned, "unpinned gate")];
+    if (behind) parts.push(plural(behind, "pin") + " behind its gate");
+    root.querySelector("[data-rg-sum]").textContent = parts.join(", ") + ".";
+  }
+
+  function lint(m) {
+    const box = root.querySelector("[data-rg-lint]");
+    const l = m.reg.lint || {};
+    const probs = l.problems || [], warns = l.warnings || [];
+    if (!probs.length && !warns.length) {
+      box.innerHTML = '<span><span class="badge badge-ok">Lint clear</span> No problems or warnings in the registry.</span>';
+      return;
+    }
+    box.innerHTML = probs.map(p => `<span class="bad">Problem: ${H(p)}</span>`).join("") +
+      warns.map(w => `<span class="meh">Warning: ${H(w)}</span>`).join("");
+  }
+
+  function legend(desktop) {
+    const sw = (inner) => `<svg viewBox="0 0 28 12" aria-hidden="true">${inner}</svg>`;
+    const items = [
+      [sw('<path d="M1 6H27" style="stroke:var(--chart-1);stroke-width:1.25"/>'), "pin, coloured by charter"],
+      [sw('<path d="M1 6H21" style="stroke:var(--chart-1);stroke-width:2.75"/><rect x="21" y="3" width="6" height="6" style="fill:var(--danger-text)"/>'), "blocking pin"],
+      [sw('<path d="M1 6H27" style="stroke:var(--text-muted);stroke-width:1.5;stroke-dasharray:3 3"/>'), "exception, hover the label for why"],
+      [sw('<path d="M1 6H27" style="stroke:var(--warn-text);stroke-width:1.5"/>'), "pin behind the gate version"],
+      [sw('<rect x="2" y="1" width="24" height="10" rx="2" style="fill:none;stroke:var(--border-strong);stroke-dasharray:4 3"/>'), "unpinned gate"],
+      [sw('<circle cx="14" cy="6" r="3.5" style="fill:var(--text-secondary)"/>'), "runs every run"],
+      [sw('<path d="M14 1.5L18.5 6L14 10.5L9.5 6Z" style="fill:var(--text-secondary)"/>'), "runs at milestones"],
+      [sw('<circle cx="14" cy="6" r="3.25" style="fill:none;stroke:var(--text-secondary);stroke-width:1.25"/>'), "runs on demand"],
+      [sw('<text x="14" y="9.5" text-anchor="middle" style="font:10px var(--font-mono);fill:var(--text-secondary)">cmd</text>'), "sensor type: cmd, rev for review, or hook"],
+    ];
+    if (desktop) {
+      items.splice(4, 0, [sw('<path d="M27 2C9 2 9 10 27 10" style="fill:none;stroke:var(--text-muted);stroke-width:1.5"/>'), "extends a wider charter"]);
+      items.push([sw('<path d="M1 6H27" style="stroke:var(--text-muted);stroke-width:1"/>'), "gate uses a skill"]);
+    }
+    root.querySelector("[data-rg-key]").innerHTML = items.map(([g, t]) => `<span>${g}${t}</span>`).join("");
+  }
+
+  /* ---------- wide: three columns, charters, gates, skills ---------- */
+  function wide(m, W) {
+    const ROW = 28, GH = 22, CH = 64, SKH = 22, PAD = 28;
+    const extendsLinks = [];
+    m.charters.forEach(c => (c.extends || []).forEach(p => { if (m.colour.has(p)) extendsLinks.push([c.id, p]); }));
+    const gutter = 20 + 12 * Math.max(1, extendsLinks.length);
+    const cx = gutter, cw = 232;
+    const skW = Math.max(110, ...m.skills.map(s => s.length * MONO + 24));
+    const skX = W - skW;
+    const gw = Math.max(260, Math.min(340, Math.round(W * 0.28)));
+    const gx = Math.round(cx + cw + (skX - cx - cw - gw) * 0.56);
+
+    const svg = document.createElementNS(NS, "svg");
+    fig.replaceChildren(svg);
+    const bands = el(svg, "g");
+    const linkG = el(svg, "g", { class: "links" + (revealed ? "" : " reveal") });
+    const nodeG = el(svg, "g");
+    const tagG = el(svg, "g");
+    revealed = true;
+
+    el(svg, "text", { x: cx, y: 12, class: "t-col" }, "Charters");
+    el(svg, "text", { x: gx, y: 12, class: "t-col" }, "Gates");
+    el(svg, "text", { x: skX, y: 12, class: "t-col" }, "Skills");
+
+    const nodes = new Map(), edges = [];
+    const gy = new Map();
+    let y = PAD;
+    for (const k of m.kinds) {
+      const n = k.domains.reduce((s, dm) => s + dm.gates.length, 0);
+      el(bands, "rect", { x: gx, y: y + 3, width: 8, height: 8, rx: 2, style: `fill:${KIND_C(k.prefix)}` });
+      el(bands, "text", { x: gx + 14, y: y + 12, class: "t-kind" }, (k.kind || k.prefix).replace(/^./, c => c.toUpperCase()) + " gates");
+      el(bands, "text", { x: gx + gw, y: y + 12, class: "t-muted", "text-anchor": "end" }, String(n));
+      el(bands, "line", { x1: gx, x2: gx + gw, y1: y + 19.5, y2: y + 19.5, class: "rule" });
+      y += 28;
+      for (const dm of k.domains) {
+        const top = y, h = 24 + dm.gates.length * ROW;
+        const bg = el(bands, "g", { class: "band-g", "data-key": "b:" + k.prefix + "." + dm.domain });
+        el(bg, "rect", { x: gx - 8, y: top, width: gw + 16, height: h, rx: 6, class: "band" });
+        el(bg, "text", { x: gx, y: top + 15 }, k.prefix + " > " + dm.domain);
+        y = top + 22;
+        for (const g of dm.gates) {
+          const cy = y + ROW / 2;
+          gy.set(g.id, cy);
+          const un = !m.pinned.has(g.id);
+          const nd = el(nodeG, "g", { class: "nd", tabindex: 0, role: "img", "data-key": "g:" + g.id,
+            "data-tip": `${g.id} v${g.version}. ${P(g.principle)}`.trim(),
+            "aria-label": `Gate ${g.id}, version ${g.version}, ${SENSOR[g.sensor] ? g.sensor : g.sensor || "no"} sensor, ${TRIGGER[g.trigger] || g.trigger}${un ? ", unpinned" : ""}` });
+          el(nd, "rect", { x: gx, y: cy - GH / 2, width: gw, height: GH, rx: 4, class: "box" + (un ? " unpinned" : "") });
+          el(nd, "text", { x: gx + 10, y: cy + 4, class: un ? "t-muted" : "t-name" }, clip(g.name, gw - 100));
+          el(nd, "text", { x: gx + gw - 64, y: cy + 4, "text-anchor": "end", class: "t-muted" }, "v" + g.version);
+          el(nd, "text", { x: gx + gw - 22, y: cy + 4, "text-anchor": "end" }, SENSOR[g.sensor] || (g.sensor || "").slice(0, 4));
+          trigGlyph(nd, gx + gw - 11, cy, g.trigger);
+          if (un) el(nd, "text", { x: gx - 14, y: cy + 4, "text-anchor": "end", class: "t-muted" }, "unpinned");
+          nodes.set("g:" + g.id, { kind: "g", el: nd, band: bg });
+          y += ROW;
+        }
+        y = top + h + 10;
+      }
+      y += 8;
+    }
+    const HT = Math.max(y, PAD + m.charters.length * (CH + 20));
+
+    /* Place a column of boxes near the mean y of what they link to, without overlap. */
+    function stack(items, size, gap) {
+      items.sort((a, b) => a.want - b.want);
+      let prev = PAD - gap;
+      for (const it of items) { it.top = Math.max(it.want - size / 2, prev + gap); prev = it.top + size; }
+      const over = prev - (HT - 4);
+      if (over > 0) for (let i = items.length - 1, lim = HT - 4; i >= 0; i--) { const t = Math.min(items[i].top, lim - size); items[i].top = Math.max(PAD, t); lim = items[i].top - gap; }
+      return items;
+    }
+    const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+    const cItems = m.charters.map((c, i) => {
+      const ys = m.links.filter(l => l.charter === c.id && !l.waiver_only).map(l => gy.get(l.gate));
+      return { c, want: mean(ys) ?? (PAD + i * (CH + 20) + CH / 2) };
+    });
+    stack(cItems, CH, 20);
+    const cTop = new Map();
+    for (const { c, top } of cItems) {
+      cTop.set(c.id, top);
+      const tip = [P(c.title) + ".", ...(c.principles || []).map(P)].join(" ");
+      const nd = el(nodeG, "g", { class: "nd", tabindex: 0, role: "img", "data-key": "c:" + c.id, "data-tip": tip,
+        "aria-label": `Charter ${c.id}, ${P(c.title)}, ${scope(c)}` });
+      nd.style.setProperty("--c", m.colour.get(c.id));
+      el(nd, "rect", { x: cx, y: top, width: cw, height: CH, rx: 6, class: "box" });
+      el(nd, "rect", { x: cx, y: top + 8, width: 3, height: CH - 16, rx: 1.5, class: "stripe" });
+      el(nd, "text", { x: cx + 14, y: top + 21, class: "t-title" }, clip(P(c.title), (cw - 24) * 1.1));
+      el(nd, "text", { x: cx + 14, y: top + 38, class: "t-name" }, clip(c.id, cw - 24));
+      el(nd, "text", { x: cx + 14, y: top + 53, class: "t-muted" }, clip(scope(c), cw - 24));
+      nodes.set("c:" + c.id, { kind: "c", el: nd });
+    }
+
+    const skItems = m.skills.map(s => ({ s, want: mean(m.gates.filter(g => g.skill === s).map(g => gy.get(g.id))) }));
+    stack(skItems, SKH, 10);
+    const skY = new Map();
+    for (const { s, top } of skItems) {
+      skY.set(s, top + SKH / 2);
+      const nd = el(nodeG, "g", { class: "nd", tabindex: 0, role: "img", "data-key": "s:" + s, "data-tip": "Skill " + s, "aria-label": "Skill " + s });
+      el(nd, "rect", { x: skX, y: top, width: skW, height: SKH, rx: SKH / 2, class: "box" });
+      el(nd, "text", { x: skX + 12, y: top + 15, class: "t-name" }, s);
+      nodes.set("s:" + s, { kind: "s", el: nd });
+    }
+
+    /* extends: curved arcs in the left gutter, child to parent, arrow at the parent */
+    extendsLinks.sort((a, b) => Math.abs(cTop.get(a[0]) - cTop.get(a[1])) - Math.abs(cTop.get(b[0]) - cTop.get(b[1])));
+    extendsLinks.forEach(([child, parent], i) => {
+      const y1 = cTop.get(child) + CH / 2 + 6, y2 = cTop.get(parent) + CH / 2 - 6;
+      const off = 14 + i * 12;
+      const g = el(linkG, "g", { class: "lk", "data-key": "e:" + child + ">" + parent });
+      el(g, "path", { d: `M${cx} ${y1}C${cx - off} ${y1} ${cx - off} ${y2} ${cx - 5} ${y2}`, class: "ext" });
+      el(g, "path", { d: `M${cx} ${y2}L${cx - 6} ${y2 - 4}L${cx - 6} ${y2 + 4}Z`, class: "ext-head" });
+      edges.push({ key: "e:" + child + ">" + parent, el: g, a: "c:" + child, b: "c:" + parent, type: "ext" });
+    });
+
+    /* pins: spread the start points down the charter's right edge, ordered by target */
+    const bez = (x1, y1, x2, y2, t) => {
+      const mx = (x1 + x2) / 2, u = 1 - t;
+      return [u * u * u * x1 + 3 * u * u * t * mx + 3 * u * t * t * mx + t * t * t * x2, u * u * u * y1 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y2];
+    };
+    function tag(x, y, text, cls, tip, key) {
+      const t = el(tagG, "g", { class: "tag lk", tabindex: tip ? 0 : -1, "data-key": key });
+      if (tip) { t.setAttribute("data-tip", tip); t.setAttribute("role", "img"); t.setAttribute("aria-label", tip); }
+      const bg = el(t, "rect", { class: "tag-bg", rx: 3 });
+      const tx = el(t, "text", { x, y: y + 4, "text-anchor": "middle", class: cls || "" }, text);
+      const w = (tx.getComputedTextLength && tx.getComputedTextLength()) || text.length * MONO;
+      bg.setAttribute("x", x - w / 2 - 4); bg.setAttribute("y", y - 8); bg.setAttribute("width", w + 8); bg.setAttribute("height", 16);
+      return t;
+    }
+    for (const c of m.charters) {
+      const own = m.links.filter(l => l.charter === c.id).sort((a, b) => gy.get(a.gate) - gy.get(b.gate));
+      const top = cTop.get(c.id);
+      own.forEach((l, i) => {
+        const x1 = cx + cw, y1 = top + 10 + (own.length === 1 ? (CH - 20) / 2 : i * (CH - 20) / (own.length - 1));
+        const x2 = gx - (l.blocking ? 7 : 1), y2 = gy.get(l.gate);
+        const key = "p:" + c.id + ">" + l.gate;
+        const g = el(linkG, "g", { class: "lk", "data-key": key });
+        g.style.setProperty("--c", l.current ? m.colour.get(c.id) : "var(--warn-text)");
+        const mx = (x1 + x2) / 2;
+        const p = el(g, "path", { d: `M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`,
+          class: "pin" + (l.blocking ? " blocking" : "") + (l.waiver_only ? " waiver" : "") });
+        if (l.blocking) el(g, "rect", { x: gx - 7, y: y2 - 3.5, width: 7, height: 7, class: "blk" });
+        if (l.exceptions.length && !l.waiver_only) { p.setAttribute("pathLength", "100"); p.setAttribute("stroke-dasharray", "40 3 3 3 3 3 3 3 3 3 100 0"); }
+        edges.push({ key, el: g, a: "c:" + c.id, b: "g:" + l.gate, type: "pin" });
+        if (l.exceptions.length) {
+          const at = p.getPointAtLength(p.getTotalLength() * 0.55);
+          const t = tag(at.x, at.y, waiverLabel(l), "", l.exceptions.map(waiverText).join(" "), key);
+          edges.push({ key, el: t, a: "c:" + c.id, b: "g:" + l.gate, type: "tag" });
+        }
+        if (!l.current && !l.waiver_only) {
+          const gt = m.gateById.get(l.gate);
+          const [tx, ty] = bez(x1, y1, x2, y2, 0.82);
+          const t = tag(tx, ty, `pins v${l.version}, now v${gt.version}`, "t-warn", `${c.id} pins ${l.gate} at v${l.version}. The registry is at v${gt.version}.`, key);
+          edges.push({ key, el: t, a: "c:" + c.id, b: "g:" + l.gate, type: "tag" });
+        }
+      });
+    }
+    /* gate to skill */
+    for (const g of m.gates) {
+      if (!g.skill) continue;
+      const x1 = gx + gw, y1 = gy.get(g.id), x2 = skX, y2 = skY.get(g.skill), mx = (x1 + x2) / 2;
+      const key = "u:" + g.id;
+      const p = el(linkG, "path", { d: `M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`, class: "use lk", "data-key": key });
+      edges.push({ key, el: p, a: "g:" + g.id, b: "s:" + g.skill, type: "use" });
+    }
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${HT}`);
+    svg.setAttribute("role", "group");
+    svg.setAttribute("aria-label", "Registry diagram. Charters on the left pin gates in the middle, which name skills on the right.");
+    interact(svg, nodes, edges);
+  }
+
+  function interact(svg, nodes, edges) {
+    function light(key) {
+      const on = new Set([key]);
+      if (key.startsWith("t:")) {
+        const t = edges[+key.slice(2)];
+        for (const e of edges) if (e.key === t.key) on.add(e.el);
+        on.add(t.a); on.add(t.b);
+        key = "";
+      }
+      const walk = (k, dir) => {
+        for (const e of edges) {
+          if (e.type === "ext") continue;
+          if (dir > 0 && e.a === k && !on.has(e.el)) { on.add(e.el); on.add(e.b); walk(e.b, 1); }
+          if (dir < 0 && e.b === k && !on.has(e.el)) { on.add(e.el); on.add(e.a); walk(e.a, -1); }
+        }
+      };
+      if (key) { walk(key, 1); walk(key, -1); }
+      if (key.startsWith("c:")) for (const e of edges) if (e.type === "ext" && (e.a === key || e.b === key)) { on.add(e.el); on.add(e.a); on.add(e.b); }
+      svg.classList.add("lit");
+      for (const [k, n] of nodes) {
+        const hit = on.has(k);
+        n.el.classList.toggle("on", hit);
+        if (n.band && hit) n.band.classList.add("on");
+      }
+      for (const e of edges) e.el.classList.toggle("on", on.has(e.el));
+    }
+    function clear() {
+      svg.classList.remove("lit");
+      svg.querySelectorAll(".on").forEach(e => e.classList.remove("on"));
+    }
+    const keyOf = t => {
+      const n = t.closest && t.closest(".nd");
+      if (n) return n.getAttribute("data-key");
+      const tg = t.closest && t.closest(".tag");
+      if (tg) { const i = edges.findIndex(x => x.el === tg); return i < 0 ? null : "t:" + i; }
+      return null;
+    };
+    svg.addEventListener("pointerover", e => { const k = keyOf(e.target); if (k) light(k); else clear(); });
+    svg.addEventListener("pointerleave", clear);
+    svg.addEventListener("focusin", e => { const k = keyOf(e.target); if (k) light(k); });
+    svg.addEventListener("focusout", e => { if (!svg.contains(e.relatedTarget)) clear(); });
+  }
+
+  /* ---------- narrow: charter tree, then gates as a list with pin marks ---------- */
+  function narrow(m) {
+    const kids = new Map();
+    const roots = [];
+    for (const c of m.charters) {
+      const p = (c.extends || []).find(x => m.colour.has(x));
+      if (p) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(c); } else roots.push(c);
+    }
+    const seen = new Set();
+    const card = (c, child) => {
+      seen.add(c.id);
+      const also = (c.extends || []).slice(1);
+      const ext = child ? `extends ${H(c.extends[0])}${also.length ? " and " + also.map(H).join(", ") : ""}` : "";
+      const lines = [`<span class="mono">${H(c.id)}</span> ${H(scope(c))}`];
+      if (ext) lines.push(ext);
+      return `<div class="ph-c${child ? " child" : ""}" style="--c:${m.colour.get(c.id)}" tabindex="0" data-tip="${H([c.title + ".", ...(c.principles || [])].join(" "))}">` +
+        `<div><b>${H(c.title)}</b>${lines.map(l => `<small>${l}</small>`).join("")}</div></div>`;
+    };
+    const tree = c => card(c, seen.size > 0 && (c.extends || []).length > 0) + (kids.get(c.id) || []).filter(k => !seen.has(k.id)).map(tree).join("");
+    let ch = roots.map(tree).join("");
+    ch += m.charters.filter(c => !seen.has(c.id)).map(c => card(c, true)).join("");
+
+    const glyph = t => t === "every-run" ? '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" style="fill:var(--text-secondary)"/></svg>'
+      : t === "milestone" ? '<svg viewBox="0 0 10 10"><path d="M5 .5L9.5 5L5 9.5L.5 5Z" style="fill:var(--text-secondary)"/></svg>'
+      : '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.25" style="fill:none;stroke:var(--text-secondary);stroke-width:1.25"/></svg>';
+    let gs = "";
+    for (const k of m.kinds) {
+      gs += `<p class="ph-kind" style="--k:${KIND_C(k.prefix)}">${H((k.kind || k.prefix).replace(/^./, c => c.toUpperCase()))} gates</p>`;
+      for (const dm of k.domains) {
+        gs += `<div class="ph-band"><p>${H(k.prefix)} &gt; ${H(dm.domain)}</p>`;
+        for (const g of dm.gates) {
+          const ls = m.links.filter(l => l.gate === g.id);
+          const marks = ls.map(l => {
+            const gt = g.version;
+            let out = "";
+            if (!l.waiver_only) {
+              const cls = "mk" + (l.blocking ? " blocking" : "") + (l.current ? "" : " behind");
+              const tip = `${l.charter} pins v${l.version}${l.blocking ? ", blocking" : ""}${l.current ? "" : `. The registry is at v${gt}.`}`;
+              out += `<span class="${cls}" style="--c:${m.colour.get(l.charter)}" tabindex="0" data-tip="${H(tip)}">${H(l.charter)}${l.current ? "" : " v" + H(l.version)}</span>`;
+            }
+            if (l.exceptions.length) out += `<span class="mk waived" tabindex="0" data-tip="${H(l.exceptions.map(waiverText).join(" "))}">${H(waiverLabel(l))}</span>`;
+            return out;
+          }).join("");
+          const un = !m.pinned.has(g.id);
+          gs += `<div class="ph-g${un ? " unpinned" : ""}" tabindex="0" data-tip="${H(g.principle)}">` +
+            `<div class="ph-row"><span class="ph-name">${H(g.name)}</span><span class="ph-meta"><span>v${H(g.version)}</span><span>${H(SENSOR[g.sensor] || g.sensor || "")}</span>${glyph(g.trigger)}</span></div>` +
+            `<div class="ph-pins">${marks || '<span class="ph-un">unpinned</span>'}${g.skill ? `<span class="ph-skill">skill ${H(g.skill)}</span>` : ""}</div></div>`;
+        }
+        gs += "</div>";
+      }
+    }
+    fig.innerHTML = `<p class="ph-h">Charters, widest first</p><div class="ph-ch">${ch}</div><p class="ph-h">Gates and the charters that pin them</p><div class="ph-cols">${gs}</div>`;
+  }
+
+  function render(d, force) {
+    last = d;
+    const W = Math.round(fig.clientWidth - 24);
+    const mode = W >= 820 ? "wide" : "narrow";
+    if (!force && mode === lastMode && (mode === "narrow" || Math.abs(W - lastW) < 2)) return;
+    lastMode = mode; lastW = W;
+    const m = model(d);
+    summary(m); lint(m); legend(mode === "wide");
+    if (!m.gates.length && !m.charters.length) { fig.innerHTML = '<p class="lv-dim">The registry has no gates or charters yet.</p>'; return; }
+    if (mode === "wide") wide(m, W); else narrow(m);
+  }
+
+  LV.on(d => render(d, true));
+  let raf = 0;
+  new ResizeObserver(() => { if (!last) return; cancelAnimationFrame(raf); raf = requestAnimationFrame(() => render(last)); }).observe(fig);
+})();
+</script>

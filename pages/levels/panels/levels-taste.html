@@ -1,0 +1,212 @@
+<section class="lv-section" id="lv-taste">
+  <div class="lvt-head">
+    <h2>Taste</h2>
+    <span class="badge badge-plain num" data-lvt-count hidden></span>
+  </div>
+  <p class="lvt-lede">A few recent verdicts the gates gave. Agree or disagree with each one, with a short reason if it helps. Your agreement rate is the only calibration a fuzzy sensor gets, so the gates themselves stay untuned.</p>
+  <div class="lvt-list"><p class="lv-dim" data-lv-loading>Loading</p></div>
+
+<style>
+  #lv-taste .lvt-head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-1); }
+  #lv-taste .lvt-head h2 { margin: 0; }
+  #lv-taste .lvt-lede { margin: 0 0 var(--sp-4); color: var(--text-secondary); max-width: var(--col-text); line-height: var(--lh-2); }
+  #lv-taste .lvt-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: var(--sp-3); align-items: start; }
+  #lv-taste .lvt-card { container-type: inline-size; padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+  #lv-taste .lvt-top { display: flex; align-items: flex-start; gap: var(--sp-3); }
+  #lv-taste .lvt-gate { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12px; line-height: var(--lh-2); color: var(--text-primary); overflow-wrap: anywhere; }
+  #lv-taste .lvt-gate .pre { color: var(--text-placeholder); }
+  #lv-taste .lvt-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px var(--sp-3); margin: 0; font-size: 12px; line-height: var(--lh-1); }
+  #lv-taste .lvt-facts dt { color: var(--text-placeholder); }
+  #lv-taste .lvt-facts dd { margin: 0; color: var(--text-secondary); overflow-wrap: anywhere; }
+  #lv-taste .lvt-facts .mono { color: var(--text-primary); }
+
+  /* The note is CLI output, so it keeps its own line breaks and spacing */
+  #lv-taste .lvt-note { position: relative; border: 1px solid var(--border-subtle); border-radius: var(--radius); background: var(--bg); }
+  #lv-taste .lvt-note pre { margin: 0; padding: var(--sp-2) var(--sp-3); font-family: var(--font-mono); font-size: 11px; line-height: var(--lh-1); color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; max-height: calc(var(--lh-1) * 7 + var(--sp-2) * 2); overflow: hidden; }
+  #lv-taste .lvt-note.open pre { max-height: none; }
+  #lv-taste .lvt-note.clamped:not(.open) pre { mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lh-3)), transparent); -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lh-3)), transparent); }
+  #lv-taste .lvt-more { display: none; margin: 0 var(--sp-3) var(--sp-2); }
+  #lv-taste .lvt-note.clamped .lvt-more { display: inline-flex; }
+  #lv-taste .lvt-empty-note { font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); }
+
+  #lv-taste .lvt-act { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+  #lv-taste .lvt-act .input { flex: 1 1 180px; min-width: 0; height: var(--h-control-sm); font-size: 12px; }
+  #lv-taste .lvt-act .btn { flex: none; position: relative; }
+  @container (max-width: 400px) {
+    #lv-taste .lvt-act .input { flex-basis: 100%; }
+    #lv-taste .lvt-act .btn { flex: 1 1 0; }
+  }
+  #lv-taste .lvt-err { margin: 0; font-size: 12px; line-height: var(--lh-1); color: var(--danger-text); }
+  #lv-taste .lvt-err:empty { display: none; }
+
+  /* Leaving: the card is wiped upward behind a clip, then its row closes. Height is
+     animated on purpose here, so the cards below slide up instead of jumping. */
+  #lv-taste .lvt-card.leaving { overflow: hidden; pointer-events: none; clip-path: inset(0 0 100% 0 round var(--radius-card));
+    transition: clip-path var(--dur-slow) var(--ease-out), height var(--spring-smooth-dur) var(--spring-smooth) var(--dur-slow), padding var(--spring-smooth-dur) var(--spring-smooth) var(--dur-slow), margin var(--spring-smooth-dur) var(--spring-smooth) var(--dur-slow); }
+  #lv-taste .lvt-card.leaving.closed { height: 0 !important; padding-block: 0; border-width: 0; margin-bottom: calc(var(--sp-3) * -1); }
+  @media (prefers-reduced-motion: reduce) {
+    #lv-taste .lvt-card.leaving { clip-path: none; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
+  }
+
+  #lv-taste .lvt-done { grid-column: 1 / -1; }
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById("lv-taste");
+  const list = root.querySelector(".lvt-list");
+  const count = root.querySelector("[data-lvt-count]");
+  const esc = s => LV.esc(s);
+  const BADGE = { caught: "badge-danger", impossible: "badge-warn", met: "badge-ok", attempted: "badge-info", waived: "badge-plain" };
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const NOTE_LINES = 7;
+
+  function when(ts) {
+    const d = new Date(ts);
+    if (!ts || isNaN(d)) return LV.plain(ts || "");
+    const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const day = new Date(d); day.setHours(0, 0, 0, 0);
+    const diff = Math.round((t - day) / 864e5);
+    if (diff === 0) return "Today at " + hm;
+    if (diff === 1) return "Yesterday at " + hm;
+    return d.getDate() + " " + MON[d.getMonth()] + " at " + hm;
+  }
+
+  function idHtml(id) {
+    const s = LV.plain(id), i = s.indexOf(".");
+    return i < 0 ? esc(s) : `<span class="pre">${esc(s.slice(0, i + 1))}</span>${esc(s.slice(i + 1))}`;
+  }
+
+  function card(v) {
+    const el = document.createElement("article");
+    el.className = "card lvt-card";
+    el.dataset.id = v.id;
+    const where = [v.repo, v.path].filter(Boolean).map(LV.plain).join("/");
+    const note = String(v.note || "").replace(/\s+$/, "");
+    const by = LV.plain(v.by || "unknown");
+    el.innerHTML = `
+      <div class="lvt-top">
+        <span class="lvt-gate">${idHtml(v.gate)}</span>
+        <span class="badge ${BADGE[v.result] || "badge-plain"}">${esc(LV.plain(v.result))}</span>
+      </div>
+      <dl class="lvt-facts">
+        <dt>Where</dt><dd><span class="mono">${esc(where || "-")}</span>${v.charter ? " under the " + esc(LV.plain(v.charter)) + " charter" : ""}</dd>
+        <dt>Recorded</dt><dd>${esc(when(v.ts))} by ${esc(by)}</dd>
+      </dl>
+      ${note
+        ? `<div class="lvt-note"><pre>${esc(note)}</pre><button type="button" class="btn btn-tertiary btn-sm lvt-more" aria-expanded="false">Show the full note</button></div>`
+        : `<span class="lvt-empty-note">No note was left with this verdict.</span>`}
+      <form class="lvt-act">
+        <input class="input" name="note" maxlength="200" autocomplete="off" placeholder="Why, optional" aria-label="Reason for your grade, optional">
+        <button type="submit" class="btn btn-secondary btn-sm" value="agree"><span>Agree</span><span class="spinner"></span></button>
+        <button type="submit" class="btn btn-secondary btn-sm" value="disagree"><span>Disagree</span><span class="spinner"></span></button>
+      </form>
+      <p class="lvt-err" role="alert"></p>`;
+
+    const box = el.querySelector(".lvt-note");
+    if (box) {
+      const more = box.querySelector(".lvt-more");
+      more.addEventListener("click", () => {
+        const open = box.classList.toggle("open");
+        more.setAttribute("aria-expanded", String(open));
+        more.textContent = open ? "Show less" : "Show the full note";
+      });
+    }
+    el.querySelector("form").addEventListener("submit", e => {
+      e.preventDefault();
+      grade(el, v, (e.submitter && e.submitter.value) || "agree");
+    });
+    return el;
+  }
+
+  // Clamp only notes that overflow, measured once the card is in the page
+  function clamp(el) {
+    const box = el.querySelector(".lvt-note");
+    if (!box || box.classList.contains("open")) return;
+    const pre = box.querySelector("pre");
+    box.classList.toggle("clamped", pre.scrollHeight > pre.clientHeight + 1);
+  }
+
+  function leave(el) {
+    return new Promise(done => {
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.style.height = el.offsetHeight + "px";
+      void el.offsetHeight;
+      el.classList.add("leaving");
+      if (!reduce) requestAnimationFrame(() => el.classList.add("closed"));
+      const finish = () => { el.remove(); done(); };
+      let ended = false;
+      el.addEventListener("transitionend", ev => {
+        if (ended || ev.target !== el) return;
+        if (reduce ? ev.propertyName === "opacity" : ev.propertyName === "height") { ended = true; finish(); }
+      });
+      setTimeout(() => { if (!ended) { ended = true; finish(); } }, 900);
+    });
+  }
+
+  async function grade(el, v, verdict) {
+    const form = el.querySelector("form");
+    const btn = form.querySelector(`button[value="${verdict}"]`);
+    const err = el.querySelector(".lvt-err");
+    const note = form.elements.note.value.trim();
+    err.textContent = "";
+    form.querySelectorAll("button, input").forEach(x => { x.disabled = true; });
+    btn.setAttribute("data-loading", "");
+    let r, msg = "";
+    try {
+      r = await fetch("/api/levels/grade", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: v.id, verdict, note }),
+      });
+      if (!r.ok) {
+        try { msg = (await r.json()).detail || ""; } catch (_) { msg = ""; }
+      }
+    } catch (_) { r = null; }
+    btn.removeAttribute("data-loading");
+
+    if (r && r.ok) {
+      g.toast({ title: verdict === "agree" ? "Agreed with the verdict" : "Disagreed with the verdict",
+                desc: LV.plain(v.gate) + (note ? ", with your note" : ""), kind: "ok" });
+      el.dataset.gone = "1";
+      await leave(el);
+      LV.reload();
+      return;
+    }
+    form.querySelectorAll("button, input").forEach(x => { x.disabled = false; });
+    if (!r) err.textContent = "The grade did not reach the server. Check the connection and press the button again.";
+    else if (r.status === 401) err.textContent = "Your session has ended. Reload the page, sign in, and grade it again.";
+    else if (r.status === 404) err.textContent = "This verdict is no longer in the log, so there is nothing to grade. Reload the page for a fresh sample.";
+    else err.textContent = "glevels grade did not record it (" + r.status + (msg ? ": " + LV.plain(msg).slice(0, 140) : "") + "). Your choice is still here, press the button again.";
+  }
+
+  // Keyed by result id, so a reload keeps any note you were typing on the cards that stay
+  function render(d) {
+    const sample = d.sample || [];
+    const want = new Set(sample.map(v => v.id));
+    list.querySelector("[data-lv-loading]")?.remove();
+    list.querySelector(".lvt-done")?.remove();
+    list.querySelectorAll(".lvt-card").forEach(el => { if (!want.has(el.dataset.id) && !el.dataset.gone) el.remove(); });
+    sample.forEach((v, i) => {
+      let el = list.querySelector(`.lvt-card[data-id="${CSS.escape(v.id)}"]`);
+      if (!el) el = card(v);
+      const at = list.querySelectorAll(".lvt-card:not([data-gone])")[i];
+      if (at !== el) list.insertBefore(el, at || null);
+    });
+    list.querySelectorAll(".lvt-card").forEach(clamp);
+
+    count.hidden = !sample.length;
+    count.textContent = sample.length + " to grade";
+    if (!sample.length) {
+      list.insertAdjacentHTML("beforeend", `<div class="card empty lvt-done">
+        <span class="e-title">Nothing left to grade</span>
+        <span class="e-desc">New verdicts land here as gates record them. The taste column above shows how often you agreed.</span>
+      </div>`);
+    }
+  }
+
+  LV.on(render);
+})();
+</script>
+</section>
