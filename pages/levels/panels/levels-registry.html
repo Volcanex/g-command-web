@@ -288,7 +288,7 @@
       nd.style.setProperty("--c", m.colour.get(c.id));
       el(nd, "rect", { x: cx, y: top, width: cw, height: CH, rx: 6, class: "box" });
       el(nd, "rect", { x: cx, y: top + 8, width: 3, height: CH - 16, rx: 1.5, class: "stripe" });
-      el(nd, "text", { x: cx + 14, y: top + 21, class: "t-title" }, clip(P(c.title), (cw - 24) * 1.1));
+      el(nd, "text", { x: cx + 14, y: top + 21, class: "t-title" }, clip(P(c.title), (cw - 28) * 0.9));
       el(nd, "text", { x: cx + 14, y: top + 38, class: "t-name" }, clip(c.id, cw - 24));
       el(nd, "text", { x: cx + 14, y: top + 53, class: "t-muted" }, clip(scope(c), cw - 24));
       nodes.set("c:" + c.id, { kind: "c", el: nd });
