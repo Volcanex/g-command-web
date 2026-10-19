@@ -19,6 +19,7 @@ import hmac
 import os
 import secrets
 import sys
+import threading
 import time
 import urllib.parse
 from pathlib import Path
@@ -37,6 +38,10 @@ router = APIRouter(tags=["app"])
 
 CODE_TTL = 300
 _codes: dict[str, float] = {}
+# One lock across code lookup and consumption, and across the limiter's
+# check, the compare and the failure record, so two requests in the thread
+# pool can neither redeem one code twice nor both slip under the limit.
+_lock = threading.Lock()
 
 
 def _require(request: Request) -> None:
@@ -66,7 +71,8 @@ def _take_code(code: str) -> bool:
 def pair_code(request: Request):
     _require(request)
     code = secrets.token_urlsafe(18)
-    _codes[code] = time.monotonic() + CODE_TTL
+    with _lock:
+        _codes[code] = time.monotonic() + CODE_TTL
     link = "gcommand://pair?" + urllib.parse.urlencode({"server": _origin(request), "code": code})
     try:
         import segno
@@ -86,19 +92,20 @@ class PairRequest(BaseModel):
 @router.post("/pair")
 def pair(req: PairRequest, request: Request):
     ip = _client_ip(request)
-    if _too_many_failures(ip):
-        raise HTTPException(429, "too many attempts; slow down")
-    if req.code:
-        ok = _take_code(req.code)
-    elif req.password:
-        if _admin_password() in _UNSET_PASSWORDS:
-            raise HTTPException(503, "Login is disabled until ADMIN_PASSWORD is set.")
-        ok = hmac.compare_digest(req.password.encode(), _admin_password().encode())
-    else:
-        ok = False
-    if not ok:
-        _record_login_failure(ip)
-        raise HTTPException(401, "wrong code or password")
+    with _lock:
+        if _too_many_failures(ip):
+            raise HTTPException(429, "too many attempts; slow down")
+        if req.code:
+            ok = _take_code(req.code)
+        elif req.password:
+            if _admin_password() in _UNSET_PASSWORDS:
+                raise HTTPException(503, "Login is disabled until ADMIN_PASSWORD is set.")
+            ok = hmac.compare_digest(req.password.encode(), _admin_password().encode())
+        else:
+            ok = False
+        if not ok:
+            _record_login_failure(ip)
+            raise HTTPException(401, "wrong code or password")
     token, device = auth.add_device(req.name, req.platform)
     return {"token": token, "device_id": device["id"], "cookie_name": auth.ADMIN_COOKIE}
 
