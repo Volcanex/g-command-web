@@ -10,5 +10,6 @@
   "tab_label": "Overview",
   "description": "What is down, compute quotas and their reset dates, tickets and crons.",
   "body_class": "full-dash-page ops-page",
-  "gsys": true
+  "gsys": true,
+  "panels": ["compute", "health", "tickets", "crons"]
 }

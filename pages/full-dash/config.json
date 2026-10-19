@@ -8,5 +8,6 @@
   "nav_section": "Dash",
   "nav_icon": "gauge",
   "nav_label": "Full dash",
-  "gsys": true
+  "gsys": true,
+  "panels": ["calendar", "tasks", "money", "brief", "health", "compute", "tickets", "crons"]
 }

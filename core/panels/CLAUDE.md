@@ -105,3 +105,14 @@ web page. A page opts in by listing `panels` in its `config.json`. For the
 dashes that list must match the order of the `seed:panel-*` tokens in its
 `content.html` (a test holds them together). The web layout still places
 the columns.
+
+## Implementation
+
+Each panel module exposes `build(ctx)`. The shared `builder` wrapper fills
+the panel envelope and turns failures into the panel's own error state.
+`context.py` supplies `ctx.get(path)` and a request-time London `ctx.now`.
+It reads Brain directly and calls the existing local API functions with
+the authenticated request. Tests inject fixture contexts with the same
+interface. `helpers.py` owns text flattening, date copy and chips.
+`manifest.py` mirrors the compiler's navigation rules without importing
+the compiler or mounting a route.

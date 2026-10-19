@@ -8,5 +8,6 @@
   "nav_icon": "sun-horizon",
   "nav_label": "Life",
   "gsys": true,
+  "panels": ["calendar", "brief", "tasks", "money"],
   "body_class": "full-dash-page life-page"
 }

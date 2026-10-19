@@ -14,6 +14,7 @@ for the discovery code.
 | `gadmin_panel.py` | `/api/gadmin_panel` | Cross-project tickets panel: proxies every project that speaks the g-admin contract |
 | `runners.py` | `/api/runners` | Read-only, admin-gated proxy to g-runner (`GET /state`, `GET /jobs/{id}`) for `/runners`; adds the bearer token server-side |
 | `brain.py` | `/api/brain` | Admin-gated proxy to the g-brain REST API at `BRAIN_UPSTREAM`, so brain pages work without a public brain host |
+| `panels.py` | `/api/panels` | Admin-gated shared dash view-models from `core/panels`, with safe panel error states |
 
 ## admin.py
 
