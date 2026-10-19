@@ -12,11 +12,12 @@ from starlette.requests import Request
 from core.api import panels as api
 from core.panels import PANELS, build
 from core.panels.context import Context
-from core.panels.helpers import TZ, day, fixed, london, plain, rel, rounded, span
+from core.panels.helpers import TZ, chip, day, fixed, london, plain, rel, rounded, span
 
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=TZ)
 CALENDAR_PATH = "/api/todos/calendar?date_from=2026-10-19&date_to=2026-10-25"
+CALENDAR_ERROR = {"title": "Not saved", "desc": "The brain did not accept the change. Try again from the calendar."}
 SOURCES = {
     "calendar": CALENDAR_PATH,
     "brief": "/api/pulse/brief",
@@ -73,15 +74,16 @@ def test_tasks_groups_without_reordering_within_priority():
     ctx = FixtureContext({SOURCES["tasks"]: items})
     assert build("tasks", ctx) == expected("tasks", meta="6 undated", blocks=[
         {"type": "rows", "title": "P0 1", "rows": [
-            {"id": "first", "title": "First job", "link": "/note/todos/first"}]},
+            {"id": "first", "title": "First job", "link": "/note/todos/first", "accent": "danger"}]},
         {"type": "rows", "title": "P1 2", "rows": [
-            {"id": "second", "title": "second", "link": "/note/todos/second", "trail": {"text": "Vital", "tone": "danger"}},
-            {"id": "third", "title": "third", "link": "/note/todos/third"}]},
+            {"id": "second", "title": "second", "link": "/note/todos/second", "accent": "warn",
+             "marks": [{"text": "Vital", "tone": "danger"}]},
+            {"id": "third", "title": "third", "link": "/note/todos/third", "accent": "warn"}]},
         {"type": "rows", "title": "P2 1", "rows": [
-            {"id": "p2", "title": "p2", "link": "/note/todos/p2"}]},
+            {"id": "p2", "title": "p2", "link": "/note/todos/p2", "accent": "accent"}]},
         {"type": "rows", "title": "P3 2", "rows": [
-            {"id": "fallback", "title": "fallback", "link": "/note/todos/fallback"},
-            {"id": "missing", "title": "missing", "link": "/note/todos/missing"}]},
+            {"id": "fallback", "title": "fallback", "link": "/note/todos/fallback", "accent": "muted"},
+            {"id": "missing", "title": "missing", "link": "/note/todos/missing", "accent": "muted"}]},
     ])
     assert ctx.calls == [SOURCES["tasks"]]
 
@@ -111,7 +113,7 @@ def test_brief_stops_at_workings_and_skips_services_and_promotions():
     data = {"date": "2026-10-19", "body": "# Brief\n\n- **Services:** stale count\n- **Overdue:** [[pay|Pay tax]]\nA plain fact.\nPromote to brain? one\n- Promote to brain? two\n## Working\n- Never shown"}
     assert build("brief", FixtureContext({SOURCES["brief"]: data})) == expected(
         "brief", meta="Mon 19 Oct", blocks=[{"type": "bullets", "items": [
-            {"text": "Overdue Pay tax"}, {"text": "A plain fact."},
+            {"label": "Overdue", "text": "Pay tax"}, {"text": "A plain fact."},
             {"text": "2 notes waiting to go into the brain", "link": "/pulse"}]}])
 
 
@@ -123,11 +125,22 @@ def test_brief_one_promotion_and_long_colon_prefix():
         {"text": "1 note waiting to go into the brain", "link": "/pulse"}]
 
 
+@pytest.mark.parametrize("line,item", [
+    ("- **Money:** [[bills|Pay bills]]: today", {"label": "Money", "text": "Pay bills: today"}),
+    ("A" * 39 + ": fact", {"label": "A" * 39, "text": "fact"}),
+    ("A" * 40 + ": fact", {"text": "A" * 40 + ": fact"}),
+    (": no lead", {"text": ": no lead"}), ("Money:", {"label": "Money", "text": ""}),
+])
+def test_brief_bold_label_uses_the_same_colon_boundary_as_javascript(line, item):
+    result = build("brief", FixtureContext({SOURCES["brief"]: {"body": line}}))
+    assert result["blocks"] == [{"type": "bullets", "items": [item]}]
+
+
 def calendar_row(slug, **fields):
     return {"id": slug + ":2026-10-19", "title": slug, "link": "/note/todos/" + slug,
-            "done": False, "struck": False,
+            "done": False, "struck": False, "accent": "muted", "title_tone": "plain",
             "action": {"label": "Mark done", "method": "PATCH", "path": "/api/brain/api/todos/" + slug,
-                       "body": {"status": "done"}}, **fields}
+                       "body": {"status": "done"}, "error": CALENDAR_ERROR}, **fields}
 
 
 def next_days():
@@ -149,8 +162,9 @@ def test_calendar_today_chronological_carried_triage_future_and_actions():
     following = next_days()
     following[0]["rows"] = [
         {"id": "future-a:2026-10-20", "title": "future-a", "link": "/note/todos/future-a", "done": True, "struck": True,
-         "lead": {"text": "09:00", "tone": "muted"}},
-        {"id": "future-z:2026-10-20", "title": "future-z", "link": "/note/todos/future-z", "done": False, "struck": False}]
+         "lead": {"text": "09:00", "tone": "muted"}, "accent": "muted", "title_tone": "muted"},
+        {"id": "future-z:2026-10-20", "title": "future-z", "link": "/note/todos/future-z", "done": False, "struck": False,
+         "accent": "muted", "title_tone": "plain"}]
     assert build("calendar", FixtureContext({CALENDAR_PATH: items})) == expected(
         "calendar", title="Today, Mon 19 Oct", meta="6 open today, 3 carried over", blocks=[
             {"type": "rows", "title": "Today 3", "rows": [
@@ -158,8 +172,10 @@ def test_calendar_today_chronological_carried_triage_future_and_actions():
                 calendar_row("later", lead={"text": "12:00", "tone": "muted"}), calendar_row("untimed")]},
             {"type": "rows", "title": "Carried over 3", "rows": [
                 calendar_row("star", trail={"text": "2 days late", "tone": "warn"}, action={
-                    "label": "Mark done", "method": "PATCH", "path": "/api/brain/api/todos/star", "body": {"done_date": "2026-10-19"}}),
-                calendar_row("vital", lead={"text": "!", "tone": "danger"}, trail={"text": "1 day late", "tone": "warn"}),
+                    "label": "Mark done", "method": "PATCH", "path": "/api/brain/api/todos/star", "body": {"done_date": "2026-10-19"},
+                    "error": CALENDAR_ERROR}),
+                calendar_row("vital", marks=[{"text": "!", "tone": "danger", "tip": "Vital"}],
+                             trail={"text": "1 day late", "tone": "warn"}),
                 calendar_row("late", lead={"text": "07:00", "tone": "muted"}, trail={"text": "3 days late", "tone": "warn"})]},
             *following])
 
@@ -174,10 +190,11 @@ def test_calendar_patch_for_and_settled_counts(recurring, done, failed, body):
     result = build("calendar", FixtureContext({CALENDAR_PATH: [item]}))
     row = result["blocks"][0]["rows"][0]
     assert row["action"] == {"label": "Mark not done" if done else "Mark done", "method": "PATCH",
-                             "path": "/api/brain/api/todos/one%20%2F%3F", "body": body}
+                             "path": "/api/brain/api/todos/one%20%2F%3F", "body": body, "error": CALENDAR_ERROR}
     assert row["done"] is done
     assert row["struck"] is (done or failed)
-    assert row["lead"] == {"text": "!", "tone": "danger"}
+    assert row["marks"] == [{"text": "!", "tone": "danger", "tip": "Vital"}]
+    assert "lead" not in row
     assert result["meta"] == f"{int(not done and not failed)} open today, 0 carried over"
 
 
@@ -187,6 +204,57 @@ def test_calendar_failed_carried_counts_like_javascript():
     result = build("calendar", FixtureContext({CALENDAR_PATH: items}))
     assert result["meta"] == "0 open today, 1 carried over"
     assert [row["title"] for row in result["blocks"][0]["rows"]] == ["done", "failed"]
+
+
+@pytest.mark.parametrize("category,tone", [
+    ("study", "accent"), ("deadline", "accent"), ("finance", "accent"), ("bill", "accent"),
+    ("family", "ok"), ("social", "ok"), ("health", "warn"), ("chore", "warn"),
+    ("work", "danger"), ("travel", "ok"), ("errand", "ok"), ("personal", "ok"),
+    ("other", "muted"), (None, "muted"),
+])
+@pytest.mark.parametrize("date", ["2026-10-19", "2026-10-20"])
+def test_calendar_category_accents_use_only_contract_tones(category, tone, date):
+    item = todo("one", date=date, category=category)
+    result = build("calendar", FixtureContext({CALENDAR_PATH: [item]}))
+    row = next(row for block in result["blocks"] for row in block["rows"])
+    assert row["accent"] == tone
+
+
+@pytest.mark.parametrize("date,fields,tone", [
+    ("2026-10-19", {}, "plain"), ("2026-10-19", {"done": True}, "ok"),
+    ("2026-10-19", {"failed": True}, "danger"),
+    ("2026-10-19", {"done": True, "failed": True}, "ok"),
+    ("2026-10-19", {"recurring": True}, "muted"),
+    ("2026-10-19", {"recurring": True, "done": True}, "muted"),
+    ("2026-10-19", {"recurring": True, "failed": True}, "muted"),
+    ("2026-10-19", {"recurring": True, "vital": True, "failed": True}, "danger"),
+    ("2026-10-19", {"recurring": True, "urgent": True}, "plain"),
+    ("2026-10-20", {"failed": True}, "plain"),
+    ("2026-10-20", {"done": True}, "ok"),
+    ("2026-10-20", {"recurring": True, "done": True}, "muted"),
+    ("2026-10-20", {"recurring": True, "vital": True}, "plain"),
+])
+def test_calendar_title_tone_follows_javascript_classes_and_css_order(date, fields, tone):
+    item = todo("one", date=date, **fields)
+    result = build("calendar", FixtureContext({CALENDAR_PATH: [item]}))
+    row = next(row for block in result["blocks"] for row in block["rows"])
+    assert row["title_tone"] == tone
+
+
+@pytest.mark.parametrize("date", ["2026-10-19", "2026-10-20"])
+def test_calendar_time_vital_and_lateness_do_not_replace_each_other(date):
+    item = todo("one", date=date, time="09:00", vital=True, urgent=True, late_days=2, category="health")
+    result = build("calendar", FixtureContext({CALENDAR_PATH: [item]}))
+    row = next(row for block in result["blocks"] for row in block["rows"])
+    assert row["lead"] == {"text": "09:00", "tone": "muted"}
+    assert row["marks"] == [{"text": "!", "tone": "danger", "tip": "Vital"}]
+    assert row["accent"] == "warn"
+    if date == "2026-10-19":
+        assert row["trail"] == {"text": "2 days late", "tone": "warn"}
+        assert row["action"]["error"] == CALENDAR_ERROR
+    else:
+        assert "trail" not in row
+        assert "action" not in row
 
 
 def test_health_ranks_services_and_dependencies_stably_and_counts_hosts():
@@ -236,25 +304,28 @@ def test_compute_fixed_quota_order_reset_copy_temperatures_and_footer():
     state = {"temps": {"claude": {"temp": "HOT"}, "codex": {"temp": "FREEZING"}}}
     result = build("compute", FixtureContext({SOURCES["compute"]: pace, "/api/compute/state": state}))
     assert result == expected("compute", meta="Read 1m ago", blocks=[
-        {"type": "line", "items": [{"text": "Hot", "tone": "ok", "badge": True}]},
-        {"type": "meter", "label": "Claude week", "value": 81, "max": 100, "text": "81% left"},
+        {"type": "line", "items": [{"text": "Hot", "tone": "ok", "badge": True, "tip": "Ahead, spend more"}]},
+        {"type": "meter", "label": "Claude week", "value": 81, "max": 100, "text": "81% left", "tone": "plain"},
         {"type": "line", "items": [{"text": "Resets Sun 25 Oct, 01:00", "tone": "muted"}, {"text": "in 5d 14h", "tone": "muted"}]},
-        {"type": "meter", "label": "Claude 5 hour", "value": 60, "max": 100, "text": "60% left"},
+        {"type": "meter", "label": "Claude 5 hour", "value": 60, "max": 100, "text": "60% left", "tone": "plain"},
         {"type": "line", "items": [{"text": "Resets 15:30", "tone": "muted"}, {"text": "in 3h 30m", "tone": "muted"}]},
-        {"type": "line", "items": [{"text": "Freezing", "tone": "danger", "badge": True}]},
-        {"type": "meter", "label": "Codex week", "value": 10, "max": 100, "text": "10% left"},
+        {"type": "line", "items": [{"text": "Freezing", "tone": "danger", "badge": True, "tip": "Will run out, ration it"}]},
+        {"type": "meter", "label": "Codex week", "value": 10, "max": 100, "text": "10% left", "tone": "warn"},
         {"type": "line", "items": [{"text": "Resets Sat 24 Oct, 21:41", "tone": "muted"}, {"text": "Runs out Fri 10:15", "tone": "warn"}]},
         {"type": "line", "items": [{"text": "OpenRouter $3.31 left of $50", "tone": "warn"}, {"text": "2.3h worked today", "tone": "muted"}]}])
 
 
-@pytest.mark.parametrize("temp,tone", [("EBURN", "ok"), ("BURN", "ok"), ("WARM", "ok"),
-                                        ("COOL", "plain"), ("COLD", "warn"), ("NEW", "plain")])
-def test_compute_other_temperature_tones(temp, tone):
+@pytest.mark.parametrize("temp,tone,tip", [
+    ("EBURN", "ok", "About to be wasted, spend all of it"), ("BURN", "ok", "Plenty spare, spend it"),
+    ("WARM", "ok", "Slightly ahead"), ("COOL", "plain", "On pace"),
+    ("COLD", "warn", "Behind, go easy"), ("NEW", "plain", ""),
+])
+def test_compute_other_temperature_tones(temp, tone, tip):
     pace = {"quotas": [{"id": "claude 7d", "remaining_pct": 20,
                         "resets_at": "2026-10-20T00:00:00Z", "seconds_to_reset": 46800}]}
     result = build("compute", FixtureContext({SOURCES["compute"]: pace,
                      "/api/compute/state": {"temps": {"claude": {"temp": temp}}}}))
-    assert result["blocks"][0]["items"] == [{"text": temp.lower().capitalize(), "tone": tone, "badge": True}]
+    assert result["blocks"][0]["items"] == [{"text": temp.lower().capitalize(), "tone": tone, "badge": True, "tip": tip}]
 
 
 def test_compute_state_failure_is_optional_and_zero_footers_are_shown():
@@ -270,6 +341,19 @@ def test_compute_countdown_uses_request_time_instead_of_snapshot_age():
     result = build("compute", FixtureContext({SOURCES["compute"]: {"quotas": [quota]}, "/api/compute/state": {}}))
     assert result["blocks"][2] == {"type": "line", "items": [
         {"text": "Resets 13:00", "tone": "muted"}, {"text": "in 1h 00m", "tone": "muted"}]}
+
+
+@pytest.mark.parametrize("key", ["claude 7d", "claude 5h", "codex 7d"])
+@pytest.mark.parametrize("runs_out_at,tone", [
+    (None, "plain"), ("2026-10-20T00:00:00Z", "warn"),
+    ("2026-10-21T00:00:00Z", "plain"), ("2026-10-22T00:00:00Z", "plain"),
+])
+def test_compute_meter_warning_depends_on_runout_before_reset(key, runs_out_at, tone):
+    quota = {"id": key, "remaining_pct": 80 if tone == "warn" else 1,
+             "resets_at": "2026-10-21T00:00:00Z", "runs_out_at": runs_out_at}
+    result = build("compute", FixtureContext({SOURCES["compute"]: {"quotas": [quota]}, "/api/compute/state": {}}))
+    meter = next(block for block in result["blocks"] if block["type"] == "meter")
+    assert meter["tone"] == tone
 
 
 def test_tickets_preserves_source_order_fallbacks_tones_links_and_degradation():
@@ -303,17 +387,34 @@ def test_crons_problems_hosts_next_limit_order_and_stale_copy():
     jobs = [{"name": f"job{i}", "host": "h", "next": base + 60 * i} for i in reversed(range(14))]
     jobs.append({"name": "unscheduled", "host": "h", "next": None})
     data = {"jobs": jobs, "stale": True, "hosts": [
-        {"id": "b", "status": "down", "error": "private http://upstream.invalid"}, {"id": "h", "status": "ok"}],
-        "problems": [{"host": "h", "name": "failed", "problem": "last run failed", "detail": "private detail"},
+        {"id": "b", "status": "down", "error": "**Connection** timed out"}, {"id": "h", "status": "ok"}],
+        "problems": [{"host": "h", "name": "failed", "problem": "last run failed", "detail": "**Exit status** `1`"},
                      {"host": "h", "name": "late", "problem": "overdue"}]}
-    rows = [{"id": f"h:job{i}", "title": f"job{i}", "detail": "h", "trail": {"text": f"13:{i:02d}", "tone": "muted"}} for i in range(12)]
+    rows = [{"id": f"h:job{i}", "title": f"job{i}", "detail": "h",
+             "trail": {"text": f"13:{i:02d}", "tone": "muted", "tip": f"job{i}"}} for i in range(12)]
     assert build("crons", FixtureContext({SOURCES["crons"]: data})) == expected(
         "crons", meta="15 jobs, stale", blocks=[
             {"type": "rows", "title": "Problems 3", "rows": [
-                {"id": "host:b", "title": "b", "detail": "Unreachable", "lead": {"text": "Host", "tone": "danger", "badge": True}},
-                {"id": "h:failed", "title": "failed", "detail": "last run failed", "lead": {"text": "h", "tone": "danger", "badge": True}},
+                {"id": "host:b", "title": "b", "detail": "Connection timed out",
+                 "lead": {"text": "Host", "tone": "danger", "badge": True, "tip": "Connection timed out"}},
+                {"id": "h:failed", "title": "failed", "detail": "last run failed",
+                 "lead": {"text": "h", "tone": "danger", "badge": True, "tip": "Exit status 1"}},
                 {"id": "h:late", "title": "late", "detail": "overdue", "lead": {"text": "h", "tone": "warn", "badge": True}}]},
             {"type": "rows", "title": "Next", "rows": rows}])
+
+
+def test_crons_description_tooltip_and_missing_host_error_fallback():
+    base = datetime(2026, 10, 19, 13, 0, tzinfo=TZ).timestamp()
+    data = {"jobs": [{"name": "backup", "host": "h", "next": base,
+                      "description": "**Back up** [[brain|notes]]"}],
+            "hosts": [{"id": "b", "status": "down"}]}
+    result = build("crons", FixtureContext({SOURCES["crons"]: data}))
+    assert result["blocks"][0]["rows"] == [
+        {"id": "host:b", "title": "b", "detail": "Unreachable",
+         "lead": {"text": "Host", "tone": "danger", "badge": True}}]
+    assert result["blocks"][1]["rows"] == [
+        {"id": "h:backup", "title": "backup", "detail": "h",
+         "trail": {"text": "13:00", "tone": "muted", "tip": "Back up notes"}}]
 
 
 EMPTY = [
@@ -432,6 +533,15 @@ def test_context_calls_local_functions_with_real_request_and_explicit_defaults(m
 ])
 def test_plain_matches_loaded_fd_helper(source, want):
     assert plain(source) == want
+
+
+def test_chip_supports_icon_only_marks_and_flattens_optional_tooltips():
+    assert chip("", "warn", icon="star", tip="**Starred** [[todo|task]]") == {
+        "text": "", "tone": "warn", "icon": "star", "tip": "Starred task"}
+    assert chip("Hot", "ok", True, tip="Ahead, spend more") == {
+        "text": "Hot", "tone": "ok", "badge": True, "tip": "Ahead, spend more"}
+    assert chip("Plain") == {"text": "Plain", "tone": "plain"}
+    assert chip("Unknown", tip="") == {"text": "Unknown", "tone": "plain", "tip": ""}
 
 
 @pytest.mark.parametrize("value,want", [

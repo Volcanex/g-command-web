@@ -21,9 +21,9 @@ def build(ctx):
             continue
         cut = line.find(":")
         if 0 < cut < 40:
-            line = line[:cut] + " " + line[cut + 1:]
-            line = " ".join(line.split())
-        bullets.append({"text": line})
+            bullets.append({"label": line[:cut], "text": line[cut + 1:].strip()})
+        else:
+            bullets.append({"text": line})
     if not bullets:
         return {"meta": meta, "state": "empty", "message": "No brief yet today."}
     if asks:

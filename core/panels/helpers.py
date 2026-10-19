@@ -97,10 +97,14 @@ def sort_text(value):
     return base.casefold(), normal.casefold(), text.swapcase()
 
 
-def chip(text, tone="plain", badge=False):
+def chip(text, tone="plain", badge=False, icon=None, tip=None):
     result = {"text": plain(text), "tone": tone}
     if badge:
         result["badge"] = True
+    if icon is not None:
+        result["icon"] = icon
+    if tip is not None:
+        result["tip"] = plain(tip)
     return result
 
 

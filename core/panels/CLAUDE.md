@@ -48,15 +48,23 @@ or writes its own copy for a panel is a bug: that logic drifts.
 Every block has `type`. Unknown types are skipped by clients, so a new type
 can ship server first.
 
-- `rows`: `{"type": "rows", "title": "Today"?, "empty": "Nothing planned"?, "rows": [Row]}`.
-  A titled `rows` block is a group (the calendar's days). `empty` is shown
-  when `rows` is empty.
+- `rows`: `{"type": "rows", "title": "Today"?, "count": 2?, "empty": "Nothing planned"?, "rows": [Row]}`.
+  A titled `rows` block is a group (the calendar's days). `count` is drawn
+  beside the title as a muted number, never baked into `title`. `empty` is
+  shown when `rows` is empty.
+- Any block may carry `"aside": true`: it belongs to the panel's secondary
+  column (the calendar's next days). A wide layout puts aside blocks beside
+  the rest, a narrow one after them.
 - `line`: `{"type": "line", "items": [Chip]}`, one wrapping line of short
   facts (`All 41 services up`, `h 30/30`).
 - `meter`: `{"type": "meter", "label": "Disk", "value": 71, "max": 100,
   "warn_at": 85, "danger_at": 95, "text": "71% used, 40 GB free"}`.
 - `meter`: optional `"tone"` colours the text and fill when the server
-  wants a tone other than the thresholds give.
+  wants a tone other than the thresholds give. A meter can be a small
+  card (a compute quota): optional `badge` (Chip after the label, the
+  temperature) and `sub` ([Chip], one line under the bar, first item at
+  the start and the rest at the end: `Resets Sun 25 Oct, 01:00` and
+  `in 5d 4h`). Head line: label, badge, bar, `text`.
 - `bullets`: `{"type": "bullets", "items": [{"text": "...", "label": "Money"?, "link": "/..."?}]}`,
   plain sentences (the brief). `label` is a short bold lead before the text.
 

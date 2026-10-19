@@ -4,6 +4,13 @@ from core.panels import builder
 from core.panels.helpers import chip, day, encoded, note, plain, row_id, sort_text
 
 
+CAT_TONES = {
+    "study": "accent", "deadline": "accent", "finance": "accent", "bill": "accent",
+    "family": "ok", "social": "ok", "health": "warn", "chore": "warn",
+    "work": "danger", "travel": "ok", "errand": "ok", "personal": "ok",
+}
+
+
 def chronological(item):
     return not bool(item.get("time")), item.get("time") or "", sort_text(item.get("title"))
 
@@ -15,25 +22,27 @@ def triage(item):
 
 def row(item, today):
     done = bool(item.get("done"))
+    routine = item.get("recurring") and not item.get("vital") and not item.get("urgent")
+    title_tone = "muted" if routine else "ok" if done else "danger" if today and item.get("failed") else "plain"
     result = {"id": row_id(item) + ":" + item["date"], "title": plain(item.get("title")),
               "link": note(item), "done": done,
-              "struck": done or (today and bool(item.get("failed")))}
+              "struck": done or (today and bool(item.get("failed"))),
+              "accent": CAT_TONES.get(item.get("category"), "muted"), "title_tone": title_tone}
     if item.get("time"):
         result["lead"] = chip(item["time"], "muted")
-    elif item.get("vital"):
-        result["lead"] = chip("!", "danger")
+    if item.get("vital"):
+        result["marks"] = [chip("!", "danger", tip="Vital")]
     if today and item.get("late_days"):
         days = item["late_days"]
         result["trail"] = chip("1 day late" if days == 1 else f"{days} days late", "warn")
-    elif item.get("vital") and item.get("time"):
-        result["trail"] = chip("!", "danger")
     if today:
         if item.get("recurring"):
             body = {"undone_date": item["date"], "unfailed_date": item["date"]} if done else {"done_date": item["date"]}
         else:
             body = {"status": "open" if done else "done"}
         result["action"] = {"label": "Mark not done" if done else "Mark done", "method": "PATCH",
-                            "path": "/api/brain/api/todos/" + encoded(item["slug"]), "body": body}
+                            "path": "/api/brain/api/todos/" + encoded(item["slug"]), "body": body,
+                            "error": {"title": "Not saved", "desc": "The brain did not accept the change. Try again from the calendar."}}
     return result
 
 

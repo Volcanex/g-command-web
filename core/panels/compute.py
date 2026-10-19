@@ -5,6 +5,9 @@ from core.panels.helpers import chip, fixed, london, parsed, rel, rounded, span
 QUOTAS = (("claude 7d", "Claude week", "claude"), ("claude 5h", "Claude 5 hour", "claude"),
           ("codex 7d", "Codex week", "codex"))
 TONES = {"EBURN": "ok", "BURN": "ok", "HOT": "ok", "WARM": "ok", "COOL": "plain", "COLD": "warn", "FREEZING": "danger"}
+STATUS = {"EBURN": "About to be wasted, spend all of it", "BURN": "Plenty spare, spend it",
+          "HOT": "Ahead, spend more", "WARM": "Slightly ahead", "COOL": "On pace",
+          "COLD": "Behind, go easy", "FREEZING": "Will run out, ration it"}
 
 
 @builder("compute")
@@ -26,8 +29,10 @@ def build(ctx):
         short = bool(quota.get("runs_out_at") and parsed(quota["runs_out_at"]).timestamp() < parsed(quota["resets_at"]).timestamp())
         temp = (temps.get(provider) or {}).get("temp") if key.endswith("7d") else None
         if temp:
-            blocks.append({"type": "line", "items": [chip(str(temp).lower().capitalize(), TONES.get(temp, "plain"), True)]})
-        blocks.append({"type": "meter", "label": name, "value": left, "max": 100, "text": f"{left}% left"})
+            blocks.append({"type": "line", "items": [chip(str(temp).lower().capitalize(), TONES.get(temp, "plain"), True,
+                                                          tip=STATUS.get(temp, ""))]})
+        blocks.append({"type": "meter", "label": name, "value": left, "max": 100,
+                       "text": f"{left}% left", "tone": "warn" if short else "plain"})
         reset = chip("Resets " + london(quota["resets_at"], key.endswith("7d")), "muted")
         if short:
             remaining = chip("Runs out " + london(quota["runs_out_at"], "weekday"), "warn")
