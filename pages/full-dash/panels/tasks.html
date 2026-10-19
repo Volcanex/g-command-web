@@ -8,41 +8,4 @@
   </header>
   <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
 </section>
-<style>
-#fd-tasks .fd-item { border-left: 2px solid var(--stripe); padding-left: var(--sp-2); }
-</style>
-<script>(function () {
-  var root = document.getElementById('fd-tasks');
-  var body = root.querySelector('[data-body]');
-  var meta = root.querySelector('[data-meta]');
-  var STRIPE = { P0: 'var(--chart-5)', P1: 'var(--chart-4)', P2: 'var(--chart-1)', P3: 'var(--text-placeholder)' };
-  var MONEY = { finance: 1, bill: 1 };
-
-  // Dated work lives in the calendar and bills in money, so this is what is
-  // left: open tasks with no date, by priority.
-  function render(data) {
-    var todos = (Array.isArray(data) ? data : []).filter(function (t) {
-      return !t.due && !t.start && !MONEY[t.category];
-    });
-    meta.textContent = todos.length + ' undated';
-    if (!todos.length) { FD.empty(body, 'No undated tasks.'); return; }
-    var html = '';
-    ['P0', 'P1', 'P2', 'P3'].forEach(function (p) {
-      var list = todos.filter(function (t) { return (STRIPE[t.priority] ? t.priority : 'P3') === p; });
-      if (!list.length) return;
-      html += '<div class="fd-group"><div class="fd-group-label">' + p + ' <span class="n">' + list.length + '</span></div><ul class="fd-list">' +
-        list.map(function (t) {
-          return '<li class="fd-item" style="--stripe:' + STRIPE[p] + '">' +
-            '<a class="t" href="/note/' + FD.esc(t.permalink) + '" title="' + FD.esc(t.title) + '">' + FD.esc(t.title || t.slug) + '</a>' +
-            (t.vital ? '<span class="k danger">Vital</span>' : '') + '</li>';
-        }).join('') + '</ul></div>';
-    });
-    body.innerHTML = html;
-  }
-
-  FD.poll(function () {
-    return FD.fetchJSON(FD.BRAIN + '/api/todos?status=open', { ttl: 60000 }).then(render).catch(function (e) {
-      FD.fail(body, 'Todos unavailable. The panel retries every 5 minutes.', (e && e.message) || e);
-    });
-  }, 300000);
-})();</script>
+<script>FD.panel('tasks');</script>

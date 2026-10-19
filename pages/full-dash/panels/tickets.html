@@ -8,32 +8,9 @@
   </header>
   <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
 </section>
-<script>(function () {
-  var root = document.getElementById('fd-tickets');
-  var body = root.querySelector('[data-body]');
-  var meta = root.querySelector('[data-meta]');
-  var SEV = { blocker: 'badge-danger', major: 'badge-warn', minor: 'badge-plain', polish: 'badge-plain' };
-
-  function render(d) {
-    var list = (d && d.tickets) || [];
-    var down = (d && d.degraded) || [];
-    meta.textContent = list.length + ' open';
-    var html = list.length ? '<ul class="fd-list">' + list.map(function (t) {
-      var where = (t.page && (t.page.title || t.page.path)) || t.scope || '';
-      var text = t.note || where;
-      return '<li class="fd-item">' +
-        '<span class="badge ' + (SEV[t.severity] || 'badge-plain') + '">' + FD.esc(String(t.severity || 'open').replace(/^./, function (c) { return c.toUpperCase(); })) + '</span>' +
-        '<a class="t" href="/tickets?project=' + encodeURIComponent(t.project) + '&amp;id=' + encodeURIComponent(t.id) + '" title="' + FD.esc(text) + '">' + FD.esc(text) + '</a>' +
-        '<span class="k">' + FD.esc(t.project) + '</span>' +
-        '<span class="k">' + FD.esc(FD.rel(t.created_at)) + '</span></li>';
-    }).join('') + '</ul>' : '<em class="fd-empty">No open tickets.</em>';
-    if (down.length) html += '<span class="fd-more">' + down.length + (down.length === 1 ? ' project' : ' projects') + ' did not answer</span>';
-    body.innerHTML = html;
-  }
-
-  FD.poll(function () {
-    return FD.fetchJSON('/api/gadmin_panel/tickets?status=open', { ttl: 60000 }).then(render).catch(function (e) {
-      FD.fail(body, 'Tickets unavailable. The panel retries every 2 minutes.', (e && e.message) || e);
-    });
-  }, 120000);
-})();</script>
+<style>
+/* The project sits on the right beside the age, as on the tickets page. */
+#fd-tickets .fd-item.has-detail .t { flex: 1; max-width: none; }
+#fd-tickets .fd-item .d { flex: none; max-width: 30%; }
+</style>
+<script>FD.panel('tickets');</script>

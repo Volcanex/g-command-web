@@ -9,17 +9,19 @@ and recompile; every dash that includes it picks it up. A page's
 `content.html` holds only the kit token, the layout markup and its
 placement CSS.
 
-- `kit.html`: `window.FD` and the shared panel and dash-frame CSS. Every
-  dash includes `<!-- seed:panel-kit -->` first.
-- Life: `calendar` (today, carried over and the next six days, from
-  `/api/todos/calendar`), `tasks` (open undated todos by priority),
-  `money` (open finance and bill todos by due date), `brief` (the pulse
-  brief's bullets, one line each).
-- System: `health` (only down and warn services and dependencies, all
-  green collapses to one line, plus hosts and disk, from `/api/status`),
-  `compute` (Claude week, Claude 5 hour and Codex week with reset times,
-  from `/api/compute/pace` and `/state`), `tickets` (open g-admin
-  tickets), `crons` (problems, then the next runs, from `/api/crons/list`).
+- `kit.html`: `window.FD`, the generic panel renderer `FD.panel`, and the
+  shared panel, block and dash-frame CSS. Every dash includes
+  `<!-- seed:panel-kit -->` first.
+- Every panel renders the server view-model from `GET /api/panels/{name}`,
+  built in `core/panels/{name}.py` and specified in `core/panels/CLAUDE.md`.
+  The iPhone and Mac apps render the same JSON. What a panel shows (which
+  items, their order, copy, tones) is decided there, never in a panel file.
+- Life: `calendar` (today and carried over, the next six days as aside
+  blocks), `tasks` (open undated todos by priority), `money` (open finance
+  and bill todos by due date), `brief` (the pulse brief's bullets).
+- System: `health` (down and warn services and dependencies, hosts and
+  disk), `compute` (the three quota cards, credit and hours), `tickets`
+  (open g-admin tickets), `crons` (problems, then the next runs).
 
 The dash frame (`.fd-dash` grid of `.fd-col` flex columns, `.fd-row` for
 side-by-side panels) fills the viewport on a desktop window, so each panel
@@ -56,9 +58,17 @@ resolve.
   </header>
   <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
 </section>
-<style>/* optional, every selector scoped under #fd-{name} */</style>
-<script>(function () { /* IIFE; reads window.FD only; no globals created */ })();</script>
+<style>/* optional layout only, every selector scoped under #fd-{name} */</style>
+<script>FD.panel('{name}');</script>
 ```
+
+- The script is that one line. A panel file never fetches, filters, sorts
+  or writes copy: if the JSON lacks something the panel should show, the
+  fix is a contract field in `core/panels`, not panel JS.
+- Panel CSS is for layout keyed off the rendered structure: the calendar
+  places `.fd-split-lead` (its blocks) beside `.fd-split-rest` (the aside
+  blocks) and draws a row accent as a trailing dot, compute grids its quota
+  meters three across, tickets puts the project on the right.
 
 - No grid/placement CSS: panel placement is owned by each dash's content.html.
 - A panel may appear on several dashes but at most once per page, since
@@ -69,9 +79,19 @@ resolve.
   `--chart-1..6`, `--dur-*`, `--ease-out`). No raw hex in CSS, no old G-pack
   names (`--fg`, `--t-xs`, `--space-N`, `--rule-thin`, `--status-up`…), no
   `text-transform: uppercase`, sentence case in all copy, no em dashes.
-- Statuses are badges (`.badge badge-ok/warn/danger/plain`), row lists are
-  `.fd-list` of `.fd-item` (`.t` the ellipsised title, `.k` a right-hand
-  fact), groups are `.fd-group` + `.fd-group-label`, overflow is `.fd-more`.
+- `FD.panel` draws the contract with the shared classes: a `rows` block
+  is `.fd-group` (`.fd-group-label` with a muted `.n` count) holding an
+  `.fd-list` of `.fd-item`. In a row, `.fd-tick` is the action, `.fd-lead`
+  and `.fd-mark` chips sit before and after `.t` (the ellipsised title),
+  `.d` is the detail and `.k` the trail. `.has-accent` draws the accent
+  stripe from `data-accent`, `.is-done` and `.is-struck` mark state, and
+  `.fd-tone-*` colours text. A `line` is `.fd-line` of chips, a `meter` is
+  `.fd-meter` (`.fd-meter-head`: label, badge, `.g-meter`, text, then
+  `.fd-meter-sub`), `bullets` are `.fd-bullets` of `details > .fd-bullet`.
+  Badge chips are `.badge badge-ok/warn/danger/info/plain`, tips are
+  `data-tip`. Unknown block types are skipped. When any block has
+  `aside`, the blocks render as `.fd-split` > `.fd-split-lead` +
+  `.fd-split-rest`, otherwise in one `.fd-blocks`.
 - Anything that updates in place carries `font-variant-numeric: tabular-nums`.
 - Dark is the default; both themes must work. Use `var(--chart-N)` and the
   status tokens, which follow the theme for free.
@@ -79,11 +99,19 @@ resolve.
 - NEVER write the two characters `{` `{` adjacent anywhere in a fragment:
   compile.py token substitution consumes them. Build such strings in JS via
   concatenation if ever needed.
-- Failure must render via `FD.fail(...)`, never a blank panel. The message
-  says what is missing and what happens next; the raw exception goes in the
-  third argument, which lands on the element's `title`.
+- Failure never leaves a blank panel: `FD.panel` shows the panel's own
+  `message` for `state: "error"`, and for a failed request the last
+  message it had (else "{Title} unavailable") with the raw error on the
+  element's `title`.
 
 ## window.FD helper (kit.html, included before every panel)
+
+- `FD.panel(name)`: renders `#fd-{name}` from `/api/panels/{name}`. Fills
+  the header title, icon, meta and link, draws the blocks, polls every
+  `refresh` seconds (skipping while the tab is hidden), and runs row
+  actions: `body` as JSON to `path` with the cookie, then a refetch, or
+  `action.error` as a danger toast on failure. All text goes in through
+  `textContent`, and a link that is not a command path (`/...`) is dropped.
 
 - `FD.BRAIN`: the brain API origin, `window.BRAIN_API` from the shell (`BRAIN_API` at compile time)
 - `FD.fetchJSON(url, {ttl})` / `FD.fetchText(url, {ttl})`: fetch wrappers;

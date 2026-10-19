@@ -9,178 +9,31 @@
   <div class="fd-body" data-body><em class="fd-loading">Loading…</em></div>
 </section>
 <style>
+/* Today and carried over on the left, the next six days on the right. */
 #fd-calendar .fd-body { overflow: hidden; display: flex; }
-#fd-calendar .cal { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+#fd-calendar .fd-split { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
 @container (min-width: 620px) {
-  #fd-calendar .cal { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  #fd-calendar .fd-split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 }
-#fd-calendar .cal-today, #fd-calendar .cal-next { min-height: 0; overflow-y: auto; }
-#fd-calendar .cal-next { border-left: 1px solid var(--border-subtle); padding-left: var(--sp-4); }
+#fd-calendar .fd-split-lead, #fd-calendar .fd-split-rest { min-height: 0; overflow-y: auto; }
+#fd-calendar .fd-split-rest { border-left: 1px solid var(--border-subtle); padding-left: var(--sp-4); }
 @container (max-width: 619px) {
-  #fd-calendar .cal-next { border-left: none; padding-left: 0; }
+  #fd-calendar .fd-split-rest { border-left: none; padding-left: 0; }
 }
 #fd-calendar .fd-item { gap: var(--sp-1); }
-#fd-calendar .tick {
-  flex: none; width: var(--h-1); height: var(--h-1);
-  display: grid; place-items: center;
-  border: none; background: none; padding: 0; cursor: pointer;
-  border-radius: var(--radius-sm);
-  color: var(--text-placeholder); font-size: 16px;
+#fd-calendar .fd-item .fd-lead { width: 40px; font-size: 12px; }
+/* A row with no time keeps the time column, so titles line up. */
+#fd-calendar .fd-item:not(:has(.fd-lead)) .t { margin-left: calc(40px + var(--sp-1)); }
+#fd-calendar .fd-item .fd-mark { font-weight: 500; }
+/* The category colour is a dot at the row's end, as on the calendar page. */
+#fd-calendar .fd-item.has-accent { border-left: none; padding-left: 0; }
+#fd-calendar .fd-item.has-accent::after {
+  content: ""; order: 9; flex: none;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--fd-accent); margin: 0 var(--sp-1);
 }
-#fd-calendar .tick:hover { background: var(--fill-hover); color: var(--text-primary); }
-#fd-calendar .tick:disabled { cursor: progress; }
-#fd-calendar .tm {
-  flex: none; width: 40px;
-  font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums;
-}
-#fd-calendar .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--cat); margin: 0 var(--sp-1); }
-#fd-calendar .vital { color: var(--danger-text); font-weight: 500; flex: none; }
-#fd-calendar .is-done .t { color: var(--ok-text); text-decoration: line-through; }
-#fd-calendar .is-done .tick { color: var(--ok-text); }
-#fd-calendar .is-failed .t { color: var(--danger-text); text-decoration: line-through; }
-#fd-calendar .routine .t { color: var(--text-secondary); }
-
-#fd-calendar .nday + .nday { margin-top: var(--sp-3); }
-#fd-calendar .nday .fd-group-label { color: var(--text-primary); }
-#fd-calendar .nday .fd-item { min-height: var(--h-1); border-bottom: none; }
-#fd-calendar .nday .none { font-size: 12px; color: var(--text-placeholder); }
+#fd-calendar .fd-split-rest .fd-group + .fd-group { margin-top: var(--sp-3); }
+#fd-calendar .fd-split-rest .fd-group-label { color: var(--text-primary); }
+#fd-calendar .fd-split-rest .fd-item { min-height: var(--h-1); border-bottom: none; }
 </style>
-<script>(function () {
-  var root = document.getElementById('fd-calendar');
-  var body = root.querySelector('[data-body]');
-  var meta = root.querySelector('[data-meta]');
-  var title = root.querySelector('[data-title]');
-  var DAYS = 7;
-  // The calendar page's category ramp, so a colour means the same thing here.
-  var CAT_COLOR = {
-    study: 'var(--chart-1)', deadline: 'var(--chart-1)',
-    finance: 'var(--chart-2)', bill: 'var(--chart-2)',
-    family: 'var(--chart-3)', social: 'var(--chart-3)',
-    health: 'var(--chart-4)', chore: 'var(--chart-4)',
-    work: 'var(--chart-5)',
-    travel: 'var(--chart-6)', errand: 'var(--chart-6)', personal: 'var(--chart-6)'
-  };
-  var items = [];
-
-  function range() {
-    var from = new Date();
-    var to = new Date();
-    to.setDate(to.getDate() + DAYS - 1);
-    return { from: FD.iso(from), to: FD.iso(to) };
-  }
-  function url() {
-    var r = range();
-    return FD.BRAIN + '/api/todos/calendar?date_from=' + r.from + '&date_to=' + r.to;
-  }
-
-  // Same order as the calendar page's day view: starred, vital, carried
-  // over, then by time.
-  function triage(list) {
-    return list.slice().sort(function (a, b) {
-      if (!!b.urgent !== !!a.urgent) return b.urgent ? 1 : -1;
-      if (!!b.vital !== !!a.vital) return b.vital ? 1 : -1;
-      if (!!b.late_days !== !!a.late_days) return b.late_days ? 1 : -1;
-      if (!!a.time !== !!b.time) return a.time ? -1 : 1;
-      if (a.time && b.time && a.time !== b.time) return a.time.localeCompare(b.time);
-      return String(a.title).localeCompare(String(b.title));
-    });
-  }
-  function chronological(list) {
-    return list.slice().sort(function (a, b) {
-      if (!!a.time !== !!b.time) return a.time ? -1 : 1;
-      if (a.time && b.time && a.time !== b.time) return a.time.localeCompare(b.time);
-      return String(a.title).localeCompare(String(b.title));
-    });
-  }
-
-  function row(it, i) {
-    var state = it.done ? ' is-done' : it.failed ? ' is-failed' : '';
-    var routine = it.recurring && !it.vital && !it.urgent ? ' routine' : '';
-    var late = it.late_days ? '<span class="k warn">' + (it.late_days === 1 ? '1 day late' : it.late_days + ' days late') + '</span>' : '';
-    var tick = it.done ? 'Mark not done' : 'Mark done';
-    return '<li class="fd-item' + state + routine + '">' +
-      '<button class="tick" type="button" data-i="' + i + '" data-tip="' + tick + '" aria-label="' + tick + '">' +
-        '<i class="ph ph-' + (it.done ? 'check-circle' : 'circle') + '"></i></button>' +
-      '<span class="tm">' + (it.time ? FD.esc(it.time) : '') + '</span>' +
-      (it.vital ? '<span class="vital" data-tip="Vital">!</span>' : '') +
-      '<a class="t" href="/note/' + FD.esc(it.permalink) + '" title="' + FD.esc(it.title) + '">' + FD.esc(it.title) + '</a>' +
-      late +
-      '<span class="dot" style="--cat:' + (CAT_COLOR[it.category] || 'var(--text-placeholder)') + '"></span>' +
-    '</li>';
-  }
-  function group(label, list) {
-    if (!list.length) return '';
-    return '<div class="fd-group"><div class="fd-group-label">' + label + ' <span class="n">' + list.length + '</span></div>' +
-      '<ul class="fd-list">' + list.map(function (it) { return row(it, items.indexOf(it)); }).join('') + '</ul></div>';
-  }
-
-  function render(list) {
-    items = Array.isArray(list) ? list : [];
-    var today = FD.iso(new Date());
-    title.textContent = 'Today, ' + FD.day(today);
-    var todays = items.filter(function (it) { return it.date === today && !it.dropped; });
-    var own = chronological(todays.filter(function (it) { return !it.late_days; }));
-    var carried = triage(todays.filter(function (it) { return it.late_days; }));
-    var open = todays.filter(function (it) { return !it.done && !it.failed; }).length;
-    meta.textContent = open + ' open today, ' + carried.filter(function (it) { return !it.done; }).length + ' carried over';
-
-    var next = '';
-    for (var d = 1; d < DAYS; d++) {
-      var date = new Date();
-      date.setDate(date.getDate() + d);
-      var key = FD.iso(date);
-      var on = chronological(items.filter(function (it) { return it.date === key && !it.dropped; }));
-      next += '<div class="nday"><div class="fd-group-label">' + FD.day(key) + '</div>' +
-        (on.length ? '<ul class="fd-list">' + on.map(function (it) {
-          var routine = it.recurring && !it.vital && !it.urgent ? ' routine' : '';
-          return '<li class="fd-item' + routine + (it.done ? ' is-done' : '') + '"><span class="tm">' + (it.time ? FD.esc(it.time) : '') + '</span>' +
-            (it.vital ? '<span class="vital">!</span>' : '') +
-            '<a class="t" href="/note/' + FD.esc(it.permalink) + '" title="' + FD.esc(it.title) + '">' + FD.esc(it.title) + '</a>' +
-            '<span class="dot" style="--cat:' + (CAT_COLOR[it.category] || 'var(--text-placeholder)') + '"></span></li>';
-        }).join('') + '</ul>' : '<span class="none">Nothing planned</span>') +
-      '</div>';
-    }
-
-    body.innerHTML = '<div class="cal">' +
-      '<div class="cal-today">' +
-        (todays.length ? group('Today', own) + group('Carried over', carried) : '<em class="fd-empty">Nothing on today.</em>') +
-      '</div>' +
-      '<div class="cal-next">' + next + '</div>' +
-    '</div>';
-  }
-
-  // The calendar page's patch for a tick: a recurring todo is ticked for this
-  // one date, a one-off closes.
-  function patchFor(it) {
-    if (it.recurring) return it.done ? { undone_date: it.date, unfailed_date: it.date } : { done_date: it.date };
-    return { status: it.done ? 'open' : 'done' };
-  }
-
-  function load(fresh) {
-    return FD.fetchJSON(url(), { ttl: fresh ? 0 : 60000 }).then(render).catch(function (e) {
-      FD.fail(body, 'Calendar unavailable. The panel retries every 5 minutes.', (e && e.message) || e);
-    });
-  }
-
-  body.addEventListener('click', function (e) {
-    var btn = e.target.closest('.tick');
-    if (!btn) return;
-    var it = items[Number(btn.dataset.i)];
-    if (!it) return;
-    btn.disabled = true;
-    fetch(FD.BRAIN + '/api/todos/' + encodeURIComponent(it.slug), {
-      method: 'PATCH',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patchFor(it))
-    }).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return load(true);
-    }).catch(function () {
-      btn.disabled = false;
-      if (window.g && g.toast) g.toast({ title: 'Not saved', desc: 'The brain did not accept the change. Try again from the calendar.', kind: 'danger' });
-    });
-  });
-
-  FD.poll(function () { return load(false); }, 300000);
-})();</script>
+<script>FD.panel('calendar');</script>
