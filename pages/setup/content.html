@@ -4,6 +4,27 @@
 </div>
 <p class="page-sub">Bootstrap any machine into G-System. One command on Mac, one command on Linux. An agent can read and execute this page directly.</p>
 
+<section class="setup-block" id="apps">
+  <h2>iPhone and Mac apps <span class="setup-tag" data-no-tokens>g-command-apple</span></h2>
+  <p>Pair the G-Command app once and it stays signed in. Scan the code with the iPhone camera, or open the link on the Mac.</p>
+  <button class="btn btn-primary btn-sm" id="pair-show" data-no-tokens>Show pairing code</button>
+  <div class="pair-box" id="pair-box" hidden>
+    <div class="pair-qr" id="pair-qr"></div>
+    <div class="pair-side">
+      <a class="btn btn-secondary btn-sm" id="pair-open" href="#" data-no-tokens>Open on this Mac</a>
+      <p class="hint">The code works once and expires in five minutes.</p>
+    </div>
+  </div>
+
+  <h3>Paired devices</h3>
+  <div class="table-wrap">
+    <table class="table" id="pair-devices">
+      <thead><tr><th>Device</th><th>Paired</th><th>Last seen</th><th></th></tr></thead>
+      <tbody><tr><td colspan="4" class="pair-empty">Loading devices</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
 <section class="setup-block" id="mac">
   <h2>Mac <span class="setup-tag" data-no-tokens>genv-mac</span></h2>
   <p>Clone the Mac overlay and run bootstrap. It auto-clones the base <code>genv</code> repo alongside, wires claude, codex, git, zsh, Ghostty, and SSH, then installs a settings.local.json template.</p>
@@ -168,6 +189,12 @@ ls ~/.claude/agents            # g-executor, g-explore</code><button class="btn 
     white-space: pre;
   }
   .code-block .copy-btn { position: absolute; top: 6px; right: 6px; }
+  .pair-box { display: flex; align-items: flex-start; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-3); }
+  .pair-qr { width: 200px; height: 200px; padding: var(--sp-2); background: #fff; border-radius: var(--radius-sm); }
+  .pair-qr svg { display: block; width: 100%; height: 100%; }
+  .pair-side { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+  #pair-devices td:last-child:not([colspan]) { text-align: right; }
+  #pair-devices .pair-empty { color: var(--text-secondary); }
   .setup-block p code,
   .setup-block li code,
   .setup-block .hint code {
@@ -175,6 +202,76 @@ ls ~/.claude/agents            # g-executor, g-explore</code><button class="btn 
     background: var(--fill-hover); padding: 1px 5px; border-radius: 3px;
   }
 </style>
+
+<script>(function () {
+  var show = document.getElementById('pair-show');
+  var box = document.getElementById('pair-box');
+  var tbody = document.querySelector('#pair-devices tbody');
+  var plain = function (v) { return (window.g && g.plain) ? g.plain(String(v == null ? '' : v)) : String(v == null ? '' : v); };
+  var when = function (t) { return new Date(t * 1000).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+  var NAMES = { ios: 'iPhone', macos: 'Mac' };
+  var timer;
+
+  function toast(title, desc) { if (window.g && g.toast) g.toast({ title: title, desc: desc, kind: 'danger' }); }
+
+  function cell(text, cls) { var td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; return td; }
+
+  function devices() {
+    return fetch('/api/app/devices', { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      tbody.textContent = '';
+      if (!d.devices.length) { var tr = document.createElement('tr'); tr.appendChild(cell('No devices paired yet.', 'pair-empty')).colSpan = 4; tbody.appendChild(tr); return; }
+      d.devices.forEach(function (dev) {
+        var tr = document.createElement('tr');
+        var name = plain(dev.name), kind = NAMES[dev.platform];
+        tr.appendChild(cell(kind && name.indexOf(kind) < 0 ? name + ', ' + kind : name));
+        tr.appendChild(cell(when(dev.created), 'num'));
+        tr.appendChild(cell(when(dev.last_seen), 'num'));
+        var td = document.createElement('td');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-tertiary btn-sm';
+        btn.textContent = 'Sign out';
+        btn.addEventListener('click', function () {
+          btn.disabled = true;
+          fetch('/api/app/devices/' + encodeURIComponent(dev.id), { method: 'DELETE', credentials: 'same-origin' }).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return devices();
+          }).catch(function () { btn.disabled = false; toast('Not signed out', 'The device is still paired. Try again.'); });
+        });
+        td.appendChild(btn);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+    }).catch(function () {
+      tbody.textContent = '';
+      var tr = document.createElement('tr');
+      tr.appendChild(cell('Devices did not load. Reload the page to try again.', 'pair-empty')).colSpan = 4;
+      tbody.appendChild(tr);
+    });
+  }
+
+  show.addEventListener('click', function () {
+    show.disabled = true;
+    fetch('/api/app/pair/code', { method: 'POST', credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      document.getElementById('pair-qr').innerHTML = d.qr_svg;
+      document.getElementById('pair-open').href = d.url;
+      box.hidden = false;
+      show.textContent = 'Show a new code';
+      show.disabled = false;
+      clearTimeout(timer);
+      timer = setTimeout(function () { box.hidden = true; devices(); }, d.expires_in * 1000);
+      var left = 60;
+      var watch = setInterval(function () { if (--left <= 0 || box.hidden) clearInterval(watch); else devices(); }, 5000);
+    }).catch(function () { show.disabled = false; toast('No pairing code', 'The server did not make one. Try again in a moment.'); });
+  });
+
+  devices();
+})();</script>
 
 <!-- Copy buttons are g-design copy-btn components; g-ui.js wires them from
      data-copy, no page script needed. -->
