@@ -34,7 +34,7 @@ def build(ctx):
         facts = [chip(f"All {up} services up", "ok", True)]
     if paused:
         facts.append(chip(f"{paused} paused", "muted"))
-    facts.extend(chip(f"{host} {hosts[host][0]}/{hosts[host][1]}", "muted") for host in sorted(hosts))
+    facts.extend(dict(chip(f"{host} {hosts[host][0]}/{hosts[host][1]}", "muted"), end=True) for host in sorted(hosts))
     blocks.append({"type": "line", "items": facts})
     disk = data.get("disk")
     if disk and disk.get("used_pct") is not None:

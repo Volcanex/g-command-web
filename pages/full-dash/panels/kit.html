@@ -114,7 +114,11 @@ window.FD = (function () {
     },
     line: function (b) {
       var n = el('div', 'fd-block fd-line');
-      (b.items || []).forEach(function (c) { n.appendChild(chip(c)); });
+      var end = null;
+      (b.items || []).forEach(function (c) {
+        if (c.end && !end) n.appendChild(end = el('span', 'fd-line-end'));
+        (c.end ? end : n).appendChild(chip(c));
+      });
       return n;
     },
     meter: function (b) {
@@ -403,6 +407,7 @@ a.fd-more:hover { color: var(--text-secondary); }
 .fd-item.is-done .fd-tick { color: var(--ok-text); }
 .fd-chip { display: inline-flex; align-items: center; gap: var(--sp-1); font-variant-numeric: tabular-nums; }
 .fd-line { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); font-size: 12px; color: var(--text-secondary); }
+.fd-line-end { display: inline-flex; flex-wrap: wrap; gap: var(--sp-3); margin-left: auto; }
 .fd-meter { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; min-width: 0; }
 .fd-meter-head { display: flex; align-items: center; gap: var(--sp-2); }
 .fd-meter-head > * { flex: none; white-space: nowrap; }

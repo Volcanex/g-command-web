@@ -281,7 +281,7 @@ def test_health_ranks_services_and_dependencies_stably_and_counts_hosts():
                 {"id": "services:warning", "title": "warning", "detail": "Slow", "lead": {"text": "Warn", "tone": "warn", "badge": True}},
                 {"id": "dependencies:dep-warn", "title": "dep-warn", "detail": "Late", "lead": {"text": "Warn", "tone": "warn", "badge": True}}]},
             {"type": "line", "items": [{"text": "2 of 5 up", "tone": "muted"}, {"text": "1 paused", "tone": "muted"},
-                                       {"text": "b 1/3", "tone": "muted"}, {"text": "h 1/2", "tone": "muted"}]},
+                                       {"text": "b 1/3", "tone": "muted", "end": True}, {"text": "h 1/2", "tone": "muted", "end": True}]},
             {"type": "meter", "label": "Disk", "value": 85, "max": 100, "warn_at": 85, "danger_at": 95,
              "text": "85% used, 41 GB free"}])
 
@@ -293,7 +293,7 @@ def test_health_all_up_collapses_but_preserves_hosts_paused_and_zero_disk():
     result = build("health", FixtureContext({SOURCES["health"]: data}))
     assert result["blocks"][0] == {"type": "line", "items": [
         {"text": "All 1 services up", "tone": "ok", "badge": True},
-        {"text": "1 paused", "tone": "muted"}, {"text": "h 1/1", "tone": "muted"}]}
+        {"text": "1 paused", "tone": "muted"}, {"text": "h 1/1", "tone": "muted", "end": True}]}
     assert result["blocks"][1]["value"] == 0
 
 

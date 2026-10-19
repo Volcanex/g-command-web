@@ -96,7 +96,8 @@ in every client). `badge` draws a
 pill, else coloured text. `icon` is a Phosphor name drawn before the text
 (a mark with an icon and empty text is icon only). `tip` is the longer
 explanation: a tooltip on the web, a long-press or help popover natively.
-Any Chip in a `line` or a row may carry a `tip`.
+Any Chip in a `line` or a row may carry a `tip`. In a `line`, chips with `"end": true` sit together
+at the end of the line (the health panel's host counts) and wrap as one group.
 
 Action (one per row, a tick): `{"label": "Mark done", "method": "PATCH",
 "path": "/api/brain/api/todos/<slug>", "body": {...}, "error": {"title": "Not saved", "desc": "..."}}`. The client sends
