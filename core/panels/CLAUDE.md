@@ -55,8 +55,10 @@ can ship server first.
   facts (`All 41 services up`, `h 30/30`).
 - `meter`: `{"type": "meter", "label": "Disk", "value": 71, "max": 100,
   "warn_at": 85, "danger_at": 95, "text": "71% used, 40 GB free"}`.
-- `bullets`: `{"type": "bullets", "items": [{"text": "...", "link": "/..."?}]}`,
-  plain sentences (the brief).
+- `meter`: optional `"tone"` colours the text and fill when the server
+  wants a tone other than the thresholds give.
+- `bullets`: `{"type": "bullets", "items": [{"text": "...", "label": "Money"?, "link": "/..."?}]}`,
+  plain sentences (the brief). `label` is a short bold lead before the text.
 
 Row:
 ```json
@@ -69,15 +71,25 @@ Row:
   "link": "/note/..."?,
   "done": false?,
   "struck": false?,
+  "accent": "warn"?,
+  "title_tone": "danger"?,
+  "marks": [Chip]?,
   "action": Action?
 }
 ```
-Chip: `{"text": "Down", "tone": "danger", "badge": true?}`. Tones: `ok`,
-`warn`, `danger`, `accent`, `muted`, `plain`. `badge` draws a pill, else
-coloured text.
+- `accent`: a tone drawn as a thin stripe at the row's leading edge
+  (priority, category). `title_tone` colours the title. `marks` are small
+  chips after the title (vital, starred), in order.
+
+Chip: `{"text": "Down", "tone": "danger", "badge": true?, "icon": "star"?, "tip": "..."?}`.
+Tones: `ok`, `warn`, `danger`, `accent`, `muted`, `plain`. `badge` draws a
+pill, else coloured text. `icon` is a Phosphor name drawn before the text
+(a mark with an icon and empty text is icon only). `tip` is the longer
+explanation: a tooltip on the web, a long-press or help popover natively.
+Any Chip in a `line` or a row may carry a `tip`.
 
 Action (one per row, a tick): `{"label": "Mark done", "method": "PATCH",
-"path": "/api/brain/api/todos/<slug>", "body": {...}}`. The client sends
+"path": "/api/brain/api/todos/<slug>", "body": {...}, "error": {"title": "Not saved", "desc": "..."}}`. The client sends
 `body` as JSON to `path` with its credentials, then refetches the panel. The
 server decides the body (a recurring todo ticks one date, a one-off closes),
 so no client knows todo semantics.
