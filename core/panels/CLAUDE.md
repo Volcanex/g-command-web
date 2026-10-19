@@ -42,7 +42,9 @@ or writes its own copy for a panel is a bug: that logic drifts.
 - `refresh`: seconds between polls while the panel is visible.
 - Times in copy are computed at request time ("Checked 2 min ago",
   "Tue 21 Oct", "2 days late") in the instance timezone. Clients poll, so
-  they stay current. Clients never format dates themselves.
+  they stay current. Clients never format dates themselves. Feeds outside panels
+  (alerts, devices) carry epoch times, and there the client shows a
+  relative, ticking time.
 
 ## Blocks
 Every block has `type`. Unknown types are skipped by clients, so a new type
