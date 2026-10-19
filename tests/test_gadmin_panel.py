@@ -76,6 +76,16 @@ def test_tickets_ok_with_cookie(client, manifest_dir, monkeypatch):
     assert r.status_code == 200
 
 
+def test_tickets_ok_with_device_token(client, manifest_dir, monkeypatch, tmp_path):
+    from core import auth
+    monkeypatch.setattr(auth, "DEVICES_FILE", tmp_path / "devices.json")
+    monkeypatch.setattr(auth, "_cache", {"key": None, "devices": []})
+    monkeypatch.setattr(gp.urllib.request, "urlopen", _fake_urlopen({}))
+    token, _ = auth.add_device("Phone", "ios")
+    assert client.get("/api/gadmin_panel/tickets", cookies={"seed_admin": token}).status_code == 200
+    assert client.get("/api/gadmin_panel/tickets", cookies={"seed_admin": "gd_nope"}).status_code == 401
+
+
 def test_unset_cookie_value_fails_closed(client, manifest_dir, monkeypatch):
     """The value used to default to "ok", so a deploy that forgot it took a
     forged cookie. Unset must refuse everything, including an empty cookie."""

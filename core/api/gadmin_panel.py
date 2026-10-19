@@ -39,6 +39,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from core.auth import device_for
 from core.instance import gcore_dir
 
 router = APIRouter()
@@ -58,7 +59,9 @@ _roster_cache: dict = {"built_at": 0.0, "roster": {}}
 def _gate(request: Request) -> None:
     cookie = os.environ.get("ADMIN_COOKIE", "seed_admin")
     value = os.environ.get("ADMIN_COOKIE_VALUE")
-    if not value or request.cookies.get(cookie) != value:
+    supplied = request.cookies.get(cookie, "")
+    # A paired app sends its device token in the same cookie.
+    if not value or (supplied != value and device_for(supplied) is None):
         raise HTTPException(401, "unauthorized")
 
 
