@@ -90,7 +90,9 @@ Row:
   chips after the title (vital, starred), in order.
 
 Chip: `{"text": "Down", "tone": "danger", "badge": true?, "icon": "star"?, "tip": "..."?}`.
-Tones: `ok`, `warn`, `danger`, `accent`, `muted`, `plain`. `badge` draws a
+Tones: `ok`, `warn`, `danger`, `accent`, `muted`, `plain`, and `chart-1`
+to `chart-6` for categories (g-design's `--chart-*` tokens, the same six
+in every client). `badge` draws a
 pill, else coloured text. `icon` is a Phosphor name drawn before the text
 (a mark with an icon and empty text is icon only). `tip` is the longer
 explanation: a tooltip on the web, a long-press or help popover natively.
