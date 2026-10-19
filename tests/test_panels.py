@@ -73,15 +73,15 @@ def test_tasks_groups_without_reordering_within_priority():
              todo("finance", category="finance"), todo("p2", priority="P2"), todo("missing")]
     ctx = FixtureContext({SOURCES["tasks"]: items})
     assert build("tasks", ctx) == expected("tasks", meta="6 undated", blocks=[
-        {"type": "rows", "title": "P0 1", "rows": [
+        {"type": "rows", "title": "P0", "count": 1, "rows": [
             {"id": "first", "title": "First job", "link": "/note/todos/first", "accent": "danger"}]},
-        {"type": "rows", "title": "P1 2", "rows": [
+        {"type": "rows", "title": "P1", "count": 2, "rows": [
             {"id": "second", "title": "second", "link": "/note/todos/second", "accent": "warn",
              "marks": [{"text": "Vital", "tone": "danger"}]},
             {"id": "third", "title": "third", "link": "/note/todos/third", "accent": "warn"}]},
-        {"type": "rows", "title": "P2 1", "rows": [
+        {"type": "rows", "title": "P2", "count": 1, "rows": [
             {"id": "p2", "title": "p2", "link": "/note/todos/p2", "accent": "accent"}]},
-        {"type": "rows", "title": "P3 2", "rows": [
+        {"type": "rows", "title": "P3", "count": 2, "rows": [
             {"id": "fallback", "title": "fallback", "link": "/note/todos/fallback", "accent": "muted"},
             {"id": "missing", "title": "missing", "link": "/note/todos/missing", "accent": "muted"}]},
     ])
@@ -144,7 +144,7 @@ def calendar_row(slug, **fields):
 
 
 def next_days():
-    return [{"type": "rows", "title": label, "empty": "Nothing planned", "rows": []} for label in
+    return [{"type": "rows", "title": label, "aside": True, "empty": "Nothing planned", "rows": []} for label in
             ("Tue 20 Oct", "Wed 21 Oct", "Thu 22 Oct", "Fri 23 Oct", "Sat 24 Oct", "Sun 25 Oct")]
 
 
@@ -167,10 +167,10 @@ def test_calendar_today_chronological_carried_triage_future_and_actions():
          "accent": "muted", "title_tone": "plain"}]
     assert build("calendar", FixtureContext({CALENDAR_PATH: items})) == expected(
         "calendar", title="Today, Mon 19 Oct", meta="6 open today, 3 carried over", blocks=[
-            {"type": "rows", "title": "Today 3", "rows": [
+            {"type": "rows", "title": "Today", "count": 3, "rows": [
                 calendar_row("early", lead={"text": "08:00", "tone": "muted"}),
                 calendar_row("later", lead={"text": "12:00", "tone": "muted"}), calendar_row("untimed")]},
-            {"type": "rows", "title": "Carried over 3", "rows": [
+            {"type": "rows", "title": "Carried over", "count": 3, "rows": [
                 calendar_row("star", trail={"text": "2 days late", "tone": "warn"}, action={
                     "label": "Mark done", "method": "PATCH", "path": "/api/brain/api/todos/star", "body": {"done_date": "2026-10-19"},
                     "error": CALENDAR_ERROR}),
@@ -195,6 +195,8 @@ def test_calendar_patch_for_and_settled_counts(recurring, done, failed, body):
     assert row["struck"] is (done or failed)
     assert row["marks"] == [{"text": "!", "tone": "danger", "tip": "Vital"}]
     assert "lead" not in row
+    assert result["blocks"][0]["title"] == "Today"
+    assert result["blocks"][0]["count"] == 1
     assert result["meta"] == f"{int(not done and not failed)} open today, 0 carried over"
 
 
@@ -203,17 +205,19 @@ def test_calendar_failed_carried_counts_like_javascript():
              todo("done", date="2026-10-19", late_days=1, done=True)]
     result = build("calendar", FixtureContext({CALENDAR_PATH: items}))
     assert result["meta"] == "0 open today, 1 carried over"
+    assert result["blocks"][0]["title"] == "Carried over"
+    assert result["blocks"][0]["count"] == 2
     assert [row["title"] for row in result["blocks"][0]["rows"]] == ["done", "failed"]
 
 
 @pytest.mark.parametrize("category,tone", [
-    ("study", "accent"), ("deadline", "accent"), ("finance", "accent"), ("bill", "accent"),
-    ("family", "ok"), ("social", "ok"), ("health", "warn"), ("chore", "warn"),
-    ("work", "danger"), ("travel", "ok"), ("errand", "ok"), ("personal", "ok"),
+    ("study", "chart-1"), ("deadline", "chart-1"), ("finance", "chart-2"), ("bill", "chart-2"),
+    ("family", "chart-3"), ("social", "chart-3"), ("health", "chart-4"), ("chore", "chart-4"),
+    ("work", "chart-5"), ("travel", "chart-6"), ("errand", "chart-6"), ("personal", "chart-6"),
     ("other", "muted"), (None, "muted"),
 ])
 @pytest.mark.parametrize("date", ["2026-10-19", "2026-10-20"])
-def test_calendar_category_accents_use_only_contract_tones(category, tone, date):
+def test_calendar_category_accents_match_javascript_chart_colours(category, tone, date):
     item = todo("one", date=date, category=category)
     result = build("calendar", FixtureContext({CALENDAR_PATH: [item]}))
     row = next(row for block in result["blocks"] for row in block["rows"])
@@ -248,7 +252,7 @@ def test_calendar_time_vital_and_lateness_do_not_replace_each_other(date):
     row = next(row for block in result["blocks"] for row in block["rows"])
     assert row["lead"] == {"text": "09:00", "tone": "muted"}
     assert row["marks"] == [{"text": "!", "tone": "danger", "tip": "Vital"}]
-    assert row["accent"] == "warn"
+    assert row["accent"] == "chart-4"
     if date == "2026-10-19":
         assert row["trail"] == {"text": "2 days late", "tone": "warn"}
         assert row["action"]["error"] == CALENDAR_ERROR
@@ -304,14 +308,14 @@ def test_compute_fixed_quota_order_reset_copy_temperatures_and_footer():
     state = {"temps": {"claude": {"temp": "HOT"}, "codex": {"temp": "FREEZING"}}}
     result = build("compute", FixtureContext({SOURCES["compute"]: pace, "/api/compute/state": state}))
     assert result == expected("compute", meta="Read 1m ago", blocks=[
-        {"type": "line", "items": [{"text": "Hot", "tone": "ok", "badge": True, "tip": "Ahead, spend more"}]},
-        {"type": "meter", "label": "Claude week", "value": 81, "max": 100, "text": "81% left", "tone": "plain"},
-        {"type": "line", "items": [{"text": "Resets Sun 25 Oct, 01:00", "tone": "muted"}, {"text": "in 5d 14h", "tone": "muted"}]},
-        {"type": "meter", "label": "Claude 5 hour", "value": 60, "max": 100, "text": "60% left", "tone": "plain"},
-        {"type": "line", "items": [{"text": "Resets 15:30", "tone": "muted"}, {"text": "in 3h 30m", "tone": "muted"}]},
-        {"type": "line", "items": [{"text": "Freezing", "tone": "danger", "badge": True, "tip": "Will run out, ration it"}]},
-        {"type": "meter", "label": "Codex week", "value": 10, "max": 100, "text": "10% left", "tone": "warn"},
-        {"type": "line", "items": [{"text": "Resets Sat 24 Oct, 21:41", "tone": "muted"}, {"text": "Runs out Fri 10:15", "tone": "warn"}]},
+        {"type": "meter", "label": "Claude week", "value": 81, "max": 100, "text": "81% left", "tone": "plain",
+         "badge": {"text": "Hot", "tone": "ok", "badge": True, "tip": "Ahead, spend more"},
+         "sub": [{"text": "Resets Sun 25 Oct, 01:00", "tone": "muted"}, {"text": "in 5d 14h", "tone": "muted"}]},
+        {"type": "meter", "label": "Claude 5 hour", "value": 60, "max": 100, "text": "60% left", "tone": "plain",
+         "sub": [{"text": "Resets 15:30", "tone": "muted"}, {"text": "in 3h 30m", "tone": "muted"}]},
+        {"type": "meter", "label": "Codex week", "value": 10, "max": 100, "text": "10% left", "tone": "warn",
+         "badge": {"text": "Freezing", "tone": "danger", "badge": True, "tip": "Will run out, ration it"},
+         "sub": [{"text": "Resets Sat 24 Oct, 21:41", "tone": "muted"}, {"text": "Runs out Fri 10:15", "tone": "warn"}]},
         {"type": "line", "items": [{"text": "OpenRouter $3.31 left of $50", "tone": "warn"}, {"text": "2.3h worked today", "tone": "muted"}]}])
 
 
@@ -325,7 +329,7 @@ def test_compute_other_temperature_tones(temp, tone, tip):
                         "resets_at": "2026-10-20T00:00:00Z", "seconds_to_reset": 46800}]}
     result = build("compute", FixtureContext({SOURCES["compute"]: pace,
                      "/api/compute/state": {"temps": {"claude": {"temp": temp}}}}))
-    assert result["blocks"][0]["items"] == [{"text": temp.lower().capitalize(), "tone": tone, "badge": True, "tip": tip}]
+    assert result["blocks"][0]["badge"] == {"text": temp.lower().capitalize(), "tone": tone, "badge": True, "tip": tip}
 
 
 def test_compute_state_failure_is_optional_and_zero_footers_are_shown():
@@ -336,11 +340,26 @@ def test_compute_state_failure_is_optional_and_zero_footers_are_shown():
         {"text": "OpenRouter $0.00 left", "tone": "warn"}, {"text": "0.0h worked today", "tone": "muted"}]}
 
 
+@pytest.mark.parametrize("state", [{}, {"temps": {"claude": {}, "codex": {}}}, TimeoutError("private")])
+def test_compute_missing_temperatures_keep_one_meter_per_quota(state):
+    quotas = [{"id": key, "remaining_pct": 40, "resets_at": "2026-10-20T12:00:00Z"}
+              for key in ("claude 7d", "claude 5h", "codex 7d")]
+    result = build("compute", FixtureContext({SOURCES["compute"]: {"quotas": quotas}, "/api/compute/state": state}))
+    assert result["state"] == "ok"
+    assert [block["type"] for block in result["blocks"]] == ["meter", "meter", "meter"]
+    assert [block["label"] for block in result["blocks"]] == ["Claude week", "Claude 5 hour", "Codex week"]
+    assert all("badge" not in block for block in result["blocks"])
+    assert [block["sub"] for block in result["blocks"]] == [
+        [{"text": "Resets Tue 20 Oct, 13:00", "tone": "muted"}, {"text": "in 1d 1h", "tone": "muted"}],
+        [{"text": "Resets 13:00", "tone": "muted"}, {"text": "in 1d 1h", "tone": "muted"}],
+        [{"text": "Resets Tue 20 Oct, 13:00", "tone": "muted"}, {"text": "in 1d 1h", "tone": "muted"}]]
+
+
 def test_compute_countdown_uses_request_time_instead_of_snapshot_age():
     quota = {"id": "claude 5h", "remaining_pct": 40, "resets_at": "2026-10-19T12:00:00Z", "seconds_to_reset": 18000}
     result = build("compute", FixtureContext({SOURCES["compute"]: {"quotas": [quota]}, "/api/compute/state": {}}))
-    assert result["blocks"][2] == {"type": "line", "items": [
-        {"text": "Resets 13:00", "tone": "muted"}, {"text": "in 1h 00m", "tone": "muted"}]}
+    assert result["blocks"][1]["sub"] == [
+        {"text": "Resets 13:00", "tone": "muted"}, {"text": "in 1h 00m", "tone": "muted"}]
 
 
 @pytest.mark.parametrize("key", ["claude 7d", "claude 5h", "codex 7d"])
@@ -394,7 +413,7 @@ def test_crons_problems_hosts_next_limit_order_and_stale_copy():
              "trail": {"text": f"13:{i:02d}", "tone": "muted", "tip": f"job{i}"}} for i in range(12)]
     assert build("crons", FixtureContext({SOURCES["crons"]: data})) == expected(
         "crons", meta="15 jobs, stale", blocks=[
-            {"type": "rows", "title": "Problems 3", "rows": [
+            {"type": "rows", "title": "Problems", "count": 3, "rows": [
                 {"id": "host:b", "title": "b", "detail": "Connection timed out",
                  "lead": {"text": "Host", "tone": "danger", "badge": True, "tip": "Connection timed out"}},
                 {"id": "h:failed", "title": "failed", "detail": "last run failed",

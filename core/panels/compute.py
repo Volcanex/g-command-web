@@ -28,18 +28,19 @@ def build(ctx):
         left = rounded(quota["remaining_pct"])
         short = bool(quota.get("runs_out_at") and parsed(quota["runs_out_at"]).timestamp() < parsed(quota["resets_at"]).timestamp())
         temp = (temps.get(provider) or {}).get("temp") if key.endswith("7d") else None
+        meter = {"type": "meter", "label": name, "value": left, "max": 100,
+                 "text": f"{left}% left", "tone": "warn" if short else "plain"}
         if temp:
-            blocks.append({"type": "line", "items": [chip(str(temp).lower().capitalize(), TONES.get(temp, "plain"), True,
-                                                          tip=STATUS.get(temp, ""))]})
-        blocks.append({"type": "meter", "label": name, "value": left, "max": 100,
-                       "text": f"{left}% left", "tone": "warn" if short else "plain"})
+            meter["badge"] = chip(str(temp).lower().capitalize(), TONES.get(temp, "plain"), True,
+                                  tip=STATUS.get(temp, ""))
         reset = chip("Resets " + london(quota["resets_at"], key.endswith("7d")), "muted")
         if short:
             remaining = chip("Runs out " + london(quota["runs_out_at"], "weekday"), "warn")
         else:
             seconds = parsed(quota["resets_at"]).timestamp() - ctx.now.timestamp()
             remaining = chip("in " + span(seconds), "muted")
-        blocks.append({"type": "line", "items": [reset, remaining]})
+        meter["sub"] = [reset, remaining]
+        blocks.append(meter)
     foot = []
     credit = pace.get("openrouter")
     if credit and credit.get("remaining_usd") is not None:

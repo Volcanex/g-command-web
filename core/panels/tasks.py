@@ -26,5 +26,5 @@ def build(ctx):
             if item.get("vital"):
                 row["marks"] = [chip("Vital", "danger")]
             rows.append(row)
-        blocks.append({"type": "rows", "title": f"{priority} {len(items)}", "rows": rows})
+        blocks.append({"type": "rows", "title": priority, "count": len(items), "rows": rows})
     return {"meta": meta, "blocks": blocks}

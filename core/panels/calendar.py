@@ -5,9 +5,9 @@ from core.panels.helpers import chip, day, encoded, note, plain, row_id, sort_te
 
 
 CAT_TONES = {
-    "study": "accent", "deadline": "accent", "finance": "accent", "bill": "accent",
-    "family": "ok", "social": "ok", "health": "warn", "chore": "warn",
-    "work": "danger", "travel": "ok", "errand": "ok", "personal": "ok",
+    "study": "chart-1", "deadline": "chart-1", "finance": "chart-2", "bill": "chart-2",
+    "family": "chart-3", "social": "chart-3", "health": "chart-4", "chore": "chart-4",
+    "work": "chart-5", "travel": "chart-6", "errand": "chart-6", "personal": "chart-6",
 }
 
 
@@ -62,12 +62,12 @@ def build(ctx):
         blocks.append({"type": "rows", "title": "Today", "empty": "Nothing on today.", "rows": []})
     for label, group in (("Today", own), ("Carried over", carried)):
         if group:
-            blocks.append({"type": "rows", "title": f"{label} {len(group)}",
+            blocks.append({"type": "rows", "title": label, "count": len(group),
                            "rows": [row(item, True) for item in group]})
     for offset in range(1, 7):
         date = (today + timedelta(days=offset)).isoformat()
         group = sorted((item for item in items if item.get("date") == date and not item.get("dropped")), key=chronological)
-        blocks.append({"type": "rows", "title": day(date), "empty": "Nothing planned",
+        blocks.append({"type": "rows", "title": day(date), "aside": True, "empty": "Nothing planned",
                        "rows": [row(item, False) for item in group]})
     return {"title": "Today, " + day(today.isoformat()),
             "meta": f"{opened} open today, {carried_open} carried over", "blocks": blocks}

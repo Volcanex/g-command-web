@@ -19,7 +19,7 @@ def build(ctx):
                      "title": plain(problem["name"]), "detail": plain(problem.get("problem")),
                      "lead": chip(problem["host"], "danger" if "fail" in str(problem.get("problem") or "") else "warn", True,
                                   tip=problem.get("detail"))} for problem in problems)
-        blocks.append({"type": "rows", "title": f"Problems {len(rows)}", "rows": rows})
+        blocks.append({"type": "rows", "title": "Problems", "count": len(rows), "rows": rows})
     else:
         blocks.append({"type": "line", "items": [chip(f"All {len(jobs)} jobs ok", "ok", True)]})
     soon = sorted((job for job in jobs if job.get("next")), key=lambda job: job["next"])[:12]
