@@ -9,5 +9,46 @@
   "nav_icon": "gauge",
   "nav_label": "Full dash",
   "gsys": true,
-  "panels": ["calendar", "tasks", "money", "brief", "health", "compute", "tickets", "crons"]
+  "layout_note": "Life on the left, system on the right. Calendar takes the most room. Health, compute and tickets keep their natural height and crons gets what is left.",
+  "layout": {
+    "columns": [
+      {
+        "width": 2,
+        "items": [
+          {
+            "panel": "calendar",
+            "grow": 3
+          },
+          {
+            "row": [
+              "tasks",
+              "money",
+              "brief"
+            ],
+            "grow": 2
+          }
+        ]
+      },
+      {
+        "width": 1,
+        "min": 320,
+        "items": [
+          {
+            "panel": "health",
+            "fit": true
+          },
+          {
+            "panel": "compute",
+            "fit": true
+          },
+          {
+            "panel": "tickets",
+            "fit": true,
+            "max": 22
+          },
+          "crons"
+        ]
+      }
+    ]
+  }
 }

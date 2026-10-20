@@ -64,6 +64,8 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import urlsplit
 
+from core.panels import layout as dash_layout
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 PAGES_DIR = PROJECT_ROOT / "pages"
 OUTPUT_DIR = PROJECT_ROOT / "output"
@@ -260,6 +262,11 @@ def compile_page(page_dir: Path, shell: str, subnavs: dict | None = None) -> tup
     context = {**DEFAULTS, **{k: v for k, v in config.items() if isinstance(v, (str, int, float))}}
     context["slug"] = slug
     context["subnav"] = (subnavs or {}).get(slug, "")
+
+    # A panel page's `layout` (core/panels/CLAUDE.md, Layout) becomes its dash
+    # markup and placement CSS here, before the panel tokens it holds expand.
+    if "layout" in config:
+        content = content.replace("<!-- seed:dash-layout -->", dash_layout.render(slug, config["layout"]))
 
     # Expand seed:* tokens before splicing into the shell so registered
     # renderers can produce HTML the shell template doesn't know about.

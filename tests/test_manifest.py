@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 import compile as compiler
+from core.panels import layout
 from core.panels.manifest import build_manifest
 
 
@@ -125,16 +126,19 @@ def test_manifest_defaults_ties_tabs_panel_flags_and_bad_configs(tmp_path):
 
 
 @pytest.mark.parametrize("slug", ["home", "ops", "full-dash"])
-def test_dash_config_panel_order_matches_tokens_and_manifest(slug):
+def test_dash_layout_order_matches_compiled_tokens_and_manifest(slug, tmp_path, monkeypatch):
     page = PAGES / slug
     config = json.loads((page / "config.json").read_text())
-    tokens = re.findall(r"<!--\s*seed:panel-([\w-]+)\s*-->", (page / "content.html").read_text())
-    assert config["panels"] == [token for token in tokens if token != "kit"]
+    order = layout.panels(config["layout"])
+    content = (page / "content.html").read_text().replace("<!-- seed:dash-layout -->", layout.render(slug, config["layout"]))
+    tokens = re.findall(r"<!--\s*seed:panel-([\w-]+)\s*-->", content)
+    assert order == [token for token in tokens if token != "kit"]
     manifest = build_manifest(PAGES)
     entry = next(entry for section in manifest["sections"] for entry in section["entries"] if entry["slug"] == slug)
-    assert entry["panels"] == config["panels"]
+    assert entry["panels"] == order
+    assert entry["layout"] == layout.normalise(config["layout"])
     if slug == "ops":
-        assert next(tab for tab in entry["tabs"] if tab["slug"] == "ops")["panels"] == config["panels"]
+        assert next(tab for tab in entry["tabs"] if tab["slug"] == "ops")["panels"] == order
 
 
 @pytest.mark.parametrize("slug", ["home", "ops", "full-dash"])

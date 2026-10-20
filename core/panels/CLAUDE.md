@@ -115,7 +115,7 @@ so no client knows todo semantics.
   "sections": [
     {"title": "Dash", "entries": [
       {"slug": "home", "label": "Life", "icon": "sun-horizon",
-       "panels": ["calendar", "brief", "tasks", "money"],
+       "panels": ["calendar", "brief", "tasks", "money"], "layout": {...},
        "tabs": [{"slug": "...", "label": "...", "panels": [...]?}]}
     ]}
   ],
@@ -126,10 +126,49 @@ Sections and entries follow the web sidebar exactly (`build_nav_html` and
 `build_subnavs` in `compile.py`: `nav: true` pages grouped by `nav_section`,
 tabs from `tabs` groups). An entry or tab with `panels` is a panel page:
 native clients render those panels in that order. Without `panels` it is a
-web page. A page opts in by listing `panels` in its `config.json`. For the
-dashes that list must match the order of the `seed:panel-*` tokens in its
-`content.html` (a test holds them together). The web layout still places
-the columns.
+web page. A page opts in with a `layout` in its `config.json`: the manifest
+gives its reading order as `panels` and the layout itself, normalised, as
+`layout`.
+
+## Layout (the one source for dash placement)
+A panel page's `config.json` `layout` decides where its panels sit on a
+desktop window, for every client. The web compiles it into the dash markup
+and placement CSS (`core/panels/layout.py`, the `<!-- seed:dash-layout -->`
+token, so a dash's `content.html` is only that token and the kit). The Mac
+app lays the same grid out natively. The iPhone, and any window under 900 by
+560, shows one scrolling column in reading order. `layout_note` beside it
+says why the page is laid out that way.
+
+```json
+"layout": {
+  "top": ["compute"],
+  "columns": [
+    {"width": 2, "min": 0, "items": [
+      {"panel": "calendar", "grow": 3},
+      {"row": ["tasks", "money", "brief"], "grow": 2}]},
+    {"width": 1, "min": 320, "items": [
+      {"panel": "health", "fit": true},
+      {"panel": "tickets", "fit": true, "max": 22},
+      "crons"]}
+  ]
+}
+```
+- `top`: panels across the full width above the columns, at their natural
+  height.
+- `columns`: side by side, `width` a share of the width (CSS `fr`), `min`
+  the narrowest it may get, in points.
+- An item is a panel name (fills, weight 1), `{"panel"}` or `{"row": [...]}`
+  (panels side by side, equal widths). The column fills the window's height:
+  `grow` items share what is left by weight, `fit` items take their natural
+  height and do not shrink, `shrink: true` lets a `fit` item shrink and
+  scroll when the column runs short, and `max` caps an item at a percentage
+  of the column's height. A panel's body scrolls inside it.
+- Reading order is `top`, then each column top to bottom, a row left to right.
+- The manifest form (`layout.normalise`) writes every item as an object and
+  every column with `width` and `min`. Clients skip keys they do not know.
+- `tests/test_dash_layout.py` is the gate: no hand-placed dash markup, no
+  `panels` list beside a layout, every panel once, and the manifest serves
+  each layout.
 
 ## Implementation
 

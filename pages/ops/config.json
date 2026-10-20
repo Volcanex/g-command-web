@@ -11,5 +11,37 @@
   "description": "What is down, compute quotas and their reset dates, tickets and crons.",
   "body_class": "full-dash-page ops-page",
   "gsys": true,
-  "panels": ["compute", "health", "tickets", "crons"]
+  "layout_note": "Compute across the top, where its three quotas sit side by side. The panels below end where their content does rather than stretching.",
+  "layout": {
+    "top": [
+      "compute"
+    ],
+    "columns": [
+      {
+        "width": 1,
+        "items": [
+          {
+            "panel": "health",
+            "fit": true,
+            "shrink": true
+          },
+          {
+            "panel": "tickets",
+            "fit": true,
+            "shrink": true
+          }
+        ]
+      },
+      {
+        "width": 1,
+        "items": [
+          {
+            "panel": "crons",
+            "fit": true,
+            "shrink": true
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -69,3 +69,10 @@ Scope `data-tokens` to prose, or mark components `data-no-tokens`.
 overrides without polluting global stylesheets. The login page uses
 `login-page` (console.css hides the sidebar/top/status for it);
 full-dash, home and ops use `full-dash-page` (full-bleed, no measure cap).
+
+## Inside the apps
+The G-Command iPhone and Mac apps load web pages with ` GCommandApp/<version>`
+in the user agent. A head script then sets `data-app` on `<html>`, and
+`chrome.css` hides the sidebar, top bar and status bar: the app draws the
+navigation and title. Browsers never send the marker, so the site itself is
+unchanged.

@@ -113,6 +113,11 @@ body.login-page { display: grid; grid-template-columns: 1fr; place-items: center
 body.login-page > aside, body.login-page .g-top, body.login-page .g-status, body.login-page .g-scrim { display: none; }
 body.login-page .site-main { flex: none; overflow: visible; }
 
+/* inside the G-Command apps: the app draws the navigation and the title,
+   so a web page shows only its content */
+html[data-app] body.g-shell { grid-template-columns: minmax(0, 1fr); }
+html[data-app] body.g-shell > aside, html[data-app] .g-top, html[data-app] .g-status, html[data-app] .g-scrim { display: none; }
+
 /* full-dash: full-bleed */
 body.full-dash-page .site-main { padding: 0; }
 body.full-dash-page .site-main > * { max-width: none; }

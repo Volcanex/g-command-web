@@ -5,9 +5,10 @@ Home of the dash panels. Three pages are built from them: `/full-dash`
 and `/ops` (the system dash). Each panel is one file in `panels/`, and
 `compile.py` registers every `pages/*/panels/*.html` as a content token, so
 a page includes one with `<!-- seed:panel-{name} -->`. Edit the panel file
-and recompile; every dash that includes it picks it up. A page's
-`content.html` holds only the kit token, the layout markup and its
-placement CSS.
+and recompile; every dash that includes it picks it up. A dash's placement
+is the `layout` in its `config.json` (`core/panels/CLAUDE.md`, Layout), which
+the Mac app reads too. Its `content.html` is only `<!-- seed:panel-kit -->`
+and `<!-- seed:dash-layout -->`, which compiles to the markup and CSS below.
 
 - `kit.html`: `window.FD`, the generic panel renderer `FD.panel`, and the
   shared panel, block and dash-frame CSS. Every dash includes
@@ -27,9 +28,9 @@ The dash frame (`.fd-dash` grid of `.fd-col` flex columns, `.fd-row` for
 side-by-side panels) fills the viewport on a desktop window, so each panel
 body scrolls on its own and nothing key sits below the fold at 1280x800.
 Under 900px wide or 560px tall it falls back to one scrolling column, so
-each page wraps its placement CSS in `@media (min-width: 901px) and
+the generated placement CSS sits in `@media (min-width: 901px) and
 (min-height: 561px)`: an id-scoped flex rule outside it would beat the
-fallback and collapse the panel.
+fallback and collapse the panel. The frame's class is `fd-{slug}`.
 
 `api.py` exposes `GET /api/full-dash/diagram`, the instance's
 `render.diagram_elements()` as Cytoscape elements, and
@@ -70,7 +71,7 @@ resolve.
   blocks) and draws a row accent as a trailing dot, compute grids its quota
   meters three across, tickets puts the project on the right.
 
-- No grid/placement CSS: panel placement is owned by each dash's content.html.
+- No grid/placement CSS: panel placement is owned by each dash's `layout`.
 - A panel may appear on several dashes but at most once per page, since
   its id is fixed.
 - g-design alias tokens only (`--surface-1/2`, `--card-bg`, `--text-primary/

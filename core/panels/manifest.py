@@ -2,7 +2,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from core.panels import PANELS
+from core.panels import PANELS, layout
 
 
 def build_manifest(pages_dir):
@@ -33,7 +33,10 @@ def build_manifest(pages_dir):
         result = {"slug": slug, "label": label}
         if not tab:
             result["icon"] = config.get("nav_icon", "circle")
-        if "panels" in config:
+        if "layout" in config:
+            result["panels"] = layout.panels(config["layout"])
+            result["layout"] = layout.normalise(config["layout"])
+        elif "panels" in config:
             result["panels"] = list(config["panels"])
         if not tab and config.get("tabs"):
             result["tabs"] = [entry(member, True) for member in sorted(groups[str(config["tabs"])], key=lambda c: c.get("order", 999))]

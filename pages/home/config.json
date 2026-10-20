@@ -8,6 +8,29 @@
   "nav_icon": "sun-horizon",
   "nav_label": "Life",
   "gsys": true,
-  "panels": ["calendar", "brief", "tasks", "money"],
-  "body_class": "full-dash-page life-page"
+  "body_class": "full-dash-page life-page",
+  "layout_note": "The day first: the calendar has two thirds of the width and the full height. The brief is a short list beside it, not a header over it.",
+  "layout": {
+    "columns": [
+      {
+        "width": 2,
+        "items": [
+          "calendar"
+        ]
+      },
+      {
+        "width": 1,
+        "min": 300,
+        "items": [
+          {
+            "panel": "brief",
+            "fit": true,
+            "max": 34
+          },
+          "tasks",
+          "money"
+        ]
+      }
+    ]
+  }
 }
