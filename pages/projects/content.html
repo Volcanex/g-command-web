@@ -1,12 +1,15 @@
+<nav class="g-crumbs" aria-label="Breadcrumb" data-crumbs hidden>
+  <ol><li><a href="/projects">Projects</a></li><li><span aria-current="page" data-crumb-here></span></li></ol>
+</nav>
 <div class="page-head">
-  <h1>Projects</h1>
+  <h1 data-head>Projects</h1>
   <span class="badge badge-plain num" data-stat-total>Loading&hellip;</span>
   <span class="badge badge-plain num" data-stat-compliant hidden></span>
   <span class="head-spacer"></span>
   <span class="legend" data-legend></span>
 </div>
 
-<p class="page-sub">Every project at a glance, derived from the instance manifest: thumbnail, live health and g-core compliance. Add a manifest entry, a card appears.</p>
+<p class="page-sub">Every project at a glance, derived from the instance manifest: thumbnail, live health, g-core compliance and gate state. Add a manifest entry, a card appears.</p>
 
 <div id="proj-root"><p class="proj-loading">Loading&hellip;</p></div>
 
@@ -86,6 +89,42 @@
   .proj-note { font-style: italic; }
 
   .proj-loading { color: var(--text-secondary); font-size: 12px; margin: 0; }
+  /* Gates: the compact line on each card, and the project view. */
+  .proj-title a { color: inherit; text-decoration: none; }
+  .proj-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .proj-gates { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); min-height: var(--h-control-sm); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); text-decoration: none; }
+  a.proj-gates:hover .pg-more { color: var(--text-primary); }
+  .proj-gates .rowk { color: var(--text-placeholder); }
+  .proj-gates .pg-more { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-1); }
+  .pg-ok { color: var(--ok-text); }
+  .pg-warn { color: var(--warn-text); }
+  .pg-danger { color: var(--danger-text); }
+
+  .g-crumbs { margin-bottom: var(--sp-2); }
+  .proj-detail { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+  @media (max-width: 760px) { .proj-detail { grid-template-columns: minmax(0, 1fr); } }
+  .pg-card { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+  .pg-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+  .pg-head h2 { margin: 0; font-size: var(--font-size-ui); font-weight: 500; }
+  .pg-head .btn { margin-left: auto; }
+  .pg-charter { margin: 0; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  .pg-charter strong { font-weight: 500; color: var(--text-primary); }
+  .pg-alert { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--danger-edge); border-radius: var(--radius-card); font-size: 12px; line-height: var(--lh-1); color: var(--text-primary); }
+  .pg-alert i { color: var(--danger-text); font-size: 16px; line-height: var(--lh-1); flex: none; }
+  .pg-counts { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+  .pg-counts b { font-weight: 500; color: var(--text-primary); }
+  .pg-table td { vertical-align: top; }
+  .pg-table .pg-gate { overflow-wrap: anywhere; }
+  .pg-table .pg-id { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); }
+  .pg-table .pg-sub { display: none; margin-top: var(--sp-1); font-size: 12px; color: var(--text-secondary); }
+  .pg-table .pg-when { white-space: nowrap; color: var(--text-secondary); }
+  .pg-table tr.pg-alarm td:first-child { box-shadow: inset 2px 0 0 var(--danger-text); }
+  .pg-table .pg-quiet { color: var(--text-placeholder); }
+  @media (max-width: 560px) {
+    .pg-table .pg-when, .pg-table th.pg-when { display: none; }
+    .pg-table .pg-sub { display: block; }
+  }
+  .pg-msg { margin: 0; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
 </style>
 
 <script>
@@ -177,6 +216,133 @@
   const hostName = {};
   for (const h of (manifest.hosts || [])) hostName[h.id] = (h.aliases && h.aliases[1]) || h.provider || h.id;
 
+  const projectHref = (id) => `/projects?project=${encodeURIComponent(id)}`;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + 's')}`;
+
+  // ── gates (g-levels, through /api/levels): counts and states only, notes stay on /levels ──
+  const STATE = {
+    met: ['Met', 'badge-ok'], attempted: ['Attempted', 'badge-info'], waived: ['Waived', 'badge-plain'],
+    impossible: ['Impossible', 'badge-warn'], caught: ['Caught', 'badge-danger'], silent: ['Silent', 'badge-warn'],
+    hook: ['Hook', 'badge-plain'], 'not-run': ['Not run', ''],
+  };
+  const COUNT_ORDER = ['caught', 'impossible', 'silent', 'attempted', 'met', 'waived', 'not-run', 'hook'];
+
+  function ago(ts) {
+    if (!ts) return '';
+    const s = (Date.now() - new Date(ts).getTime()) / 1000;
+    if (!(s >= 0)) return ts.slice(0, 10);
+    if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
+    if (s < 86400) return plural(Math.round(s / 3600), 'hour') + ' ago';
+    if (s < 86400 * 60) return plural(Math.round(s / 86400), 'day') + ' ago';
+    return ts.slice(0, 10);
+  }
+
+  // One line on a card: the blocking trouble first, then how many gates are met.
+  function gatesLine(g) {
+    const parts = ['<span class="rowk">Gates</span>'];
+    if (!g || !g.total) {
+      parts.push('<span>No gates in scope</span>');
+      return parts.join('');
+    }
+    const c = g.counts || {}, b = g.blocking || {};
+    if (b.silent) parts.push(`<span class="badge badge-danger">${b.silent} blocking silent</span>`);
+    if (b.failing) parts.push(`<span class="badge badge-danger">${b.failing} blocking failing</span>`);
+    parts.push(`<span class="num">${c.met || 0} of ${g.total} met</span>`);
+    const quiet = (c.silent || 0) - (b.silent || 0);
+    if (quiet > 0) parts.push(`<span class="pg-warn num">${quiet} silent</span>`);
+    parts.push(`<span class="pg-more">${esc(g.charter || '')}<i class="ph ph-caret-right" aria-hidden="true"></i></span>`);
+    return parts.join('');
+  }
+
+  async function paintGateLines() {
+    let data = null;
+    try {
+      const r = await fetch('/api/levels/projects');
+      if (r.ok) data = (await r.json()).projects || {};
+    } catch (e) { /* the line says so below */ }
+    for (const el of root.querySelectorAll('[data-gates]')) {
+      const id = el.closest('[data-repo]').dataset.repo;
+      el.innerHTML = data ? gatesLine(data[id]) : '<span class="rowk">Gates</span><span>Not available right now</span>';
+    }
+  }
+
+  // The project view: the charter covering this repo, every gate it pins and the latest result per gate.
+  function gateRow(x) {
+    const [label, kind] = STATE[x.state] || [x.state, ''];
+    const alarm = x.blocking && (x.state === 'silent' || x.state === 'caught' || x.state === 'impossible');
+    const badge = kind ? `<span class="badge ${alarm ? 'badge-danger' : kind}">${esc(label)}</span>`
+                       : `<span class="pg-quiet">${esc(label)}</span>`;
+    const when = x.last ? `<span class="num" title="${esc(x.last)}">${esc(ago(x.last))}</span>`
+                        : '<span class="pg-quiet">Never</span>';
+    return `<tr class="${alarm ? 'pg-alarm' : ''}">
+      <td class="pg-gate"><div class="pg-id"><span class="mono">${esc(x.gate)}</span>${x.blocking ? '<span class="badge badge-plain">Blocking</span>' : ''}</div>
+        <div class="pg-sub">${x.last ? 'Last reported ' + esc(ago(x.last)) : 'Never reported here'}</div></td>
+      <td>${badge}</td>
+      <td class="pg-when">${when}</td>
+    </tr>`;
+  }
+
+  function gatesSection(v) {
+    if (!v || !v.charter) {
+      return `<div class="pg-head"><h2>Gates</h2><a class="btn btn-tertiary btn-sm" href="/levels">Open levels</a></div>
+        <p class="pg-msg">No charter covers this repo, so no gates are checked here.</p>`;
+    }
+    const chain = (v.chain || []).map(c => c.id);
+    const own = chain[chain.length - 1];
+    const parents = chain.slice(0, -1).reverse();
+    const charter = `<p class="pg-charter">Charter <strong>${esc(own)}</strong>${parents.length ? `, extending ${parents.map(esc).join(' and ')}` : ''}</p>`;
+    const gates = (v.gates || []).slice().sort((a, b) => (b.blocking ? 1 : 0) - (a.blocking ? 1 : 0));
+    const silentBlocking = gates.filter(x => x.blocking && x.state === 'silent');
+    const failingBlocking = gates.filter(x => x.blocking && (x.state === 'caught' || x.state === 'impossible'));
+    const alerts = [];
+    if (silentBlocking.length) alerts.push(`${plural(silentBlocking.length, 'blocking gate has', 'blocking gates have')} never reported for this repo.`);
+    if (failingBlocking.length) alerts.push(`${plural(failingBlocking.length, 'blocking gate')} last reported a catch or could not run.`);
+    const alert = alerts.length
+      ? `<div class="pg-alert" role="status"><i class="ph ph-warning-circle" aria-hidden="true"></i><span>${alerts.join(' ')} They are marked in red below.</span></div>`
+      : '';
+    const c = v.counts || {};
+    const counts = COUNT_ORDER.filter(k => c[k]).map(k =>
+      `<li><b class="num">${c[k]}</b> ${esc(STATE[k][0].toLowerCase())}</li>`).join('');
+    return `<div class="pg-head"><h2>Gates</h2><a class="btn btn-tertiary btn-sm" href="/levels">Open levels</a></div>
+      ${charter}
+      ${alert}
+      <ul class="pg-counts">${counts}</ul>
+      <div class="table-wrap"><table class="table pg-table">
+        <thead><tr><th>Gate</th><th>Result</th><th class="pg-when">Last reported</th></tr></thead>
+        <tbody>${gates.map(gateRow).join('')}</tbody>
+      </table></div>`;
+  }
+
+  async function renderProject(p) {
+    document.querySelector('[data-crumbs]').hidden = false;
+    document.querySelector('[data-crumb-here]').textContent = p.id;
+    document.querySelector('[data-head]').textContent = p.id;
+    document.title = `${p.id}: Projects`;
+    statTotal.hidden = true;
+    legend.hidden = true;
+    document.querySelector('.page-sub').textContent =
+      'The g-levels charter that covers this repo, every gate it pins and the latest result per gate. Notes stay on the levels page.';
+    root.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'proj-detail';
+    const card = buildCard(p);
+    card.querySelector('[data-gates]').remove();
+    const gatesCard = document.createElement('section');
+    gatesCard.className = 'card pg-card';
+    gatesCard.setAttribute('aria-label', 'Gates');
+    gatesCard.innerHTML = '<div class="pg-head"><h2>Gates</h2></div><p class="pg-msg">Loading</p>';
+    wrap.append(card, gatesCard);
+    root.appendChild(wrap);
+    try {
+      const r = await fetch(`/api/levels/project/${encodeURIComponent(p.id)}`);
+      if (!r.ok) throw new Error(r.status);
+      gatesCard.innerHTML = gatesSection(await r.json());
+    } catch (e) {
+      gatesCard.innerHTML = `<div class="pg-head"><h2>Gates</h2><a class="btn btn-tertiary btn-sm" href="/levels">Open levels</a></div>
+        <p class="pg-msg">The gate results did not load. Reload the page to try again.</p>`;
+    }
+  }
+
   // ── build card ──
   function buildCard(p) {
     const id = p.id;
@@ -251,11 +417,12 @@
       ${thumb}
       <div class="proj-body">
         <div class="proj-titlerow">
-          <h3 class="proj-title" title="${esc(titleAttr)}">${esc(id)}</h3>
+          <h3 class="proj-title" title="${esc(titleAttr)}"><a href="${projectHref(id)}">${esc(id)}</a></h3>
           ${health}
         </div>
         <div class="proj-row">${badges.join('')}</div>
         ${links.length ? `<div class="proj-links">${links.join('')}</div>` : ''}
+        <a class="proj-gates" href="${projectHref(id)}" data-gates><span class="rowk">Gates</span><span>Loading</span></a>
         ${depsRow}
         ${lineageRow}
         ${commitRow}
@@ -264,33 +431,38 @@
     return card;
   }
 
-  // ── render grouped by host ──
+  const wanted = new URLSearchParams(location.search).get('project');
+  const chosen = wanted && projects.find(p => p.id === wanted);
+  // ── render grouped by host, or one project's view ──
   root.innerHTML = '';
-  if (!projects.length) {
+  if (chosen) {
+    renderProject(chosen);
+  } else if (!projects.length) {
     fail('No projects yet', 'Nothing in the manifest to show. Add an entry to the instance manifest and a card appears here.');
     setBadge(statTotal, 'unknown', '0 projects', false);
     return;
+  } else {
+    const byHost = {};
+    for (const p of projects) (byHost[p.host || '?'] = byHost[p.host || '?'] || []).push(p);
+
+    for (const [host, list] of Object.entries(byHost)) {
+      const head = document.createElement('div');
+      head.className = 'proj-host-head';
+      head.innerHTML = `<span class="host-id">${esc(host)}</span>` +
+        (hostName[host] ? `<span class="host-name">${esc(hostName[host])}</span>` : '');
+      root.appendChild(head);
+      const grid = document.createElement('div');
+      grid.className = 'proj-grid';
+      for (const p of list) grid.appendChild(buildCard(p));
+      root.appendChild(grid);
+    }
+
+    const compliantCount = projects.filter(p => (compliance[p.id] || {}).compliant === true).length;
+    paintGateLines();
+    statTotal.textContent = `${projects.length} projects`;
+    statComp.textContent = `${compliantCount} g-core compliant`;
+    statComp.hidden = false;
   }
-
-  const byHost = {};
-  for (const p of projects) (byHost[p.host || '?'] = byHost[p.host || '?'] || []).push(p);
-
-  for (const [host, list] of Object.entries(byHost)) {
-    const head = document.createElement('div');
-    head.className = 'proj-host-head';
-    head.innerHTML = `<span class="host-id">${esc(host)}</span>` +
-      (hostName[host] ? `<span class="host-name">${esc(hostName[host])}</span>` : '');
-    root.appendChild(head);
-    const grid = document.createElement('div');
-    grid.className = 'proj-grid';
-    for (const p of list) grid.appendChild(buildCard(p));
-    root.appendChild(grid);
-  }
-
-  const compliantCount = projects.filter(p => (compliance[p.id] || {}).compliant === true).length;
-  statTotal.textContent = `${projects.length} projects`;
-  statComp.textContent = `${compliantCount} g-core compliant`;
-  statComp.hidden = false;
 
   // ── live health (services + dependency badges), polled ──
   function aggState(states) {

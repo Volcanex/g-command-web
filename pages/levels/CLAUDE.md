@@ -8,6 +8,9 @@ share of Gabriel's prompts per level per week, and a taste-sampling panel.
   `glevels.export` from the g-levels checkout beside this one (`GLEVELS_DIR` overrides),
   read fresh on every request. `POST /grade` runs `glevels grade <id> agree|disagree`,
   so the CLI stays the only writer of the results log.
+- `GET /api/levels/projects` returns compact charter and gate counts for every manifest
+  project; `GET /api/levels/project/{pid}` adds its charter chain and pinned gate states.
+  Both are admin-gated and carry no notes, waiver reasons, actors or paths.
 - The backlog quotes Gabriel's own prompts. Every route checks the admin cookie inline,
   because the page gate in `server.py` does not cover `/api/*`.
 - The backlog and the level summary are dated files in g-levels' gitignored `var/`

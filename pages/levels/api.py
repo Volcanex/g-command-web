@@ -1,9 +1,9 @@
 """Levels page API, mounted at /api/levels.
 
 A renderer over the g-levels checkout beside this one (core.instance.sibling,
-GLEVELS_DIR to override). Every read goes through `glevels.export.snapshot()`, which
-reads the registry, the results log, the backlog and the level summary fresh on each
-request. The backlog quotes Gabriel's own prompts, so nothing here is public: both
+GLEVELS_DIR to override). Every read goes through `glevels.export`, which reads the
+registry, the results log, the backlog and the level summary fresh on each request.
+The backlog quotes Gabriel's own prompts, so nothing here is public: all
 routes check the admin cookie inline, because the page gate in server.py does not
 cover /api/*.
 
@@ -11,6 +11,7 @@ Grading never writes the log from here. It runs `glevels grade <id> agree|disagr
 the same command Gabriel would type, so the CLI stays the one writer.
 """
 import importlib
+import json
 import logging
 import os
 import re
@@ -22,12 +23,13 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from core.auth import cookie_ok
-from core.instance import sibling
+from core.instance import gcore_dir, sibling
 
 router = APIRouter()
 log = logging.getLogger(__name__)
 
 _ID = re.compile(r"^[0-9a-f]{8}$")
+_PROJECT = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")  # the manifest id pattern pages/projects/api.py checks
 _RUNNER = "import sys\nfrom glevels.cli import main\nsys.exit(main())"
 
 
@@ -50,6 +52,18 @@ def _export():
         raise HTTPException(503, f"g-levels is not readable at {path}: {type(exc).__name__}")
 
 
+def _projects():
+    manifest = json.loads((gcore_dir() / "manifest.json").read_text())
+    projects = {}
+    for project in manifest.get("projects", []):
+        names = [project["id"]]
+        repo = Path((project.get("url") or "").rstrip("/")).name.removesuffix(".git")
+        if repo and repo not in names:
+            names.append(repo)
+        projects[project["id"]] = names
+    return projects
+
+
 @router.get("/snapshot")
 def snapshot(request: Request):
     _auth(request)
@@ -60,6 +74,23 @@ def snapshot(request: Request):
 def sample(request: Request, n: int = 6):
     _auth(request)
     return _export().sample(max(1, min(n, 20)))
+
+
+@router.get("/projects")
+def projects(request: Request):
+    _auth(request)
+    return {"projects": _export().projects_view(_projects())}
+
+
+@router.get("/project/{pid}")
+def project(pid: str, request: Request):
+    _auth(request)
+    if not _PROJECT.fullmatch(pid):
+        raise HTTPException(404)
+    names = _projects().get(pid)
+    if names is None:
+        raise HTTPException(404)
+    return {**_export().project_view(names), "id": pid}
 
 
 class Grade(BaseModel):

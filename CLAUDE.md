@@ -16,7 +16,7 @@ name and the `gcommand` compat symlink on h keep the old name.
 - `/design`: the g-design reference (guideline and component cards) in an index beside a frame. `compile.py` copies the checkout at `G_DESIGN_DOCS` (g-design's `apps/docs`) into `output/assets/design/` and indexes the cards by their `@dsCard` comment, so a g-design change shows here on the next restart.
 - `/graph`: the brain's wikilink graph in 3D (3d-force-graph, WebGL).
 - `/system`: live service topology + health, from the brain L5 status index.
-- `/projects`: project gallery: a card per `manifest.projects[]` (thumbnail, health, gcore compliance, deps, lineage, last commit). Pure renderer; the list is the manifest, so a new entry self-adds.
+- `/projects`: project gallery: a card per `manifest.projects[]` (thumbnail, health, gcore compliance, deps, lineage, last commit). Pure renderer; the list is the manifest, so a new entry self-adds. Each card carries one gates line (blocking trouble, how many gates are met), and `/projects?project=<id>` is that project's view: the card, the g-levels charter covering the repo and every gate it pins with its latest result and when it last reported, blocking silent gates in red. Both read `/api/levels/projects` and `/api/levels/project/<id>` (states and counts, never notes). The apps show it in their signed-in web view.
 - `/calendar`: every dated brain todo, in four views over one fetch: **day** (one day full width, grouped starred/to do/settled, the triage view; steps to tomorrow and back), **month** (shape only: daily habits are counted on the date line rather than listed, because a month grid should show what is *different* about a day; a cell click opens that day in the day view), **week** (seven columns, nothing truncated, full width), **agenda** (four weeks forward from today, empty days omitted, the phone view). A star toggles `urgent`, which is triage; `vital` is set on the todo and drives the reminder ladder. Both sort to the top of their day, server-side, so every view agrees. Week and agenda re-sort chronologically: they show everything, so they read as a timeline, while the truncating views need the important things at the top of the cell.
 
   Two gotchas. Only the **regular** Phosphor weight is vendored here, so `ph-fill` renders an empty box: a starred row lost its star that way, and state has to be carried by colour. And the reminder ladder is shown short (`3 reminders, last 1 day before`) with the full list in a `data-tip`, because a five-rung vital ladder spelled out wrapped over three lines and buried the two facts worth reading. Recurrence is expanded server-side by `/api/todos/calendar`, which also carries overdue one-offs onto today rather than letting them vanish. Items show done (green, struck), failed (red, struck) or late, and vital ones carry a mark. The day panel ticks a single occurrence of a recurring todo without retiring the whole habit, and offers did-not-happen, tomorrow, next week and drop. Each item states the reminder ladder it will fire, so the page explains its own behaviour rather than leaving you to guess when ntfy pings.
@@ -50,6 +50,7 @@ Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `
 |------|---------|
 | `agents/CLAUDE.md` | Agents: kickoff prompts for parallel integrations |
 | `core/api/CLAUDE.md` | core/api: shared API routers |
+| `core/panels/CLAUDE.md` | core/panels: the shared panel contract |
 | `core/templates/CLAUDE.md` | Templates: the shared shell |
 | `pages/CLAUDE.md` | Pages |
 | `pages/blog/CLAUDE.md` | blog |
@@ -59,5 +60,5 @@ Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `
 | `pages/sessions/CLAUDE.md` | sessions: the terminal page |
 | `pages/upload/CLAUDE.md` | upload |
 
-_Auto-compiled 2026-10-18 23:53 UTC, 10 doc(s) found._
+_Auto-compiled 2026-10-20 12:44 UTC, 11 doc(s) found._
 <!-- DOCS:END -->

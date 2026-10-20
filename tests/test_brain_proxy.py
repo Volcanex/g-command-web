@@ -56,3 +56,16 @@ def test_passes_upstream_status_and_maps_unreachable(client, sent, monkeypatch):
 
     monkeypatch.setattr(brain_api, "_send", down)
     assert client.get("/api/brain/api/status").status_code == 502
+
+
+def test_paired_device_reaches_brain_and_revoking_it_cuts_it_off(client, sent, monkeypatch, tmp_path):
+    # The apps hold no Brain key: pairing with Command is the whole Brain connection.
+    from core import auth
+    monkeypatch.setattr(auth, "DEVICES_FILE", tmp_path / "devices.json")
+    monkeypatch.setattr(auth, "_cache", {"key": None, "devices": []})
+    token, device = auth.add_device("Phone", "ios")
+    client.cookies.set("seed_admin", token)
+    assert client.get("/api/brain/api/status").status_code == 200
+    assert sent[0][1] == "http://brain.test/api/status"
+    auth.revoke_device(device["id"])
+    assert client.get("/api/brain/api/status").status_code == 401
