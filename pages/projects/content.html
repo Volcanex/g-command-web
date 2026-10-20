@@ -106,14 +106,16 @@
   .pg-card { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
   .pg-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
   .pg-head h2 { margin: 0; font-size: var(--font-size-ui); font-weight: 500; }
-  .pg-head .btn { margin-left: auto; }
+  .pg-head .btn { margin-left: auto; text-decoration: none; }
+  @media (min-width: 761px) { .proj-detail > .proj-card { position: sticky; top: var(--sp-4); } }
+  @media (max-width: 760px) { .proj-detail .proj-thumb { display: none; } }
   .pg-charter { margin: 0; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
   .pg-charter strong { font-weight: 500; color: var(--text-primary); }
   .pg-alert { display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--danger-edge); border-radius: var(--radius-card); font-size: 12px; line-height: var(--lh-1); color: var(--text-primary); }
   .pg-alert i { color: var(--danger-text); font-size: 16px; line-height: var(--lh-1); flex: none; }
   .pg-counts { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
   .pg-counts b { font-weight: 500; color: var(--text-primary); }
-  .pg-table td { vertical-align: top; }
+  .pg-table td { vertical-align: middle; }
   .pg-table .pg-gate { overflow-wrap: anywhere; }
   .pg-table .pg-id { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); }
   .pg-table .pg-sub { display: none; margin-top: var(--sp-1); font-size: 12px; color: var(--text-secondary); }
@@ -250,7 +252,7 @@
     parts.push(`<span class="num">${c.met || 0} of ${g.total} met</span>`);
     const quiet = (c.silent || 0) - (b.silent || 0);
     if (quiet > 0) parts.push(`<span class="pg-warn num">${quiet} silent</span>`);
-    parts.push(`<span class="pg-more">${esc(g.charter || '')}<i class="ph ph-caret-right" aria-hidden="true"></i></span>`);
+    parts.push('<span class="pg-more" aria-hidden="true"><i class="ph ph-caret-right"></i></span>');
     return parts.join('');
   }
 
@@ -297,8 +299,9 @@
     const alerts = [];
     if (silentBlocking.length) alerts.push(`${plural(silentBlocking.length, 'blocking gate has', 'blocking gates have')} never reported for this repo.`);
     if (failingBlocking.length) alerts.push(`${plural(failingBlocking.length, 'blocking gate')} last reported a catch or could not run.`);
+    const marked = silentBlocking.length + failingBlocking.length === 1 ? 'It is marked in red below.' : 'They are marked in red below.';
     const alert = alerts.length
-      ? `<div class="pg-alert" role="status"><i class="ph ph-warning-circle" aria-hidden="true"></i><span>${alerts.join(' ')} They are marked in red below.</span></div>`
+      ? `<div class="pg-alert" role="status"><i class="ph ph-warning-circle" aria-hidden="true"></i><span>${alerts.join(' ')} ${marked}</span></div>`
       : '';
     const c = v.counts || {};
     const counts = COUNT_ORDER.filter(k => c[k]).map(k =>
@@ -422,7 +425,7 @@
         </div>
         <div class="proj-row">${badges.join('')}</div>
         ${links.length ? `<div class="proj-links">${links.join('')}</div>` : ''}
-        <a class="proj-gates" href="${projectHref(id)}" data-gates><span class="rowk">Gates</span><span>Loading</span></a>
+        <a class="proj-gates" href="${projectHref(id)}" title="Open the gates for ${esc(id)}" data-gates><span class="rowk">Gates</span><span>Loading</span></a>
         ${depsRow}
         ${lineageRow}
         ${commitRow}
