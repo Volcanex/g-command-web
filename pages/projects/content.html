@@ -116,7 +116,7 @@
   .pg-counts { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
   .pg-counts b { font-weight: 500; color: var(--text-primary); }
   .pg-table td { vertical-align: middle; }
-  .pg-table .pg-gate { overflow-wrap: anywhere; }
+  .pg-table .pg-gate { overflow-wrap: break-word; }
   .pg-table .pg-id { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); }
   .pg-table .pg-sub { display: none; margin-top: var(--sp-1); font-size: 12px; color: var(--text-secondary); }
   .pg-table .pg-when { white-space: nowrap; color: var(--text-secondary); }
@@ -277,7 +277,7 @@
     const when = x.last ? `<span class="num" title="${esc(x.last)}">${esc(ago(x.last))}</span>`
                         : '<span class="pg-quiet">Never</span>';
     return `<tr class="${alarm ? 'pg-alarm' : ''}">
-      <td class="pg-gate"><div class="pg-id"><span class="mono">${esc(x.gate)}</span>${x.blocking ? '<span class="badge badge-plain">Blocking</span>' : ''}</div>
+      <td class="pg-gate"><div class="pg-id"><span class="mono">${esc(x.gate).replace(/([.-])/g, '$1<wbr>')}</span>${x.blocking ? '<span class="badge badge-plain">Blocking</span>' : ''}</div>
         <div class="pg-sub">${x.last ? 'Last reported ' + esc(ago(x.last)) : 'Never reported here'}</div></td>
       <td>${badge}</td>
       <td class="pg-when">${when}</td>
