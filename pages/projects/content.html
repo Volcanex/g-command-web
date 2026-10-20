@@ -92,12 +92,11 @@
   /* Gates: the compact line on each card, and the project view. */
   .proj-title a { color: inherit; text-decoration: none; }
   .proj-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .proj-gates { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); min-height: var(--h-control-sm); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); text-decoration: none; }
+  .proj-gates { display: flex; flex-wrap: nowrap; overflow: hidden; white-space: nowrap; align-items: center; gap: var(--sp-1) var(--sp-2); min-height: var(--h-control-sm); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); text-decoration: none; }
   a.proj-gates:hover .pg-more { color: var(--text-primary); }
   .proj-gates .rowk { color: var(--text-placeholder); }
   .proj-gates .pg-more { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-1); }
   .pg-ok { color: var(--ok-text); }
-  .pg-warn { color: var(--warn-text); }
   .pg-danger { color: var(--danger-text); }
 
   .g-crumbs { margin-bottom: var(--sp-2); }
@@ -250,8 +249,6 @@
     if (b.silent) parts.push(`<span class="badge badge-danger">${b.silent} blocking silent</span>`);
     if (b.failing) parts.push(`<span class="badge badge-danger">${b.failing} blocking failing</span>`);
     parts.push(`<span class="num">${c.met || 0} of ${g.total} met</span>`);
-    const quiet = (c.silent || 0) - (b.silent || 0);
-    if (quiet > 0) parts.push(`<span class="pg-warn num">${quiet} silent</span>`);
     parts.push('<span class="pg-more" aria-hidden="true"><i class="ph ph-caret-right"></i></span>');
     return parts.join('');
   }
@@ -299,7 +296,7 @@
     const alerts = [];
     if (silentBlocking.length) alerts.push(`${plural(silentBlocking.length, 'blocking gate has', 'blocking gates have')} never reported for this repo.`);
     if (failingBlocking.length) alerts.push(`${plural(failingBlocking.length, 'blocking gate')} last reported a catch or could not run.`);
-    const marked = silentBlocking.length + failingBlocking.length === 1 ? 'It is marked in red below.' : 'They are marked in red below.';
+    const marked = silentBlocking.length + failingBlocking.length === 1 ? 'See the red row below.' : 'See the red rows below.';
     const alert = alerts.length
       ? `<div class="pg-alert" role="status"><i class="ph ph-warning-circle" aria-hidden="true"></i><span>${alerts.join(' ')} ${marked}</span></div>`
       : '';
