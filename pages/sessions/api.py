@@ -190,6 +190,28 @@ def purge_stale(request: Request, idle_days: int = 7):
     return {"killed": killed, "count": len(killed)}
 
 
+@router.get("/history/{host}/{name}")
+def history(host: str, name: str, request: Request, lines: int = 2000):
+    """The pane's scrollback plus its visible screen, with colours, for a
+    native client to scroll through. Attached tmux draws on the alternate
+    screen, so the attach stream never carries history. Wrapped lines are
+    joined (-J) so the client rewraps them at its own width. A session that
+    does not exist yet has no history: an empty text, not an error."""
+    if not _is_admin(request):
+        raise HTTPException(401, "unauthorized")
+    if host not in _HOSTS or not _safe_name(name):
+        raise HTTPException(400, "invalid session")
+    lines = max(0, min(lines, 10000))
+    try:
+        out = subprocess.run(
+            _tmux_cmd(host, ["capture-pane", "-p", "-e", "-J", "-S", f"-{lines}", "-t", f"={name}:"]),
+            capture_output=True, text=True, timeout=8, errors="replace",
+        )
+    except Exception:
+        return {"text": ""}
+    return {"text": out.stdout if out.returncode == 0 else ""}
+
+
 @router.websocket("/ws/{host}/{name}")
 async def attach(ws: WebSocket, host: str, name: str):
     # Cookie auth: Starlette parses cookies on the upgrade request.
