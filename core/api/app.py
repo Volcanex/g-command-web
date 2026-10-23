@@ -11,12 +11,20 @@ admin cookie, so it never stores the password, a Brain key or an ntfy topic.
   GET    /api/app/devices       signed in: paired devices
   DELETE /api/app/devices/{id}  signed in: revoke one
   GET    /api/app/manifest      signed in: sections, entries and panel pages
+  POST   /api/app/push-token    paired device: {token, platform: ios|macos,
+                                environment: sandbox|production}, stores
+                                this device's APNs token (one per device)
+  DELETE /api/app/push-token    paired device: forget this device's token
+
+The push token is keyed by the device id, so it needs a device's own cookie,
+not the shared browser one (400). Revoking a device forgets its token.
 
 Codes live in memory for five minutes and work once. A wrong code counts as a
 failed login in the same per-IP limit as the password.
 """
 import hmac
 import os
+import re
 import secrets
 import sys
 import threading
@@ -31,7 +39,7 @@ if str(_ROOT) not in sys.path:
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from core import auth
+from core import auth, push_tokens
 from core.api.admin import _UNSET_PASSWORDS, _admin_password, _client_ip, _record_login_failure, _too_many_failures
 
 router = APIRouter(tags=["app"])
@@ -125,7 +133,45 @@ def revoke(device_id: str, request: Request):
     _require(request)
     if not auth.revoke_device(device_id):
         raise HTTPException(404, "no such device")
+    push_tokens.forget(device_id)
     return {"ok": True}
+
+
+_APNS_TOKEN = re.compile(r"^[0-9a-f]{32,200}$")
+
+
+class PushTokenRequest(BaseModel):
+    token: str
+    platform: str
+    environment: str
+
+
+def _this_device(request: Request) -> dict:
+    _require(request)
+    device = auth.device_for(request.cookies.get(auth.ADMIN_COOKIE, ""))
+    if device is None:
+        raise HTTPException(400, "push tokens belong to a paired device; pair this client first")
+    return device
+
+
+@router.post("/push-token")
+def push_token(req: PushTokenRequest, request: Request):
+    device = _this_device(request)
+    token = req.token.strip().lower()
+    if not _APNS_TOKEN.match(token):
+        raise HTTPException(400, "token must be the APNs device token in hex")
+    if req.platform not in push_tokens.PLATFORMS:
+        raise HTTPException(400, "platform must be ios or macos")
+    if req.environment not in push_tokens.ENVIRONMENTS:
+        raise HTTPException(400, "environment must be sandbox or production")
+    push_tokens.register(device["id"], token, req.platform, req.environment)
+    return {"ok": True, "device_id": device["id"]}
+
+
+@router.delete("/push-token")
+def forget_push_token(request: Request):
+    device = _this_device(request)
+    return {"ok": True, "removed": push_tokens.forget(device["id"])}
 
 
 @router.get("/manifest")

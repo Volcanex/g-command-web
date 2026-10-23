@@ -15,6 +15,7 @@ for the discovery code.
 | `runners.py` | `/api/runners` | Read-only, admin-gated proxy to g-runner (`GET /state`, `GET /jobs/{id}`) for `/runners`; adds the bearer token server-side |
 | `brain.py` | `/api/brain` | Admin-gated proxy to the g-brain REST API at `BRAIN_UPSTREAM`, so brain pages work without a public brain host |
 | `panels.py` | `/api/panels` | Admin-gated shared dash view-models from `core/panels`, with safe panel error states |
+| `push.py` | `/api/push` | The alert spine's APNs fan-out: g-brain posts each alert here (bearer `ALERT_PUSH_TOKEN`), sent to every paired app by `core/apns.py` |
 
 ## admin.py
 
@@ -101,3 +102,42 @@ When real multi-user auth is needed (multiple humans, external
 surfaces, audit logs), upgrade the cookie to a signed token (HMAC) and
 introduce a session table, but most internal-only projects never need
 to.
+
+## push.py and the app push tokens
+
+g-brain's `send` posts every alert to `POST /api/push` after ntfy, with
+`Authorization: Bearer $ALERT_PUSH_TOKEN` and `{level, source, msg, click}`.
+The route answers 202 at once and sends from a background task, so a slow
+Apple never holds up the spine. The link is `alerts._link` on the same title,
+tags and click ntfy would carry, so a push and `/api/alerts` open the same
+screen. `LEVEL_TAGS` mirrors g-brain's `_LEVELS` tags: change both together.
+
+The apps register through `app.py` with their own device cookie (the shared
+browser cookie gets 400, since a token is keyed by device id):
+
+- `POST /api/app/push-token` `{token: <hex>, platform: ios|macos, environment: sandbox|production}` → `{ok, device_id}`; re-posting replaces the device's token.
+- `DELETE /api/app/push-token` → `{ok, removed}`.
+
+Tokens live in gitignored `var/push-tokens.json` (0600). Revoking a device
+forgets its token, and `push_tokens.live()` prunes any token whose device is
+no longer paired. APNs 410 and `BadDeviceToken` drop the token.
+
+Payload: `aps.alert` title is the source (else the level), body the message,
+`thread-id` the source, `interruption-level` critical → time-sensitive (the
+critical entitlement needs Apple's approval), brief → passive with no sound,
+everything else active. Custom keys `link` (a path such as `/system`) and `level`.
+
+Config, all in the root-only `/etc/g-secrets/gcommand-apns.env`, loaded by the
+`zz-apns.conf` drop-in (`EnvironmentFile=-...`, optional), never git:
+
+| Env var | What |
+|---|---|
+| `ALERT_PUSH_TOKEN` | Shared bearer with g-brain's `.env`. Unset closes `/api/push` (503). |
+| `APNS_KEY_FILE` | Path to the `.p8` key, e.g. `/etc/g-secrets/gcommand-apns.p8` (root 0600) |
+| `APNS_KEY_ID` | The key's 10-character id |
+| `APNS_TEAM_ID` | The Apple developer team id |
+| `APNS_BUNDLE_IOS` / `APNS_BUNDLE_MACOS` | Optional; default `com.gabrielpenman.gcommand` / `.mac` |
+
+Until the key, key id and team id are all set, sending is a no-op that logs
+`apns not configured` once per process. Restart `gcommand` after changing them.
+HTTP/2 is httpx with h2, the JWT is PyJWT (ES256), refreshed every 45 minutes.
