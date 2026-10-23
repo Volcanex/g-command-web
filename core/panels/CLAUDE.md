@@ -69,6 +69,22 @@ can ship server first.
   `in 5d 4h`). Head line: label, badge, bar, `text`.
 - `bullets`: `{"type": "bullets", "items": [{"text": "...", "label": "Money"?, "link": "/..."?}]}`,
   plain sentences (the brief). `label` is a short bold lead before the text.
+- `detail`: `{"type": "detail", "text": "..."}`, small secondary text in
+  the muted tone (a caveat, a source, small print). Plain text, no markup;
+  line breaks are kept.
+- `image`: `{"type": "image", "url": "/api/voice/files/<id>", "alt": "..."?,
+  "width": 1200?, "height": 800?}`. `url` is always a path on this server
+  behind the same cookie, never an outside URL; a client fetches it with its
+  credentials. Drawn full width at its aspect ratio (from `width`/`height`
+  when given), tap to view full size.
+- `fold`: `{"type": "fold", "title": "Details", "open": false, "blocks": [Block]}`,
+  a collapsible section: a disclosure row with `title`, its blocks shown when
+  open. `open` is the initial state. One level only: a fold holds no fold.
+- `panel`: `{"type": "panel", "name": "calendar", "title", "icon", "link",
+  "link_label", "meta", "state", "message", "blocks"}`, a whole panel inside
+  another surface (a chat reply), drawn as a card with the panel's own header
+  and blocks. Its fields are the panel envelope above. Voice emits only
+  `{"type": "panel", "name"}`; the server fills the rest from `build(name)`.
 
 Row:
 ```json
@@ -106,6 +122,32 @@ Action (one per row, a tick): `{"label": "Mark done", "method": "PATCH",
 `body` as JSON to `path` with its credentials, then refetches the panel. The
 server decides the body (a recurring todo ticks one date, a one-off closes),
 so no client knows todo semantics.
+
+## Chat replies (Voice, app session)
+Voice's app replies carry these same blocks, so a reply looks like the dash.
+`pages/voice/api.py` is the route, `brain-tools/voice/blocks.py` checks what
+the model emits against the shapes above and drops the rest (a new type is
+added here first, then there). Reply rows never carry an `action`: a reply is
+a snapshot, and ticks live on the live `panel`. Contract:
+
+- `POST /api/voice/chat` `{"message", "session": "web"|"app", "budget"?:
+  {"lines", "chars_per_line"}, "attachments"?: [upload id, at most 4]}` →
+  web: `{"reply"}` (unchanged), app: `{"reply", "blocks": [Block]}`.
+  `budget` is a soft guide for the app session only: the visible chat area
+  with the keyboard up.
+- `POST /api/voice/chat/stream`, same body, app only: NDJSON lines
+  `{"t": "delta", "text"}` (append to the bubble), `{"t": "tool", "name"}`,
+  then `{"t": "done", "reply", "blocks", "tools", "ms"}` (replace the
+  bubble's text with `reply`, draw `blocks`) or `{"t": "error", "error"}`.
+- `POST /api/voice/upload`, raw body, `Content-Type` the file's own, optional
+  `X-Filename` (URL-encoded) → `{"id", "kind": "image"|"file", "name",
+  "content_type", "size", "url"}`. Images JPEG/PNG/WebP/GIF up to 8 MB (send
+  HEIC as JPEG), files PDF/text/Markdown/CSV/JSON up to 20 MB. 413 over,
+  415 other types. `GET /api/voice/files/{id}` serves it behind the cookie.
+- `GET /api/voice/history?session=app&limit=100` → `{"session", "turns":
+  [{"ts", "role", "text", "blocks"?, "attachments"?: [upload]}]}`. A
+  `panel` in an old turn comes back as a one-row link to the page, not live
+  data.
 
 ## Manifest (version 1)
 ```json

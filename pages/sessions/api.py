@@ -9,6 +9,8 @@ passwordless SSH from here for the user the server runs as.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import fcntl
 import json
 import os
@@ -19,11 +21,12 @@ import signal
 import struct
 import subprocess
 import termios
+import time
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from core.auth import cookie_ok
+from core.auth import ADMIN_VALUE, cookie_ok
 
 router = APIRouter()
 
@@ -358,3 +361,128 @@ async def _reap(pid: int):
                 return
         except Exception:
             return
+
+
+# --- agent activity: READ ONLY ------------------------------------------------
+#
+# The Voice (brain-tools/voice) can read what agents are doing: each host's tmux
+# sessions with the tail of their active pane, and recently written Claude Code
+# session files. It can never type into them. This route runs only
+# `tmux list-panes`, `tmux capture-pane -p` and `find`; there is no send-keys
+# and no input route for Voice, by design: Gabriel drives agents himself from
+# Workspaces. Keep it that way.
+#
+# Voice has no cookie. pages/voice/api.py mints a grant per chat turn (an expiry
+# and an HMAC under a key derived from the admin secret), passes it to Voice,
+# and Voice sends it back here as X-Voice-Grant. It opens this route only.
+
+GRANT_TTL = 300
+_GRANT_KEY = hmac.new(ADMIN_VALUE.encode(), b"sessions-activity-grant", hashlib.sha256).digest()
+ACTIVITY_LINES = 12
+CLAUDE_DIRS = ("/root/.claude/projects", "/home/gabriel/.claude/projects")
+CLAUDE_RECENT_MIN = 180
+
+
+def activity_grant(now: float | None = None) -> str:
+    exp = int((now or time.time()) + GRANT_TTL)
+    return f"{exp}.{hmac.new(_GRANT_KEY, str(exp).encode(), hashlib.sha256).hexdigest()}"
+
+
+def grant_ok(token: str, now: float | None = None) -> bool:
+    exp, _, sig = (token or "").partition(".")
+    if not exp.isdigit() or int(exp) < (now or time.time()):
+        return False
+    want = hmac.new(_GRANT_KEY, exp.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(sig.encode(), want.encode())
+
+
+def _host_cmd(host: str, script: str) -> list[str]:
+    alias = _HOSTS.get(host)
+    return ["sh", "-c", script] if alias is None else ["ssh", *_SSH_OPTS, alias, script]
+
+
+def _activity_script(session: str | None, lines: int) -> str:
+    """One shell run per host: panes, then each wanted session's pane tail, then
+    recent Claude Code session files. Every interpolated value is validated
+    (session by _NAME_RE, lines an int) and quoted."""
+    target = shlex.quote(session) if session else ""
+    pick = f"tmux list-sessions -F '#{{session_name}}' 2>/dev/null | grep -Fx -- {target}" if session \
+        else "tmux list-sessions -F '#{session_name}' 2>/dev/null"
+    dirs = " ".join(shlex.quote(d) for d in CLAUDE_DIRS)
+    return (
+        "echo '@@panes'; tmux list-panes -a -F "
+        "'#{session_name}\t#{window_active}#{pane_active}\t#{pane_current_command}\t#{pane_title}\t#{session_activity}'"
+        " 2>/dev/null;"
+        f" for s in $({pick}); do echo \"@@pane $s\"; tmux capture-pane -p -J -t \"$s\" -S -{lines * 4} 2>/dev/null; done;"
+        f" echo '@@claude'; find {dirs} -maxdepth 2 -name '*.jsonl' -mmin -{CLAUDE_RECENT_MIN}"
+        " -printf '%T@\t%h\n' 2>/dev/null | sort -rn | head -n 12"
+    )
+
+
+def _ts(s):
+    n = int(s or 0) if str(s or "0").isdigit() else 0
+    return n // 1000 if n > 10_000_000_000 else n
+
+
+def _parse_activity(out: str, now: float, lines: int = ACTIVITY_LINES) -> dict:
+    sessions, claude, section, cur = {}, [], None, None
+    for line in out.splitlines():
+        if line == "@@panes":
+            section = "panes"
+            continue
+        if line.startswith("@@pane "):
+            section, cur = "tail", line[7:]
+            if cur in sessions:
+                sessions[cur]["tail"] = []
+            continue
+        if line == "@@claude":
+            section = "claude"
+            continue
+        if section == "panes":
+            p = line.split("\t")
+            if len(p) >= 5 and p[1] == "11":   # the active pane of the active window
+                sessions[p[0]] = {"name": p[0], "command": p[2], "title": p[3][:200],
+                                  "idle_s": max(0, int(now) - _ts(p[4]))}
+        elif section == "tail" and cur in sessions:
+            sessions[cur]["tail"].append(line[:300])
+        elif section == "claude":
+            mtime, _, path = line.partition("\t")
+            try:
+                age = max(0, int(now - float(mtime)))
+            except ValueError:
+                continue
+            claude.append({"project": path.rsplit("/", 1)[-1], "idle_s": age})
+    for s in sessions.values():
+        tail = s.get("tail", [])
+        while tail and not tail[-1].strip():
+            tail.pop()
+        s["tail"] = tail[-lines:]
+    return {"sessions": list(sessions.values()), "claude_code": claude}
+
+
+def activity(host: str | None = None, session: str | None = None, lines: int = ACTIVITY_LINES) -> dict:
+    """Read-only snapshot. host/session narrow it; lines is the pane tail length."""
+    lines = max(1, min(int(lines or ACTIVITY_LINES), 80))
+    hosts = [host] if host else list(_HOSTS)
+    now = time.time()
+    result = {"read_only": True, "hosts": {}}
+    for h in hosts:
+        try:
+            out = subprocess.run(_host_cmd(h, _activity_script(session, lines)),
+                                 capture_output=True, text=True, timeout=12)
+            result["hosts"][h] = _parse_activity(out.stdout, now, lines)
+        except Exception as e:
+            result["hosts"][h] = {"error": type(e).__name__}
+    return result
+
+
+@router.get("/activity")
+def get_activity(request: Request, host: str | None = None, session: str | None = None,
+                 lines: int = ACTIVITY_LINES):
+    if not (_is_admin(request) or grant_ok(request.headers.get("x-voice-grant", ""))):
+        raise HTTPException(401, "unauthorized")
+    if host is not None and host not in _HOSTS:
+        raise HTTPException(400, "unknown host")
+    if session is not None and not _safe_name(session):
+        raise HTTPException(400, "invalid session name")
+    return activity(host, session, lines)
