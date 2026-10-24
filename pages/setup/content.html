@@ -103,13 +103,14 @@ claude</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-cop
 </section>
 
 <section class="setup-block" id="linux">
-  <h2>Linux / Ubuntu <span class="setup-tag" data-no-tokens>genv-linux</span></h2>
-  <p>Clone the Linux overlay and run bootstrap. Auto-clones base genv, wires claude/codex/git, creates settings.local.json with server defaults, installs the self-maintaining systemd sync timer.</p>
+  <h2>Linux / Ubuntu <span class="setup-tag" data-no-tokens>g-env-linux</span></h2>
+  <p>Clone the Linux overlay and run bootstrap as root. It clones g-env beside it if it is missing, wires claude/codex/git, creates settings.local.json with server defaults and installs the self-maintaining systemd sync timer.</p>
+  <p class="hint">The old <code>genv-linux</code> and <code>genv</code> names lead to frozen archives from before 2026-10-10. A checkout cloned from them stops updating without an error, so check <code>git remote -v</code> on older servers.</p>
 
   <h3>1. Clone and bootstrap (run as the user who will run agents: root or your login user)</h3>
-  <pre class="code-block"><code>git clone https://github.com/Volcanex/genv-linux ~/genv-linux
-GENV_DIR=~/genv bash ~/genv-linux/bootstrap.sh</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="git clone https://github.com/Volcanex/genv-linux ~/genv-linux
-GENV_DIR=~/genv bash ~/genv-linux/bootstrap.sh" aria-label="Copy" data-no-tokens></button></pre>
+  <pre class="code-block"><code>git clone https://github.com/Volcanex/g-env-linux ~/g-env-linux
+sudo bash ~/g-env-linux/bootstrap.sh</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="git clone https://github.com/Volcanex/g-env-linux ~/g-env-linux
+sudo bash ~/g-env-linux/bootstrap.sh" aria-label="Copy" data-no-tokens></button></pre>
 
   <h3>2. settings.local.json: Brain MCP + machine overrides (not tracked)</h3>
   <p>The base <code>~/.claude/settings.json</code> is symlinked from genv. Brain MCP and machine-specific overrides go in <code>~/.claude/settings.local.json</code>. Fill the CF Access service-token pair from the <a href="/gcore">gcore passport</a>.</p>
@@ -140,7 +141,7 @@ systemctl start genv-sync.service && journalctl -u genv-sync.service -n 20
 readlink ~/.claude/hooks       # -> ~/genv/claude/hooks
 ls ~/.claude/skills            # ~5: g-gcore-comply + vendored
 ls ~/.claude/agents            # g-executor, g-explore</code><button class="btn btn-secondary btn-sm btn-icon copy-btn" data-copy="systemctl status genv-sync.timer" aria-label="Copy" data-no-tokens></button></pre>
-  <p class="hint">Timer fires daily with a random 0-60 min offset so servers don't hit GitHub simultaneously. Pushes to <code>Volcanex/genv</code> propagate overnight; the sync re-runs <code>bootstrap-base.sh</code>, which repairs any drifted symlinks.</p>
+  <p class="hint">Timer fires daily with a random 0-60 min offset so servers don't hit GitHub simultaneously. Pushes to <code>Volcanex/g-env</code> propagate overnight; the sync re-runs <code>bootstrap-base.sh</code>, which repairs any drifted symlinks.</p>
 </section>
 
 <section class="setup-block" id="agent-prompt">
