@@ -127,8 +127,11 @@ so no client knows todo semantics.
 Voice's app replies carry these same blocks, so a reply looks like the dash.
 `pages/voice/api.py` is the route, `brain-tools/voice/blocks.py` checks what
 the model emits against the shapes above and drops the rest (a new type is
-added here first, then there). Reply rows never carry an `action`: a reply is
-a snapshot, and ticks live on the live `panel`. Contract:
+added here first, then there). A reply row may carry an `action` only when
+server code built it (brain-tools `voice/todos.py`, through
+`blocks.clean(actions=True)`), never when the model wrote the row: the model's
+row actions are dropped. A live `panel` keeps its own ticks. The apps draw a
+todo row's action and offer the web Day view's changes on it. Contract:
 
 - `POST /api/voice/chat` `{"message", "session": "web"|"app", "budget"?:
   {"lines", "chars_per_line"}, "attachments"?: [upload id, at most 4]}` →
