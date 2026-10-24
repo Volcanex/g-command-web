@@ -1,23 +1,29 @@
 <div class="page-head">
   <h1>Voice</h1>
-  <span class="badge badge-plain">Text and voice</span>
+  <span class="badge badge-plain">Call or text</span>
 </div>
-<p class="page-sub">Chat with the brain. The same agent that answers on WhatsApp.</p>
+<p class="page-sub">Call the brain or text it. The same agent that answers on WhatsApp.</p>
 
-<div class="card talk" data-talk>
-  <div class="talk-row">
-    <button type="button" class="btn btn-primary talk-btn" data-talk-btn aria-pressed="false">
-      <i class="ph ph-microphone"></i><span data-talk-label>Start talking</span>
-    </button>
-    <span class="talk-state" data-talk-state>Off</span>
+<div class="card call" data-call data-state="idle">
+  <button type="button" class="call-orb" data-orb aria-label="Voice" disabled>
+    <canvas data-orb-canvas width="200" height="200"></canvas>
+  </button>
+  <p class="call-state" data-call-state aria-live="polite">Not in a call</p>
+  <div class="call-captions">
+    <p class="call-user" data-cap-user></p>
+    <p class="call-reply" data-cap-reply aria-live="polite"></p>
   </div>
-  <p class="talk-partial" data-talk-partial aria-live="polite"></p>
-  <form class="talk-type" data-talk-form>
-    <input class="input" data-talk-input placeholder="Or type, and hear the answer" autocomplete="off">
-    <button type="submit" class="btn">Say</button>
+  <div class="call-row">
+    <button type="button" class="btn btn-primary" data-call-btn><i class="ph ph-phone"></i><span data-call-label>Call</span></button>
+    <button type="button" class="btn" data-mute-btn aria-pressed="false" disabled><i class="ph ph-microphone-slash"></i><span data-mute-label>Mute</span></button>
+  </div>
+  <form class="call-say" data-say-form>
+    <input class="input" data-say-input placeholder="Type a line into the call" autocomplete="off" disabled>
+    <button type="submit" class="btn" data-say-btn disabled>Say it</button>
   </form>
-  <p class="talk-metrics" data-talk-metrics></p>
-  <p class="talk-note">Speech recognition runs in the browser. The voice is Kokoro, running on h. Headphones stop the bot hearing itself. Start speaking while it talks and it stops.</p>
+  <p class="call-error" data-call-error hidden><span data-call-error-text></span> <button type="button" class="btn btn-sm" data-retry>Call again</button></p>
+  <p class="call-meta num" data-call-meta><span data-meta-engine></span><span data-meta-turn></span></p>
+  <p class="call-note">Talk over it to cut it off, or tap the circle. On laptop speakers it can hear itself, headphones fix that.</p>
 </div>
 
 <div class="card chat" data-chat>
@@ -68,17 +74,29 @@
   .chat-form textarea { flex: 1; resize: none; max-height: 160px; min-height: var(--h-control); line-height: 1.5; }
   .chat-msg { color: var(--danger-text); font-size: 12px; min-height: 1em; }
 
-  .talk { display: flex; flex-direction: column; gap: var(--sp-2); max-width: 720px; margin-bottom: var(--sp-4); }
-  .talk-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
-  .talk-btn { display: inline-flex; align-items: center; gap: 8px; }
-  .talk-btn[aria-pressed="true"] { background: var(--danger-fill, var(--accent-fill)); }
-  .talk-state { font-size: var(--font-size-ui); color: var(--text-secondary); }
-  .talk-state.live { color: var(--text-primary); }
-  .talk-partial { margin: 0; min-height: 1.5em; font-size: var(--font-size-ui); color: var(--text-secondary); font-style: italic; }
-  .talk-type { display: flex; gap: var(--sp-2); }
-  .talk-type .input { flex: 1; min-height: var(--h-control); }
-  .talk-metrics { margin: 0; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-height: 1em; }
-  .talk-note { margin: 0; font-size: 12px; color: var(--text-placeholder); }
+  .call {
+    display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+    max-width: 720px; margin-bottom: var(--sp-4); padding: var(--sp-6) var(--sp-4);
+  }
+  .call-orb {
+    width: 160px; height: 160px; padding: 0; border: 0; background: none;
+    border-radius: var(--radius-full); cursor: default;
+  }
+  .call[data-state="speaking"] .call-orb { cursor: pointer; }
+  .call-orb canvas { width: 160px; height: 160px; display: block; }
+  .call-state { margin: 0; font-size: var(--font-size-ui); color: var(--text-secondary); min-height: var(--lh-ui, 20px); }
+  .call-captions { width: 100%; display: flex; flex-direction: column; gap: var(--sp-2); text-align: center; min-height: 72px; }
+  .call-user { margin: 0; font-size: var(--font-size-ui); color: var(--text-secondary); min-height: 20px; }
+  .call-reply { margin: 0; font-size: 15px; line-height: 24px; color: var(--text-primary); min-height: 24px; overflow-wrap: anywhere; }
+  .call-row { display: flex; gap: var(--sp-2); }
+  .call-row .btn { display: inline-flex; align-items: center; gap: var(--sp-2); }
+  .call[data-state]:not([data-state="idle"]):not([data-state="error"]) [data-call-btn] { background: var(--danger-fill, var(--accent-fill)); }
+  .call-say { display: flex; gap: var(--sp-2); width: 100%; }
+  .call-say .input { flex: 1; min-width: 0; min-height: var(--h-control); }
+  .call-error { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; justify-content: center; color: var(--danger-text); font-size: var(--font-size-ui); }
+  .call-error[hidden] { display: none; }
+  .call-meta { margin: 0; display: flex; gap: var(--sp-4); flex-wrap: wrap; justify-content: center; font-family: var(--font-mono); font-size: 12px; color: var(--text-placeholder); min-height: 16px; }
+  .call-note { margin: 0; font-size: 12px; color: var(--text-placeholder); text-align: center; }
 </style>
 
 <script>
@@ -161,200 +179,311 @@
 
 <script>
 (() => {
-  // Talk: browser speech recognition in, NDJSON sentence stream from /api/voice/talk,
-  // one Kokoro WAV per sentence from /api/voice/tts, played in order. Speaking over
-  // the bot (barge-in) stops the audio and drops the rest of that turn.
-  const btn = document.querySelector('[data-talk-btn]');
-  const label = document.querySelector('[data-talk-label]');
-  const stateEl = document.querySelector('[data-talk-state]');
-  const partialEl = document.querySelector('[data-talk-partial]');
-  const metricsEl = document.querySelector('[data-talk-metrics]');
-  const typeForm = document.querySelector('[data-talk-form]');
-  const typeInput = document.querySelector('[data-talk-input]');
+  // Live call: one WebSocket to /api/voice/live (relayed to the Voice
+  // service's /live). Mic and reply audio are PCM16 LE mono 24 kHz binary
+  // frames, control is JSON text frames, per g-brain voice/CLAUDE.md.
+  const RATE = 24000;
+  const root = document.querySelector('[data-call]');
+  const orb = root.querySelector('[data-orb]');
+  const canvas = root.querySelector('[data-orb-canvas]');
+  const stateEl = root.querySelector('[data-call-state]');
+  const capUser = root.querySelector('[data-cap-user]');
+  const capReply = root.querySelector('[data-cap-reply]');
+  const callBtn = root.querySelector('[data-call-btn]');
+  const callLabel = root.querySelector('[data-call-label]');
+  const muteBtn = root.querySelector('[data-mute-btn]');
+  const muteLabel = root.querySelector('[data-mute-label]');
+  const sayForm = root.querySelector('[data-say-form]');
+  const sayInput = root.querySelector('[data-say-input]');
+  const sayBtn = root.querySelector('[data-say-btn]');
+  const errBox = root.querySelector('[data-call-error]');
+  const errText = root.querySelector('[data-call-error-text]');
+  const metaEngine = root.querySelector('[data-meta-engine]');
+  const metaTurn = root.querySelector('[data-meta-turn]');
   const log = document.querySelector('[data-log]');
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  let live = false, rec = null, gen = 0, abort = null;
-  let queue = [], playing = null, speaking = '', busy = false;
-  // Echo guard: the whole of the bot's last reply, normalised, and a quiet
-  // window after playback ends so its tail is not sent back as a new turn.
-  let lastReply = '', echoUntil = 0;
-  const norm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-  const isEcho = (heard) => { const h = norm(heard); return !!h && (lastReply.includes(h) || norm(speaking).includes(h)); };
-  window.talkMetrics = [];
+  const LABELS = { idle: 'Not in a call', connecting: 'Calling', listening: 'Listening',
+    hearing: 'Hearing you', thinking: 'Thinking', speaking: 'Speaking', error: 'Call ended' };
 
-  const setState = (t) => { stateEl.textContent = t; stateEl.classList.toggle('live', live); };
-  const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Capture: resample whatever the context runs at to 24 kHz, Int16, 40 ms chunks.
+  const CAPTURE = `
+  class Cap extends AudioWorkletProcessor {
+    constructor() { super(); this.step = sampleRate / ${RATE}; this.pos = 0; this.prev = 0;
+      this.out = new Int16Array(${RATE / 25}); this.n = 0; this.sq = 0; }
+    process(inputs) {
+      const ch = inputs[0] && inputs[0][0];
+      if (!ch) return true;
+      // Linear interpolation; pos is the read position into [prev, ...ch].
+      while (this.pos < ch.length) {
+        const i = Math.floor(this.pos), f = this.pos - i;
+        const a = i === 0 ? this.prev : ch[i - 1], b = ch[i];
+        const s = Math.max(-1, Math.min(1, a + (b - a) * f));
+        this.out[this.n++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        this.sq += s * s;
+        if (this.n === this.out.length) {
+          const buf = this.out.slice().buffer;
+          this.port.postMessage({ pcm: buf, level: Math.sqrt(this.sq / this.n) }, [buf]);
+          this.n = 0; this.sq = 0;
+        }
+        this.pos += this.step;
+      }
+      this.pos -= ch.length; this.prev = ch[ch.length - 1];
+      return true;
+    }
+  }
+  registerProcessor('cap', Cap);`;
+
+  // Playback: a queue of float chunks tagged with their reply id. Counts what
+  // has actually gone out per reply, drops everything on flush, says when a
+  // finished reply has drained.
+  const PLAY = `
+  class Play extends AudioWorkletProcessor {
+    constructor() { super(); this.q = []; this.played = {}; this.done = {}; this.sq = 0; this.n = 0;
+      this.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.chunk) { this.q.push({ id: m.id, d: m.chunk, i: 0 }); this.played[m.id] = this.played[m.id] || 0; }
+        else if (m.done !== undefined) { this.done[m.done] = true; this.check(m.done); }
+        else if (m.flush !== undefined) {
+          this.q = [];
+          this.port.postMessage({ flushed: m.flush, samples: this.played[m.flush] || 0 });
+          delete this.played[m.flush]; delete this.done[m.flush];
+        }
+      }; }
+    check(id) {
+      if (this.done[id] && !this.q.some(c => c.id === id)) {
+        this.port.postMessage({ drained: id, samples: this.played[id] || 0 });
+        delete this.played[id]; delete this.done[id];
+      }
+    }
+    process(_, outputs) {
+      const out = outputs[0][0];
+      let o = 0;
+      while (o < out.length && this.q.length) {
+        const c = this.q[0];
+        const k = Math.min(out.length - o, c.d.length - c.i);
+        out.set(c.d.subarray(c.i, c.i + k), o);
+        for (let j = o; j < o + k; j++) this.sq += out[j] * out[j];
+        o += k; c.i += k; this.played[c.id] = (this.played[c.id] || 0) + k;
+        if (c.i >= c.d.length) { this.q.shift(); this.check(c.id); }
+      }
+      this.n += out.length;
+      if (this.n >= sampleRate / 20) { this.port.postMessage({ level: Math.sqrt(this.sq / this.n) }); this.n = 0; this.sq = 0; }
+      return true;
+    }
+  }
+  registerProcessor('play', Play);`;
+
+  let ws = null, ctx = null, stream = null, capNode = null, playNode = null, sink = null;
+  let state = 'idle', muted = false, replyId = null, ending = false;
+  let micLevel = 0, outLevel = 0, shown = 0, raf = 0;
+  const playedMs = (n) => Math.round(n * 1000 / ctx.sampleRate);
+
+  function setState(s) {
+    state = s;
+    root.dataset.state = s;
+    stateEl.textContent = LABELS[s] || s;
+    const live = s !== 'idle' && s !== 'error';
+    callLabel.textContent = live ? 'End call' : 'Call';
+    callBtn.querySelector('i').className = live ? 'ph ph-phone-x' : 'ph ph-phone';
+    muteBtn.disabled = sayInput.disabled = sayBtn.disabled = !live || s === 'connecting';
+    orb.disabled = s !== 'speaking';
+    orb.setAttribute('aria-label', s === 'speaking' ? 'Stop the Voice' : 'Voice');
+  }
+
+  function showError(msg) {
+    errText.textContent = msg;
+    errBox.hidden = false;
+  }
+
+  function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
   function bubble(role, text) {
     const w = document.createElement('div');
     w.className = 'msg ' + role;
-    w.innerHTML = `<div class="bubble">${esc(text)}</div>`;
-    log.appendChild(w); log.scrollTop = log.scrollHeight;
-    return w.querySelector('.bubble');
+    const b = document.createElement('div');
+    b.className = 'bubble'; b.textContent = text;
+    w.appendChild(b); log.appendChild(w); log.scrollTop = log.scrollHeight;
   }
 
-  // Stop whatever the bot is saying and forget the rest of its turn.
-  function bargeIn() {
-    gen++;
-    if (abort) { abort.abort(); abort = null; }
-    if (playing) { playing.pause(); playing = null; }
-    if (window.speechSynthesis) speechSynthesis.cancel();
-    queue = []; speaking = ''; busy = false; echoUntil = 0;
-    if (live) setState('Listening');
-  }
-
-  function fetchAudio(text) {
-    return fetch('/api/voice/tts', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ text }),
-    }).then(r => r.ok ? r.blob() : null).catch(() => null);
-  }
-
-  function speakFallback(text, g) {
-    return new Promise(res => {
-      if (!window.speechSynthesis || g !== gen) return res();
-      const u = new SpeechSynthesisUtterance(text);
-      u.onend = u.onerror = () => res();
-      speechSynthesis.speak(u);
-    });
-  }
-
-  async function pump(g, m) {
-    if (busy) return;
-    busy = true;
-    while (queue.length && g === gen) {
-      const item = queue.shift();
-      const blob = await item.audio;
-      if (g !== gen) break;
-      speaking = item.text.toLowerCase();
-      setState('Speaking');
-      if (!m.firstAudio) { m.firstAudio = performance.now(); report(m); }
-      if (blob) {
-        await new Promise(res => {
-          const a = new Audio(URL.createObjectURL(blob));
-          playing = a;
-          a.onended = a.onerror = () => { URL.revokeObjectURL(a.src); res(); };
-          a.play().catch(res);
-        });
-      } else {
-        await speakFallback(item.text, g);
-      }
+  // Server audio is 24 kHz; the context may not be (some Safari builds ignore
+  // the requested rate), so stretch it to the context rate here.
+  function toFloat(buf) {
+    const pcm = new Int16Array(buf);
+    const ratio = ctx.sampleRate / RATE;
+    const out = new Float32Array(Math.round(pcm.length * ratio));
+    for (let i = 0; i < out.length; i++) {
+      const x = i / ratio, j = Math.floor(x), f = x - j;
+      const a = pcm[j] || 0, b = pcm[Math.min(j + 1, pcm.length - 1)] || 0;
+      out[i] = (a + (b - a) * f) / 0x8000;
     }
-    if (g === gen) { playing = null; speaking = ''; busy = false; echoUntil = performance.now() + 1000; setState(live ? 'Listening' : 'Off'); }
+    return out;
   }
 
-  function report(m) {
-    const f = (a, b) => (a && b) ? Math.round(a - b) + ' ms' : '-';
-    metricsEl.textContent =
-      `heard to first sentence ${f(m.firstSentence, m.sent)}, to first audio ${f(m.firstAudio, m.sent)}` +
-      (m.tools ? `, tools ${m.tools}` : '');
-    window.talkMetrics.push({ ...m });
+  function onEvent(m) {
+    switch (m.type) {
+      case 'ready':
+        metaEngine.textContent = [m.engine, m.model, m.voice].filter(Boolean).join(' ');
+        break;
+      case 'state':
+        setState(m.state);
+        if (m.state === 'hearing') { capUser.textContent = ''; }
+        break;
+      case 'reply':
+        replyId = m.id; capReply.textContent = '';
+        break;
+      case 'reply_done':
+        playNode.port.postMessage({ done: m.id });
+        break;
+      case 'flush':
+        playNode.port.postMessage({ flush: m.id });
+        break;
+      case 'user':
+        capUser.textContent = m.text; bubble('me', m.text);
+        break;
+      case 'assistant':
+        if (m.final) { capReply.textContent = m.text; if (m.text) bubble('brain', m.text); }
+        else capReply.textContent += m.text;
+        break;
+      case 'tool':
+        if (m.status === 'start') stateEl.textContent = 'Looking it up';
+        break;
+      case 'metrics': {
+        const parts = [];
+        if (m.eos_ms != null) parts.push(`end of speech to audio ${Math.round(m.eos_ms)} ms`);
+        if (m.ttfa_ms != null) parts.push(`model to audio ${Math.round(m.ttfa_ms)} ms`);
+        if (m.cost != null) parts.push(`$${Number(m.cost).toFixed(4)}`);
+        metaTurn.textContent = parts.join(', ');
+        break;
+      }
+      case 'error':
+        showError(m.message || 'The Voice hit a problem.');
+        break;
+    }
   }
 
-  async function turn(text) {
-    bargeIn();
-    const g = gen;
-    const m = { text, sent: performance.now() };
-    bubble('me', text);
-    const out = bubble('brain', '');
-    setState('Thinking');
-    abort = new AbortController();
+  async function start() {
+    errBox.hidden = true; ending = false;
+    capUser.textContent = ''; capReply.textContent = '';
+    setState('connecting');
     try {
-      const r = await fetch('/api/voice/talk', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ message: text }), signal: abort.signal,
-      });
-      if (!r.ok || !r.body) throw new Error('talk ' + r.status);
-      const reader = r.body.getReader();
-      const dec = new TextDecoder();
-      let buf = '';
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done || g !== gen) break;
-        buf += dec.decode(value, { stream: true });
-        let nl;
-        while ((nl = buf.indexOf('\n')) >= 0) {
-          const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
-          if (!line.trim()) continue;
-          const ev = JSON.parse(line);
-          if (ev.t === 's') {
-            if (!m.firstSentence) { m.firstSentence = performance.now(); m.serverFirstMs = ev.ms; }
-            out.textContent += (out.textContent ? ' ' : '') + ev.text;
-            lastReply = norm(out.textContent);
-            log.scrollTop = log.scrollHeight;
-            queue.push({ text: ev.text, audio: fetchAudio(ev.text) });
-            pump(g, m);
-          } else if (ev.t === 'tool') {
-            m.tools = (m.tools ? m.tools + ',' : '') + ev.name;
-            setState('Looking it up');
-          } else if (ev.t === 'error') {
-            out.textContent = '(error: ' + ev.error + ')';
-          }
-        }
+      if (!ctx) {
+        try { ctx = new AudioContext({ sampleRate: RATE, latencyHint: 'interactive' }); }
+        catch (_) { ctx = new AudioContext({ latencyHint: 'interactive' }); }
+        const url = (src) => URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+        await ctx.audioWorklet.addModule(url(CAPTURE));
+        await ctx.audioWorklet.addModule(url(PLAY));
+        playNode = new AudioWorkletNode(ctx, 'play', { numberOfInputs: 0, outputChannelCount: [1] });
+        // Out through a media element: Chrome's echo canceller is most reliable
+        // on audio it can see leaving through one.
+        const dest = ctx.createMediaStreamDestination();
+        playNode.connect(dest);
+        sink = new Audio(); sink.srcObject = dest.stream; sink.autoplay = true;
+        playNode.port.onmessage = (e) => {
+          const m = e.data;
+          if (m.level !== undefined) outLevel = m.level;
+          else if (m.flushed !== undefined) send({ type: 'played', id: m.flushed, ms: playedMs(m.samples), done: false });
+          else if (m.drained !== undefined) send({ type: 'played', id: m.drained, ms: playedMs(m.samples), done: true });
+        };
       }
+      await ctx.resume();
+      sink.play().catch(() => {});
+      stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+      const src = ctx.createMediaStreamSource(stream);
+      capNode = new AudioWorkletNode(ctx, 'cap', { numberOfOutputs: 0 });
+      src.connect(capNode);
+      capNode.port.onmessage = (e) => {
+        micLevel = muted ? 0 : e.data.level;
+        if (ws && ws.readyState === 1) ws.send(e.data.pcm);
+      };
     } catch (e) {
-      if (e.name !== 'AbortError') { out.textContent = '(could not reach the brain: ' + e.message + ')'; setState(live ? 'Listening' : 'Off'); }
+      stopAudio();
+      setState('error');
+      showError(e && e.name === 'NotAllowedError'
+        ? 'The browser blocked the microphone. Allow it for this site, then call again.'
+        : 'Could not start the microphone. Check one is connected, then call again.');
+      return;
     }
-  }
 
-  function startRec() {
-    rec = new SR();
-    rec.lang = 'en-GB';
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.onresult = (e) => {
-      let interim = '', finalText = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) finalText += t; else interim += t;
-      }
-      const heard = (finalText || interim).trim();
-      partialEl.textContent = heard;
-      // Barge-in: two words that are not the bot's own sentence coming back
-      // through the speakers.
-      if ((playing || queue.length) && heard.split(/\s+/).length >= 2 && !isEcho(heard)) {
-        bargeIn();
-      }
-      const audible = playing || queue.length || performance.now() < echoUntil;
-      if (finalText.trim()) {
-        partialEl.textContent = '';
-        // Final results are dropped while the bot is audible and for a second
-        // after, and whenever they match anything in its last reply.
-        if (!audible && !isEcho(finalText)) turn(finalText.trim());
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/api/voice/live`);
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = () => send({ type: 'hello', client: 'web', session: 'talk' });
+    ws.onmessage = (e) => {
+      if (typeof e.data === 'string') {
+        try { onEvent(JSON.parse(e.data)); } catch (_) {}
+      } else if (replyId !== null) {
+        playNode.port.postMessage({ id: replyId, chunk: toFloat(e.data) });
       }
     };
-    rec.onerror = (e) => { if (e.error === 'not-allowed') { stop(); setState('Microphone blocked'); } };
-    rec.onend = () => { if (live) { try { rec.start(); } catch (_) {} } };
-    rec.start();
+    ws.onclose = (e) => {
+      ws = null;
+      stopAudio();
+      if (ending) { setState('idle'); return; }
+      setState('error');
+      if (errBox.hidden) showError(e.code === 4401
+        ? 'You are signed out. Sign in again, then call.'
+        : 'The call dropped.');
+    };
+    if (!raf) raf = requestAnimationFrame(draw);
   }
 
-  function stop() {
-    live = false;
-    bargeIn();
-    if (rec) { rec.onend = null; try { rec.stop(); } catch (_) {} rec = null; }
-    btn.setAttribute('aria-pressed', 'false');
-    label.textContent = 'Start talking';
-    partialEl.textContent = '';
-    setState('Off');
+  function stopAudio() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if (capNode) { capNode.disconnect(); capNode = null; }
+    if (playNode && replyId !== null) playNode.port.postMessage({ flush: replyId });
+    replyId = null; micLevel = outLevel = 0;
+    muted = false; muteBtn.setAttribute('aria-pressed', 'false'); muteLabel.textContent = 'Mute';
   }
 
-  btn.addEventListener('click', () => {
-    if (live) return stop();
-    if (!SR) { setState('This browser has no speech recognition. Type below instead.'); return; }
-    live = true;
-    btn.setAttribute('aria-pressed', 'true');
-    label.textContent = 'Stop';
-    setState('Listening');
-    startRec();
+  function end() {
+    ending = true;
+    send({ type: 'bye' });
+    if (ws) ws.close(1000);
+    else { stopAudio(); setState('idle'); }
+  }
+
+  callBtn.addEventListener('click', () => (state === 'idle' || state === 'error') ? start() : end());
+  root.querySelector('[data-retry]').addEventListener('click', start);
+  orb.addEventListener('click', () => { if (state === 'speaking') send({ type: 'interrupt' }); });
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    if (stream) stream.getAudioTracks().forEach(t => { t.enabled = !muted; });
+    send({ type: 'mute', on: muted });
+    muteBtn.setAttribute('aria-pressed', String(muted));
+    muteLabel.textContent = muted ? 'Unmute' : 'Mute';
   });
-
-  typeForm.addEventListener('submit', (e) => {
+  sayForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const t = typeInput.value.trim();
-    if (!t) return;
-    typeInput.value = '';
-    turn(t);
+    const t = sayInput.value.trim();
+    if (!t || !ws) return;
+    sayInput.value = '';
+    send({ type: 'say', text: t });
   });
+  addEventListener('pagehide', () => { if (ws) end(); });
+
+  // The circle: a ring that swells with the mic while you talk and with the
+  // Voice while it speaks, eased so it breathes rather than jitters.
+  const g = canvas.getContext('2d');
+  const css = getComputedStyle(document.documentElement);
+  function draw() {
+    const dpr = devicePixelRatio || 1, size = 160;
+    if (canvas.width !== size * dpr) { canvas.width = canvas.height = size * dpr; }
+    const live = state !== 'idle' && state !== 'error';
+    const target = !live ? 0 : state === 'speaking' ? outLevel : (state === 'thinking' ? 0.02 : micLevel);
+    const k = target > shown ? 0.25 : 0.08;
+    shown += (Math.min(target * 4, 1) - shown) * k;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, size, size);
+    const r = 44 + shown * 30;
+    const tone = state === 'speaking' ? '--accent-fill' : live ? '--text-secondary' : '--border';
+    g.beginPath(); g.arc(80, 80, r, 0, Math.PI * 2);
+    g.fillStyle = css.getPropertyValue(tone).trim() || 'gray';
+    g.globalAlpha = live ? 0.9 : 0.5; g.fill(); g.globalAlpha = 1;
+    raf = (live || shown > 0.001) ? requestAnimationFrame(draw) : 0;
+  }
+
+  setState('idle');
+  draw();
 })();
 </script>

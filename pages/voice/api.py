@@ -11,7 +11,10 @@ not publicly exposed (nginx serves only its /webhook); we reach it over localhos
   POST /api/voice/upload       raw body, Content-Type the file's, X-Filename → upload
   GET  /api/voice/files/{id}   an upload, behind the same cookie
   GET  /api/voice/history      {session, turns: [{ts, role, text, blocks?, attachments?}]}
-  POST /api/voice/talk, /tts   spoken turns (the web talk card)
+  POST /api/voice/talk, /tts   spoken turns (the native app reads /tts)
+  WS   /api/voice/live         a live call, frames relayed both ways unchanged
+                               to the Voice service's /live (contract in
+                               g-brain voice/CLAUDE.md, "Live call")
 
 Reply blocks follow core/panels/CLAUDE.md. A `panel` block from Voice is a
 reference; `expand` replaces it with the live panel built by core/panels, so
@@ -31,7 +34,8 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, Response
+import websockets
+from fastapi import APIRouter, HTTPException, Request, Response, WebSocket
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -41,6 +45,8 @@ router = APIRouter()
 
 VOICE_URL = os.environ.get("VOICE_URL", "http://127.0.0.1:8077")
 # Voice reads agent activity back from this server over localhost.
+# The live call's upstream; tests point it at a fake server.
+VOICE_LIVE_URL = os.environ.get("VOICE_LIVE_URL", "ws://127.0.0.1:8077/live")
 LOCAL_URL = os.environ.get("GCOMMAND_LOCAL_URL", f"http://127.0.0.1:{os.environ.get('PORT', '8089')}")
 
 
@@ -346,3 +352,61 @@ async def tts(body: TtsIn, request: Request):
         raise HTTPException(502, f"tts {r.status_code}")
     return Response(content=r.content, media_type="audio/wav",
                     headers={"Cache-Control": "no-store", "X-Synth-Ms": r.headers.get("x-synth-ms", "")})
+
+
+# --- live call ---------------------------------------------------------------
+
+@router.websocket("/live")
+async def live(ws: WebSocket):
+    """One call: every frame goes through as it arrives, text and binary, with
+    nothing buffered here, and either side closing closes the other."""
+    await ws.accept()
+    # Accepted first so the client gets a readable close code, not a bare 403.
+    if not cookie_ok(ws.cookies):
+        await ws.close(code=4401, reason="unauthorized")
+        return
+    try:
+        up = await websockets.connect(VOICE_LIVE_URL, max_size=None, open_timeout=5,
+                                      ping_interval=None, compression=None)
+    except Exception:
+        await ws.send_text(json.dumps({"type": "error", "message": "The voice service is not answering."}))
+        await ws.close(code=1011)
+        return
+
+    closed_by_client = {}
+
+    async def client_to_up():
+        while True:
+            msg = await ws.receive()
+            if msg["type"] == "websocket.disconnect":
+                closed_by_client["code"] = msg.get("code") or 1000
+                return
+            if msg.get("bytes") is not None:
+                await up.send(msg["bytes"])
+            elif msg.get("text") is not None:
+                await up.send(msg["text"])
+
+    async def up_to_client():
+        async for frame in up:
+            if isinstance(frame, bytes):
+                await ws.send_bytes(frame)
+            else:
+                await ws.send_text(frame)
+
+    tasks = [asyncio.create_task(client_to_up()), asyncio.create_task(up_to_client())]
+    try:
+        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        if closed_by_client:
+            code = closed_by_client["code"]
+            await up.close(code=code if 1000 <= code < 5000 and code not in (1005, 1006) else 1000)
+            return
+        code = up.close_code or 1000
+        await up.close()
+        try:
+            await ws.close(code=code if code != 1006 else 1011)
+        except Exception:
+            pass
