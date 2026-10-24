@@ -234,11 +234,11 @@
   registerProcessor('cap', Cap);`;
 
   // Playback: a queue of float chunks tagged with their reply id. Counts what
-  // has actually gone out per reply, drops everything on flush, says when a
+  // has actually gone out per reply (reported every 250 ms), drops everything on flush, says when a
   // finished reply has drained.
   const PLAY = `
   class Play extends AudioWorkletProcessor {
-    constructor() { super(); this.q = []; this.played = {}; this.done = {}; this.sq = 0; this.n = 0;
+    constructor() { super(); this.q = []; this.played = {}; this.sent = {}; this.done = {}; this.sq = 0; this.n = 0;
       this.port.onmessage = (e) => {
         const m = e.data;
         if (m.chunk) { this.q.push({ id: m.id, d: m.chunk, i: 0 }); this.played[m.id] = this.played[m.id] || 0; }
@@ -246,13 +246,13 @@
         else if (m.flush !== undefined) {
           this.q = [];
           this.port.postMessage({ flushed: m.flush, samples: this.played[m.flush] || 0 });
-          delete this.played[m.flush]; delete this.done[m.flush];
+          delete this.played[m.flush]; delete this.sent[m.flush]; delete this.done[m.flush];
         }
       }; }
     check(id) {
       if (this.done[id] && !this.q.some(c => c.id === id)) {
         this.port.postMessage({ drained: id, samples: this.played[id] || 0 });
-        delete this.played[id]; delete this.done[id];
+        delete this.played[id]; delete this.sent[id]; delete this.done[id];
       }
     }
     process(_, outputs) {
@@ -264,6 +264,10 @@
         out.set(c.d.subarray(c.i, c.i + k), o);
         for (let j = o; j < o + k; j++) this.sq += out[j] * out[j];
         o += k; c.i += k; this.played[c.id] = (this.played[c.id] || 0) + k;
+        if (this.played[c.id] - (this.sent[c.id] || 0) >= sampleRate / 4) {
+          this.sent[c.id] = this.played[c.id];
+          this.port.postMessage({ progress: c.id, samples: this.played[c.id] });
+        }
         if (c.i >= c.d.length) { this.q.shift(); this.check(c.id); }
       }
       this.n += out.length;
@@ -274,7 +278,7 @@
   registerProcessor('play', Play);`;
 
   let ws = null, ctx = null, stream = null, capNode = null, playNode = null, sink = null;
-  let state = 'idle', muted = false, replyId = null, ending = false;
+  let state = 'idle', muted = false, replyId = null, capId = null, ending = false;
   let micLevel = 0, outLevel = 0, shown = 0, raf = 0;
   const playedMs = (n) => Math.round(n * 1000 / ctx.sampleRate);
 
@@ -329,7 +333,7 @@
         if (m.state === 'hearing') { capUser.textContent = ''; }
         break;
       case 'reply':
-        replyId = m.id; capReply.textContent = '';
+        replyId = m.id;
         break;
       case 'reply_done':
         playNode.port.postMessage({ done: m.id });
@@ -341,6 +345,8 @@
         capUser.textContent = m.text; bubble('me', m.text);
         break;
       case 'assistant':
+        // Words can arrive before the reply's audio, so a new id starts the caption.
+        if (m.id !== capId) { capId = m.id; capReply.textContent = ''; }
         if (m.final) { capReply.textContent = m.text; if (m.text) bubble('brain', m.text); }
         else capReply.textContent += m.text;
         break;
@@ -381,6 +387,7 @@
         playNode.port.onmessage = (e) => {
           const m = e.data;
           if (m.level !== undefined) outLevel = m.level;
+          else if (m.progress !== undefined) send({ type: 'played', id: m.progress, ms: playedMs(m.samples), done: false });
           else if (m.flushed !== undefined) send({ type: 'played', id: m.flushed, ms: playedMs(m.samples), done: false });
           else if (m.drained !== undefined) send({ type: 'played', id: m.drained, ms: playedMs(m.samples), done: true });
         };
