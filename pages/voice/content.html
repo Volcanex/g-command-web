@@ -345,6 +345,8 @@
         capUser.textContent = m.text; bubble('me', m.text);
         break;
       case 'assistant':
+        // A cut reply's final (what was heard) can land after the next reply began.
+        if (capId !== null && m.id < capId) { if (m.final && m.text) bubble('brain', m.text); break; }
         // Words can arrive before the reply's audio, so a new id starts the caption.
         if (m.id !== capId) { capId = m.id; capReply.textContent = ''; }
         if (m.final) { capReply.textContent = m.text; if (m.text) bubble('brain', m.text); }
@@ -368,7 +370,7 @@
   }
 
   async function start() {
-    errBox.hidden = true; ending = false;
+    errBox.hidden = true; ending = false; capId = null;
     capUser.textContent = ''; capReply.textContent = '';
     setState('connecting');
     try {
