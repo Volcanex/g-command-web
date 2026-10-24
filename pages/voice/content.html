@@ -363,6 +363,10 @@
         metaTurn.textContent = parts.join(', ');
         break;
       }
+      case 'end':
+        // The Voice said goodbye and hangs up: the close that follows is not a drop.
+        ending = true;
+        break;
       case 'error':
         showError(m.message || 'The Voice hit a problem.');
         break;
