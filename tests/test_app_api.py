@@ -141,3 +141,12 @@ def test_alerts_upstream_failure_hides_the_url(client, monkeypatch):
     r = client.get("/api/alerts", cookies=ADMIN)
     assert r.status_code == 502
     assert "secret-topic" not in r.text
+
+
+def test_manifest_lists_the_current_native_screens(client, monkeypatch):
+    import core.native
+    monkeypatch.setattr(core.native, "native_screens", lambda: {"calendar": {"route": "/calendar", "min_build": 2}})
+    assert client.get("/api/app/manifest").status_code == 401
+    body = client.get("/api/app/manifest", cookies=ADMIN).json()
+    assert body["native"] == {"calendar": {"route": "/calendar", "min_build": 2}}
+    assert body["sections"]

@@ -1,0 +1,21 @@
+{
+  "v": 1,
+  "screens": {
+    "calendar": {
+      "route": "/calendar",
+      "sources": [
+        "pages/calendar/content.html"
+      ],
+      "verified": "614cad981fee1a42f2a5a304758c07c62959e169a94b42e3941672307cca8a67",
+      "min_build": 1
+    },
+    "todo-actions": {
+      "route": "/calendar",
+      "sources": [
+        "pages/calendar/content.html"
+      ],
+      "verified": "614cad981fee1a42f2a5a304758c07c62959e169a94b42e3941672307cca8a67",
+      "min_build": 1
+    }
+  }
+}

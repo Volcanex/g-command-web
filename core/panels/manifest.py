@@ -5,7 +5,7 @@ from pathlib import Path
 from core.panels import PANELS, layout
 
 
-def build_manifest(pages_dir):
+def build_manifest(pages_dir, native=None):
     configs = []
     for page in sorted(Path(pages_dir).iterdir()):
         if not page.is_dir() or page.name.startswith("_"):
@@ -45,4 +45,6 @@ def build_manifest(pages_dir):
     ordered = sorted(sections, key=lambda name: min(config.get("order", 999) for config in sections[name]))
     return {"v": 1, "name": "G-Command",
             "sections": [{"title": name, "entries": [entry(config) for config in sorted(sections[name], key=lambda c: c.get("order", 999))]} for name in ordered],
-            "panels": {name: {"title": spec[0], "icon": spec[1]} for name, spec in PANELS.items()}}
+            "panels": {name: {"title": spec[0], "icon": spec[1]} for name, spec in PANELS.items()},
+            # Hand-ported screens still matching their web source; the rest open as web.
+            "native": native or {}}

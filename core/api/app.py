@@ -10,7 +10,9 @@ admin cookie, so it never stores the password, a Brain key or an ntfy topic.
                                 a device token
   GET    /api/app/devices       signed in: paired devices
   DELETE /api/app/devices/{id}  signed in: revoke one
-  GET    /api/app/manifest      signed in: sections, entries and panel pages
+  GET    /api/app/manifest      signed in: sections, entries and panel pages,
+                                and the hand-ported screens still current
+                                (core/native.py)
   POST   /api/app/push-token    paired device: {token, platform: ios|macos,
                                 environment: sandbox|production}, stores
                                 this device's APNs token (one per device)
@@ -177,5 +179,6 @@ def forget_push_token(request: Request):
 @router.get("/manifest")
 def manifest(request: Request):
     _require(request)
+    from core.native import native_screens
     from core.panels.manifest import build_manifest
-    return build_manifest(_ROOT / "pages")
+    return build_manifest(_ROOT / "pages", native_screens())
