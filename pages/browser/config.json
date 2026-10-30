@@ -1,0 +1,12 @@
+{
+  "title": "Browser",
+  "slug": "browser",
+  "description": "Watch and drive g-browser, the always-on logged-in Chrome agents use.",
+  "nav": true,
+  "order": 22,
+  "body_class": "browser-page",
+  "nav_section": "Tools",
+  "nav_icon": "browser",
+  "nav_label": "Browser",
+  "gsys": true
+}

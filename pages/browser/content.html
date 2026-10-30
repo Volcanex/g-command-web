@@ -1,0 +1,191 @@
+<div class="page-head">
+  <h1>Browser</h1>
+  <span class="badge badge-plain" id="br-mode">Mode unknown</span>
+  <span class="badge badge-plain" id="br-state">Connecting</span>
+  <span class="spacer"></span>
+  <button class="btn btn-secondary btn-sm" id="br-full">Full screen</button>
+  <button class="btn btn-secondary btn-sm" id="br-restart">Restart browser</button>
+</div>
+
+<div id="br-error" class="card br-error" hidden>
+  <i class="ph ph-warning-circle" aria-hidden="true"></i>
+  <div>
+    <div class="br-error-title">Can't reach g-browser</div>
+    <div class="muted" id="br-error-msg">The page keeps trying every few seconds.</div>
+  </div>
+</div>
+
+<div class="br-grid">
+  <div class="br-main">
+    <div class="br-view" id="br-view">
+      <iframe id="br-vnc" title="Live browser" src="about:blank" allow="fullscreen; clipboard-read; clipboard-write"></iframe>
+    </div>
+    <p class="br-hint muted">This is the real browser agents drive, signed in as you. Click into it to take over, for a login or a captcha. On a phone, the keyboard button in the view's side panel brings up typing.</p>
+  </div>
+
+  <aside class="br-side">
+    <section class="card br-card">
+      <div class="card-title">Now</div>
+      <table class="table kv-table"><tbody>
+        <tr><td>Page</td><td id="br-url">None</td></tr>
+        <tr><td>Last HTTP</td><td id="br-http" class="num">None</td></tr>
+        <tr><td>Lock</td><td id="br-lock">Idle</td></tr>
+        <tr><td>Egress</td><td id="br-proxy">None</td></tr>
+        <tr><td>Exit IP</td><td id="br-ip">Not checked</td></tr>
+      </tbody></table>
+      <div class="br-row">
+        <button class="btn btn-tertiary btn-sm" id="br-egress">Check exit IP</button>
+      </div>
+    </section>
+
+    <section class="card br-card">
+      <div class="card-title">Mode</div>
+      <div class="g-segmented g-segmented-sm" role="radiogroup" aria-label="Browser mode" id="br-modes">
+        <label><input type="radio" name="br-mode" value="research">Research</label>
+        <label><input type="radio" name="br-mode" value="identity">Identity</label>
+        <label><input type="radio" name="br-mode" value="direct">Direct</label>
+      </div>
+      <p class="br-note muted">Switching relaunches Chrome, since proxy and profile are fixed at launch. Identity acts as you from the residential IP.</p>
+    </section>
+
+    <section class="card br-card">
+      <div class="card-title">Activity</div>
+      <div class="br-feed" id="br-feed"><div class="muted">Nothing yet</div></div>
+    </section>
+  </aside>
+</div>
+
+<style>
+  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .page-head .spacer { flex: 1; }
+  .muted { color: var(--text-secondary); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .br-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-4); align-items: start; }
+  .br-view { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md, 8px); aspect-ratio: 16 / 9; overflow: hidden; }
+  .br-view iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .br-view:fullscreen { aspect-ratio: auto; border: 0; border-radius: 0; }
+  .br-hint { font-size: 12px; margin: var(--sp-2) 0 0; }
+  .br-side { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .br-card { padding: var(--pad-card); }
+  .br-card .card-title { margin-bottom: var(--sp-2); display: block; }
+  .br-card .kv-table td { padding-left: 0; }
+  .kv-table td:first-child { color: var(--text-secondary); white-space: nowrap; font-size: 12px; width: 1%; padding-right: var(--sp-3); }
+  .kv-table td:last-child { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
+  .br-row { margin-top: var(--sp-2); }
+  .br-note { font-size: 12px; margin: var(--sp-2) 0 0; }
+  .br-feed { height: 240px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; line-height: var(--lh-16, 16px); }
+  .br-feed > div { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--sp-2); padding: var(--sp-1) 0; border-bottom: 1px solid var(--border); }
+  .br-feed .t { color: var(--text-placeholder); }
+  .br-feed .d { color: var(--text-secondary); grid-column: 2; word-break: break-all; }
+  .br-feed .bad .a, .br-feed .bad .d { color: var(--danger-text); }
+  .br-feed .warn .a { color: var(--warn-text); }
+  .br-error { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--pad-card); margin-bottom: var(--sp-4); border-color: var(--warn-text); }
+  .br-error i { font-size: 20px; color: var(--warn-text); }
+  .br-error-title { font-weight: 500; margin-bottom: var(--sp-1); }
+
+  @media (max-width: 900px) {
+    .br-grid { grid-template-columns: minmax(0, 1fr); }
+    .br-view { aspect-ratio: auto; height: 70vh; height: 70dvh; }
+  }
+</style>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const API = '/api/browser';
+  const NOVNC = `${API}/vnc/vnc.html?path=api/browser/vnc/websockify&autoconnect=true&resize=scale&reconnect=true&show_dot=true`;
+  const toast = (title, desc, kind) => window.g && g.toast ? g.toast({ title, desc, kind }) : null;
+  let mode = null;
+
+  async function tick() {
+    try {
+      const r = await fetch(`${API}/status`, { credentials: 'same-origin' });
+      if (r.status === 401) { location.href = '/login'; return; }
+      if (!r.ok) throw new Error(String(r.status));
+      const s = await r.json();
+      $('br-error').hidden = true;
+      $('br-url').textContent = s.current_url || 'None';
+      $('br-http').textContent = s.last_http_status ?? 'None';
+      $('br-lock').textContent = s.busy ? `Busy, held by ${s.holder || 'an agent'}` : 'Idle';
+      $('br-proxy').textContent = s.proxy || 'None';
+      mode = s.mode || null;
+      const mb = $('br-mode');
+      mb.textContent = mode ? mode[0].toUpperCase() + mode.slice(1) : 'Mode unknown';
+      mb.className = 'badge ' + (s.identity ? 'badge-danger' : 'badge-plain');
+      document.querySelectorAll('#br-modes input').forEach(i => { i.checked = i.value === mode; });
+      const st = $('br-state');
+      if (s.attached && s.busy) { st.textContent = 'Agent working'; st.className = 'badge badge-warn'; }
+      else if (s.attached) { st.textContent = 'Ready'; st.className = 'badge badge-ok'; }
+      else { st.textContent = s.last_error ? 'Detached' : 'Starting'; st.className = 'badge badge-plain'; }
+      const vnc = $('br-vnc');
+      if (s.attached && vnc.getAttribute('src') === 'about:blank') vnc.src = NOVNC;
+    } catch (e) {
+      $('br-error').hidden = false;
+      $('br-state').textContent = 'Unreachable';
+      $('br-state').className = 'badge badge-danger';
+    }
+  }
+
+  let es, first = true;
+  function feed() {
+    if (es) es.close();
+    es = new EventSource(`${API}/activity/stream`);
+    es.onmessage = ev => {
+      let d; try { d = JSON.parse(ev.data); } catch { return; }
+      const box = $('br-feed');
+      if (first) { box.innerHTML = ''; first = false; }
+      const near = box.scrollTop + box.clientHeight > box.scrollHeight - 40;
+      const row = document.createElement('div');
+      row.className = d.kind === 'error' ? 'bad' : d.kind === 'skip' ? 'warn' : '';
+      row.innerHTML = '<span class="t"></span><span class="a"></span><span class="d"></span>';
+      row.children[0].textContent = new Date(d.ts * 1000).toTimeString().slice(0, 8);
+      row.children[1].textContent = (d.action || d.kind || '') + (d.holder ? ` by ${d.holder}` : '');
+      row.children[2].textContent = d.detail || '';
+      if (!d.detail) row.children[2].remove();
+      box.appendChild(row);
+      while (box.childElementCount > 300) box.removeChild(box.firstChild);
+      if (near) box.scrollTop = box.scrollHeight;
+    };
+    es.onerror = () => { es.close(); setTimeout(feed, 4000); };
+  }
+
+  async function restart(m) {
+    const q = m ? `?mode=${encodeURIComponent(m)}` : '';
+    toast(m ? `Switching to ${m}` : 'Restarting browser', 'Chrome relaunches, which takes a few seconds.');
+    try {
+      const r = await fetch(`${API}/restart${q}`, { method: 'POST', credentials: 'same-origin' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'failed');
+      toast(m ? `Switched to ${j.mode}` : 'Browser restarted', '', 'ok');
+      $('br-ip').textContent = 'Not checked';
+      $('br-vnc').src = 'about:blank';
+    } catch (e) {
+      toast('Browser did not restart', 'Check the activity feed, then try again.', 'danger');
+    }
+    tick();
+  }
+
+  $('br-restart').onclick = () => restart(null);
+  document.querySelectorAll('#br-modes input').forEach(i => i.addEventListener('change', () => {
+    if (i.value === mode) return;
+    if (i.value === 'identity' && !confirm('Switch to identity mode? Chrome relaunches with your real profile on the residential IP, and anything it does is done as you.')) { tick(); return; }
+    restart(i.value);
+  }));
+  $('br-egress').onclick = async () => {
+    $('br-ip').textContent = 'Checking';
+    try {
+      const j = await (await fetch(`${API}/egress`, { credentials: 'same-origin' })).json();
+      $('br-ip').textContent = j.ok ? (j.exit_ip || 'Working') : 'Proxy not working';
+    } catch { $('br-ip').textContent = 'Check failed'; }
+  };
+  $('br-full').onclick = () => {
+    const v = $('br-view');
+    if (v.requestFullscreen) v.requestFullscreen().catch(() => window.open(NOVNC, '_blank'));
+    else window.open(NOVNC, '_blank');
+  };
+
+  tick(); setInterval(tick, 3000); feed();
+})();
+</script>
