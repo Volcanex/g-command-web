@@ -36,3 +36,15 @@ def test_history_and_chat_refuse_other_sessions(client):
     client.cookies.set("seed_admin", "ok")
     assert client.get("/api/voice/history?session=../x").status_code == 422
     assert client.post("/api/voice/chat", json={"message": "a", "session": "+44"}).status_code == 422
+
+
+def test_app_history_hides_turns_before_the_4am_london_boundary(client, tmp_path):
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    rows = [{"ts": (now - timedelta(days=2)).isoformat(), "role": "user", "text": "old"},
+            {"ts": now.isoformat(), "role": "user", "text": "new"}]
+    (tmp_path / "app.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+    client.cookies.set("seed_admin", "ok")
+    assert [t["text"] for t in client.get("/api/voice/history?session=app").json()["turns"]] == ["new"]
+    assert voice_api._reset_boundary(datetime(2026, 7, 10, 3, 0, tzinfo=timezone.utc)) == datetime(2026, 7, 10, 3, 0, tzinfo=timezone.utc)
+    assert voice_api._reset_boundary(datetime(2026, 1, 10, 3, 59, tzinfo=timezone.utc)) == datetime(2026, 1, 9, 4, 0, tzinfo=timezone.utc)

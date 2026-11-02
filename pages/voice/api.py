@@ -30,8 +30,10 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 import httpx
 import websockets
@@ -276,6 +278,26 @@ async def chat_stream(body: ChatIn, request: Request):
                              headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
 
+def _reset_boundary(now=None):
+    """The latest 4am Europe/London. The app chat starts fresh after it. Voice
+    (brain-tools voice/transcript.py last_boundary) archives the file on its
+    next turn; this cutoff hides the old turns from the moment 4am passes."""
+    london = ZoneInfo("Europe/London")
+    now = (now or datetime.now(timezone.utc)).astimezone(london)
+    cut = now.replace(hour=4, minute=0, second=0, microsecond=0)
+    if now < cut:
+        cut = (cut - timedelta(days=1)).replace(hour=4)
+    return cut.astimezone(timezone.utc)
+
+
+def _before(ts, cut):
+    try:
+        t = datetime.fromisoformat(ts)
+    except (TypeError, ValueError):
+        return False
+    return (t if t.tzinfo else t.replace(tzinfo=timezone.utc)) < cut
+
+
 @router.get("/history")
 def history(request: Request, session: Session = "app", limit: int = 100):
     """The last `limit` turns of one session, oldest first, as {ts, role, text},
@@ -283,6 +305,7 @@ def history(request: Request, session: Session = "app", limit: int = 100):
     _require(request)
     limit = max(1, min(limit, 500))
     turns = []
+    cut = _reset_boundary() if session == "app" else None
     try:
         with open(TRANSCRIPT_DIR / f"{session}.jsonl") as fh:
             for line in fh:
@@ -291,6 +314,8 @@ def history(request: Request, session: Session = "app", limit: int = 100):
                 except ValueError:
                     continue
                 if obj.get("role") in ("user", "assistant") and isinstance(obj.get("text"), str):
+                    if cut and _before(obj.get("ts"), cut):
+                        continue
                     turn = {"ts": obj.get("ts", ""), "role": obj["role"], "text": obj["text"]}
                     if isinstance(obj.get("blocks"), list) and obj["blocks"]:
                         turn["blocks"] = obj["blocks"]
