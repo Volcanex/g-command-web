@@ -7,3 +7,78 @@ description = "Command center: the G-System web UI for ops, Brain views and serv
 depends = []
 starter = "gseed-app"
 design = "g-system@1.6.0"
+
+[[tool.gcore.connects]]
+to = "g-system"
+via = "vendor"
+flow = "vendored g.css and g-ui.js (core/static/css/gsys), stamped with the g-design version"
+
+[[tool.gcore.connects]]
+to = "gcore"
+via = "file"
+flow = "reads manifest.json and conventions.md for topology, projects and the gcore page"
+
+[[tool.gcore.connects]]
+to = "g-studio"
+via = "http"
+flow = "mounts Studio's web from studio.gabrielpenman.com and reads its API"
+
+[[tool.gcore.connects]]
+to = "brain-api"
+via = "http"
+flow = "proxies /api/brain and the calendar to the brain on :8766"
+
+[[tool.gcore.connects]]
+to = "g-levels"
+via = "import"
+flow = "imports glevels.export for the /levels page and runs glevels grade"
+
+[[tool.gcore.connects]]
+to = "ntfy"
+via = "http"
+flow = "polls the alert spine topic for /api/alerts"
+
+[[tool.gcore.connects]]
+to = "g-runner"
+via = "http"
+flow = "reads and drives runners through G_RUNNER_URL"
+
+[[tool.gcore.connects]]
+to = "voice"
+via = "websocket"
+flow = "relays live voice calls and uploads to the voice service on :8077"
+
+[[tool.gcore.connects]]
+to = "g-wages"
+via = "http"
+flow = "hours page reads the wages ledger on :8093"
+
+[[tool.gcore.connects]]
+to = "g-site"
+via = "http"
+flow = "blog page reads g-site on :8096"
+
+[[tool.gcore.connects]]
+to = "genv"
+via = "file"
+flow = "compute page reads g-env's pace, spend and usage outputs"
+
+[[tool.gcore.connects]]
+to = "brain"
+via = "file"
+flow = "crons page reads brain/.pulse cron specs and run logs"
+
+[[tool.gcore.connects]]
+to = "g-anti-ai"
+via = "file"
+flow = "ganti page reads the g-anti-ai checkout"
+
+[[tool.gcore.connects]]
+to = "h"
+via = "ssh"
+flow = "sessions and crons pages ssh to hosts for tmux and systemctl"
+
+[[tool.gcore.connects]]
+to = "b"
+via = "ssh"
+flow = "sessions and crons pages ssh to hosts for tmux and systemctl"
