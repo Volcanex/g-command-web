@@ -132,8 +132,10 @@
 
 .topbar {
   display: flex; align-items: center; gap: var(--sp-2);
-  min-height: calc(var(--h-control) + 2 * var(--sp-3));
-  padding: var(--sp-3) var(--gutter);
+  /* 48px with its rule in every app (g-navigation R10): Studio's workspace bar and Command's
+     slim bar are one height, a control with 8px above and below. */
+  min-height: var(--h-5);
+  padding: var(--sp-2) var(--gutter);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--surface-1);
   flex: none;
