@@ -1,6 +1,9 @@
 <!-- The real g-studio app, run in this page: its mount.js comes from the studio's own origin
      (STUDIO_ORIGIN) and talks to the studio's API with the studio session cookie. Nothing of
-     the studio is bundled here. Deep links are this page plus the studio's hash route:
+     the studio is bundled here. Embedded, the studio draws no sidebar or account menu: this
+     page's nav is the only one, and the studio's own sections are tabs in the content. Its
+     styles are scoped to the mount element and it uses this page's g-design, so it looks and
+     behaves as part of Command. Deep links are this page plus the studio's hash route:
      /studio#/site/<pid>/pages. The studio must list this origin in GS_EMBED_ORIGINS. -->
 <div class="studio-host" data-studio-host data-origin="<!-- seed:studio_origin -->">
   <div class="studio-msg" data-msg hidden>
@@ -12,7 +15,9 @@
 </div>
 
 <style>
-  body.studio-page .site-main { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+  /* The studio fills the space under the top bar edge to edge and scrolls inside itself. */
+  body.studio-page .content { display: flex; flex-direction: column; overflow: hidden; }
+  body.studio-page .site-main { flex: 1 1 auto; min-height: 0; max-width: none; padding: 0; gap: 0; overflow: hidden; display: flex; flex-direction: column; }
   body.studio-page .site-main > * { max-width: none; }
   .studio-host { flex: 1; min-height: 0; position: relative; }
   .studio-msg { display: grid; place-items: center; height: 100%; padding: var(--sp-5); }

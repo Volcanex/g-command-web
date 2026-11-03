@@ -1,6 +1,8 @@
 <form class="card login-card" id="login-form" autocomplete="off">
   <div class="login-brand"><span class="mark">g</span><b>Command</b></div>
-  <p class="login-sub">This center is private. Enter the password to continue.</p>
+  <p class="login-sub">This center is private. Sign in with Studio, or use the password if Studio is down.</p>
+  <p class="login-note" id="login-note" hidden></p>
+  <a class="btn btn-secondary" id="login-studio" href="/auth/studio/start">Sign in with Studio</a>
   <input class="input" type="password" id="password" name="password" placeholder="Password" required autofocus>
   <button type="submit" class="btn btn-primary">Sign in</button>
   <p class="login-error" id="login-error" hidden></p>
@@ -18,12 +20,22 @@
   .login-brand b { font-size: 14px; font-weight: 500; }
   .login-sub { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
   .login-error { margin: 0; color: var(--danger-text); font-size: 12px; }
+  .login-note { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 </style>
 
 <script>
 (() => {
   const form = document.getElementById('login-form');
   const err = document.getElementById('login-error');
+  // Back from a Studio sign-in that did not work: say what happened and what to do next.
+  const why = {
+    down: 'Studio is not answering right now. Use the password to get in.',
+    off: 'Signing in with Studio is not set up on this server. Use the password.',
+    not_admin: 'That Studio account is not Command\'s admin. Use the password, or sign in to Studio as Gabriel.',
+    refused: 'Studio\'s sign-in could not be checked. Try again, or use the password.',
+    expired: 'That sign-in took too long. Try again.',
+  }[new URLSearchParams(location.search).get('studio')];
+  if (why) { const n = document.getElementById('login-note'); n.textContent = why; n.hidden = false; }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     err.hidden = true;

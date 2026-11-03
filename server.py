@@ -30,6 +30,8 @@ import uvicorn
 # core/auth.py reads the cookie name and secret for every router and stops
 # the process here, before any router mounts, if the secret is unset.
 from core.auth import ADMIN_COOKIE, cookie_ok
+# Studio is the identity provider (core/studio_sso.py); /login stays the break-glass sign-in.
+from core import studio_sso
 
 
 def _is_admin(request: Request) -> bool:
@@ -149,6 +151,7 @@ app = FastAPI(
 
 print("Discovering APIs...")
 discover_apis(app)
+app.include_router(studio_sso.router)   # /auth/studio/*, before the page catch-all
 print()
 
 
@@ -209,14 +212,20 @@ if OUTPUT_DIR.exists():
 
 
 def _admin_gated(path: str, request: Request) -> "RedirectResponse | None":
-    """Whole-site password gate. Every page redirects to /login unless the
-    visitor holds the auth cookie. The login page is public; static assets
-    and /api/* are matched before this runs, so they pass through untouched.
+    """Whole-site gate. Every page needs the admin cookie. Without it the
+    visitor signs in through Studio (core/studio_sso.py) and comes back to
+    this page; /login, the password sign-in, is public and stays the
+    break-glass way in. Static assets and /api/* are matched before this
+    runs, so they pass through untouched.
     """
     if path.strip("/") == "login":
         return None
     if _is_admin(request):
         return None
+    if studio_sso.enabled():
+        from urllib.parse import urlencode
+        nxt = "/" + path.lstrip("/") + (("?" + request.url.query) if request.url.query else "")
+        return RedirectResponse(url="/auth/studio/start?" + urlencode({"next": nxt}), status_code=302)
     return RedirectResponse(url="/login", status_code=302)
 
 
