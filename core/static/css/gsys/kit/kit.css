@@ -243,6 +243,8 @@ button.nav-item { width: 100%; }
 .page-head-text:has(> .row-tight) { display: contents; }
 .page-head-text > .row-tight { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; min-height: var(--h-control); }
 .page-head-text > .row-tight > * { flex: none; }
+/* A badge row holding only the hidden h1 takes no height, so the description leads the head. */
+.page-head-text > .row-tight:not(:has(> :not(.sr-only))) { min-height: 0; }
 .page-head-text > .row-tight > .badge { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* A full-width break after the badges and actions, so the description always starts its own
    line; the description keeps its reading measure. */
