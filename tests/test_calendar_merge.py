@@ -87,23 +87,21 @@ def test_agenda_reports_a_failure_line_when_both_sources_fail():
     assert "private" not in json.dumps(panel)
 
 
-def test_todos_page_is_gone_and_life_holds_calendar_then_chat():
+def test_todos_page_is_gone_and_life_holds_calendar_first():
     assert not (PAGES / "todos").exists()
     sections = build_manifest(PAGES)["sections"]
     life = [e for s in sections for e in s["entries"] if e["slug"] == "home"][0]
-    assert [t["slug"] for t in life.get("tabs", [])][:2] == ["home", "calendar"]
+    assert [t["slug"] for t in life.get("tabs", [])][:2] == ["home", "calendar"]  # the apps' Life dash, unchanged
     assert "todos" not in json.dumps(sections)
 
 
-def test_home_life_row_leads_with_calendar_and_carries_the_essentials():
+def test_home_is_the_full_dash_under_the_agenda_card():
     index = json.loads((PAGES / "index" / "config.json").read_text())
-    band = [i for c in index["layout"]["columns"] for i in c["items"] if isinstance(i, dict) and i.get("head") == "home"][0]
-    assert band["row"][0] == "calendar" and "tasks" not in band["row"]
-    assert band["lines"] == "agenda"
-    html = layout.render("index", index["layout"])
-    assert html.index('data-lines="agenda"') < html.index("seed:panel-calendar")
-    home = json.loads((PAGES / "home" / "config.json").read_text())
-    assert home["lines"] == "agenda" and "tasks" not in layout.panels(home["layout"])
+    full = json.loads((PAGES / "full-dash" / "config.json").read_text())
+    assert index["layout"] == full["layout"]
+    content = (PAGES / "index" / "content.html").read_text()
+    assert content.index('data-lines="agenda"') < content.index("seed:dash-layout")
+    assert "page-title" not in content and "seed:hub-" not in content  # the top bar already says Home
 
 
 def test_calendar_page_lists_by_default_with_tick_move_and_a_dated_create_form():

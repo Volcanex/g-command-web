@@ -9,12 +9,13 @@ Each page is a directory under `pages/` with:
   interpolate. Pages with `nav: true` are grouped by `nav_section` and
   sorted by `order` to build the rail automatically (`web_nav: false`
   keeps an entry the apps show off the web rail). `tabs` is the parent
-  pointer: the group member with `nav: true` is the parent page (a hub),
-  the others are its children, nested one level under it in the rail and
-  shown as tiles on it (`<!-- seed:hub-head -->`, `<!-- seed:hub-tiles -->`,
-  `tile_note`, `tile_line`). The name stays `tabs` because the apps read the
-  same manifest. `nav_current` is the rail link a page lights when it has
-  none of its own (a detail route, a page reached by URL).
+  pointer: the group member with `nav: true` is the group (a disclosure row
+  in the rail), the others are its children, nested one level under it.
+  `web_page: false` drops the group's own page from the web rail, and
+  `web_section`/`web_order` place an entry on the web rail apart from the
+  apps (see "The page tree" below). The name stays `tabs` because the apps
+  read the same manifest. `nav_current` is the rail link a page lights when
+  it has none of its own (a detail route, a page reached by URL).
 - `content.html`: HTML fragment for the page body. May include a
   `<style>` block.
 - `app.js` (optional): a Preact page. Bundled by esbuild into
@@ -568,11 +569,18 @@ def emit_manifest_stubs(shell: str, handled_slugs: set[str]) -> tuple[int, int]:
     return built, errors
 
 
-# ---------- The page tree: the rail and the hub tiles ---------------------
+# ---------- The page tree: the rail -----------------------------------------
 #
-# One tree, from the configs, drives both the rail and every hub's tiles, so
-# they cannot drift. A rail entry is a page with `nav: true` (and not
-# `web_nav: false`); its children are the other members of its `tabs` group.
+# One tree, from the configs, drives the rail and the apps' manifest
+# (core/panels/manifest.py), so they cannot drift. A rail entry is a page with
+# `nav: true` (and not `web_nav: false`); its children are the other members
+# of its `tabs` group. A parent is a group, drawn as a disclosure row (kit
+# .nav-group, open by default) rather than a link: `web_page: false` says its
+# own page is gone from the web (server.py MOVED sends its URL on), otherwise
+# the page leads its own children, named by `tab_label`. `web_section` and
+# `web_order` place an entry on the web rail apart from where the apps show it
+# (Upload sits at the top of the rail and under Publish in the apps). The
+# first section is the rail's top and carries no heading.
 _PAGES: list[dict] = []
 
 
@@ -589,16 +597,26 @@ def children_of(config: dict, configs: list[dict]) -> list[dict]:
                   key=lambda c: c.get("order", 999))
 
 
+def _web_order(c: dict):
+    return c.get("web_order", c.get("order", 999))
+
+
 def page_tree(configs: list[dict]) -> list[tuple[str, list[tuple[dict, list[dict]]]]]:
-    """[(section, [(entry, children)])] in rail order."""
+    """[(section, [(entry, children)])] in web rail order. A group whose own
+    page is still served lists that page first among its children."""
     from collections import defaultdict
 
     sections: dict[str, list[dict]] = defaultdict(list)
     for c in configs:
         if c.get("nav") and c.get("web_nav", True):
-            sections[c.get("nav_section") or c.get("title", "Other")].append(c)
-    first = {sec: min(c.get("order", 999) for c in pages) for sec, pages in sections.items()}
-    return [(sec, [(c, children_of(c, configs)) for c in sorted(sections[sec], key=lambda c: c.get("order", 999))])
+            sections[c.get("web_section") or c.get("nav_section") or c.get("title", "Other")].append(c)
+    first = {sec: min(_web_order(c) for c in pages) for sec, pages in sections.items()}
+
+    def kids(c: dict) -> list[dict]:
+        rest = children_of(c, configs)
+        return ([c] if rest and c.get("web_page", True) else []) + rest
+
+    return [(sec, [(c, kids(c)) for c in sorted(sections[sec], key=_web_order)])
             for sec in sorted(sections, key=lambda s: first[s])]
 
 
@@ -607,76 +625,41 @@ def _child_label(config: dict) -> str:
 
 
 def build_nav_html(configs: list[dict]) -> str:
-    """The rail (kit .nav-list): a .nav-head per section, a .nav-item per
-    entry, and a parent's children nested in a kit .nav-group. chrome.js marks
-    the current item and opens its group."""
-    def item(c: dict, label: str, cls: str = "nav-item", icon: bool = True) -> str:
-        glyph = f'<i class="ph ph-{html.escape(str(c.get("nav_icon", "circle")))}" aria-hidden="true"></i>' if icon else ""
-        return (f'<a class="{cls}" href="{html.escape(page_href(c))}">{glyph}'
+    """The rail (kit .nav-list): the top entries, then a .nav-head per
+    section, a .nav-item per entry, and a group's children, each with its own
+    icon, in a kit .nav-group whose parent is a disclosure button. kit rail.js
+    opens the groups (all, by default) and chrome.js marks the current item."""
+    def glyph(name: str) -> str:
+        return f'<i class="ph ph-{html.escape(str(name))}" aria-hidden="true"></i>'
+
+    def item(c: dict, label: str, cls: str = "nav-item", icon: str | None = None) -> str:
+        return (f'<a class="{cls}" href="{html.escape(page_href(c))}">{glyph(icon or c.get("nav_icon", "circle"))}'
                 f'<span class="ellipsis">{html.escape(str(label))}</span></a>')
 
     parts = []
-    for sec, entries in page_tree(configs):
-        parts.append(f'      <div class="nav-head">{html.escape(str(sec))}</div>')
+    for n, (sec, entries) in enumerate(page_tree(configs)):
+        if n:
+            parts.append(f'      <div class="nav-head">{html.escape(str(sec))}</div>')
         for c, kids in entries:
             label = c.get("nav_label") or c.get("title", c.get("slug", ""))
             if not kids:
                 parts.append("      " + item(c, label))
                 continue
-            parts.append(f'      <div class="nav-group" data-group="{html.escape(str(c["tabs"]))}">')
-            parts.append('        <div class="nav-group-row">' + item(c, label)
-                         + f'<button class="nav-twist" type="button" aria-label="{html.escape(str(label))} pages"'
-                           ' aria-expanded="false"></button></div>')
+            parts.append(f'      <div class="nav-group" data-group="{html.escape(str(c["tabs"]))}" data-open>')
+            parts.append('        <button class="nav-item nav-group-toggle" type="button" aria-expanded="true">'
+                         f'{glyph(c.get("nav_icon", "circle"))}<span class="ellipsis">{html.escape(str(label))}</span>'
+                         '<span class="nav-caret" aria-hidden="true"></span></button>')
             parts.append('        <div class="nav-children">'
-                         + "".join(item(k, _child_label(k), "nav-item nav-child", icon=False) for k in kids)
+                         + "".join(item(k, _child_label(k), "nav-item nav-child",
+                                        icon=k.get("tab_icon") if k is c else None) for k in kids)
                          + "</div>")
             parts.append("      </div>")
     return '    <nav class="nav-list" aria-label="Pages">\n' + "\n".join(parts) + "\n    </nav>"
 
 
-def _tile(c: dict) -> str:
-    line = c.get("tile_line")
-    line_attr = f' data-line="{html.escape(str(line))}"' if line else ""
-    note = c.get("tile_note") or c.get("description", "")
-    return (f'<li><a class="card tile hub-tile" href="{html.escape(page_href(c))}">'
-            '<div class="tile-head">'
-            f'<span class="tile-title ellipsis">{html.escape(_child_label(c))}</span>'
-            f'<i class="ph ph-{html.escape(str(c.get("nav_icon", "circle")))} muted" aria-hidden="true"></i></div>'
-            '<div class="tile-body">'
-            f'<p class="tile-strong num hub-line"{line_attr}></p>'
-            f'<p class="muted tile-note">{html.escape(str(note))}</p>'
-            "</div></a></li>")
-
-
-def hub_tiles(slug: str) -> str:
-    """A hub's tiles: one per child page, each with its live line slot
-    (core/static/js/hub.js fills `data-line`)."""
-    page = next((c for c in _PAGES if c.get("slug") == slug), None)
-    kids = children_of(page, _PAGES) if page else []
-    if not kids:
-        return ""
-    return ('<ul class="tile-grid hub-tiles" aria-label="Pages here">'
-            + "".join(_tile(k) for k in kids) + "</ul>")
-
-
-def hub_head(context: dict) -> str:
-    """A hub's page head (title, one line, the pulse tagline where the page
-    asks for it) and its tiles."""
-    page = next((c for c in _PAGES if c.get("slug") == context["slug"]), {})
-    tagline = page.get("tagline")
-    tag = (f'<a class="hub-tagline ellipsis" href="/pulse" data-line="tagline:{html.escape(str(tagline))}" hidden></a>'
-           if tagline else "")
-    return ('<div class="hub-top">'
-            '<div class="page-head"><div class="page-head-text">'
-            f'<h1 class="page-title">{html.escape(str(context.get("title", "")))}</h1>'
-            f'<p class="page-sub">{html.escape(str(context.get("description", "")))}</p>{tag}'
-            + (dash_layout.essentials(page["lines"]) if page.get("lines") else "")
-            + "</div></div>" + hub_tiles(context["slug"]) + "</div>")
-
-
 def parent_of(config: dict) -> dict | None:
-    """The page a page sits under: its group's head, or for a page off the
-    rail the page its `nav_current` names."""
+    """The group a page sits under, or for a page off the rail the page its
+    `nav_current` names."""
     if config.get("tabs") and not config.get("nav"):
         return next((c for c in _PAGES if c.get("nav") and str(c.get("tabs")) == str(config["tabs"])), None)
     if config.get("nav_current"):
@@ -685,15 +668,18 @@ def parent_of(config: dict) -> dict | None:
 
 
 def crumbs(config: dict) -> str:
-    """The top bar's title: `Parent > Page` for a nested page, else the
-    title. A child is named as the rail names it."""
+    """The top bar's title: `Group > Page` for a nested page, else the
+    title. A child is named as the rail names it. A group with no page of its
+    own is named, not linked."""
     parent = parent_of(config)
     if not parent:
         return f'<span class="topbar-title">{html.escape(str(config.get("title", "")))}</span>'
     label = _child_label(config) if config.get("tabs") else config.get("title", "")
-    return ('<nav class="topbar-crumbs" aria-label="Breadcrumb">'
-            f'<a class="hide-sm" href="{html.escape(page_href(parent))}">{html.escape(str(parent.get("nav_label") or parent.get("title", "")))}</a>'
-            '<span class="crumb-sep hide-sm" aria-hidden="true"></span>'
+    name = html.escape(str(parent.get("nav_label") or parent.get("title", "")))
+    head = (f'<span class="crumb-group hide-sm">{name}</span>' if not parent.get("web_page", True)
+            else f'<a class="hide-sm" href="{html.escape(page_href(parent))}">{name}</a>')
+    return ('<nav class="topbar-crumbs" aria-label="Breadcrumb">' + head
+            + '<span class="crumb-sep hide-sm" aria-hidden="true"></span>'
             f'<span class="topbar-title" aria-current="page">{html.escape(str(label))}</span></nav>')
 
 
@@ -701,10 +687,6 @@ def _band_heads() -> dict:
     """slug -> (label, href, live line) for a layout row's `head`."""
     return {c.get("slug"): (c.get("nav_label") or c.get("title", ""), page_href(c), c.get("tile_line"))
             for c in _PAGES}
-
-
-register_token("hub-head", hub_head)
-register_token("hub-tiles", lambda context: hub_tiles(context["slug"]))
 
 
 def _embed_bundle(slug: str) -> str:
@@ -740,7 +722,9 @@ def stamp_shell_assets(shell: str) -> str:
         digest = hashlib.sha256(src.read_bytes()).hexdigest()[:10]
         return f'{m.group(1)}/{m.group(2)}?v={digest}"'
 
-    return re.sub(r'((?:href|src)=")/((?:css|js|assets)/[^"?#]+)"', stamp, shell)
+    # `from "/css/..."` too: the shell's inline module scripts import the kit's
+    # rail.js and cursor.js, and an unstamped import kept the old rail for a day.
+    return re.sub(r'((?:href|src)="|from ")/((?:css|js|assets)/[^"?#]+)"', stamp, shell)
 
 
 def main() -> None:

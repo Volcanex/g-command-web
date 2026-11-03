@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from core.panels import builder
+from core.panels.agenda import counts, due_today
 from core.panels.helpers import chip, day, encoded, note, plain, row_id, sort_text
 
 
@@ -57,8 +58,6 @@ def build(ctx):
               and not (item.get("late_days") and (item.get("done") or item.get("failed")))]
     own = sorted((item for item in todays if not item.get("late_days")), key=chronological)
     carried = sorted((item for item in todays if item.get("late_days")), key=triage)
-    opened = sum(not item.get("done") and not item.get("failed") for item in todays)
-    carried_open = sum(not item.get("done") for item in carried)
     blocks = []
     if not todays:
         blocks.append({"type": "rows", "title": "Today", "empty": "Nothing on today.", "rows": []})
@@ -71,5 +70,10 @@ def build(ctx):
         group = sorted((item for item in items if item.get("date") == date and not item.get("dropped")), key=chronological)
         blocks.append({"type": "rows", "title": day(date), "aside": True, "empty": "Nothing planned",
                        "rows": [row(item, False) for item in group]})
-    return {"title": "Today, " + day(today.isoformat()),
-            "meta": f"{opened} open today, {carried_open} carried over", "blocks": blocks}
+    # The count is the agenda's (core/panels/agenda.py counts), never one of
+    # its own: the two used different rules and disagreed on the same screen.
+    try:
+        due = counts(ctx.get("/api/todos/agenda"))
+    except Exception:
+        due = None
+    return {"title": "Today, " + day(today.isoformat()), "meta": due_today(due), "blocks": blocks}

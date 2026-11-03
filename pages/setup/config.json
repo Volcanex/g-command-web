@@ -10,6 +10,6 @@
   "nav_label": "Setup",
   "gsys": true,
   "tabs": "setup",
-  "tab_label": "Setup",
-  "tile_note": "Bootstrap a machine"
+  "tab_label": "Bootstrap",
+  "tab_icon": "terminal-window"
 }

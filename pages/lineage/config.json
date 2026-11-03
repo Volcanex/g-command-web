@@ -9,6 +9,5 @@
   "nav_label": "Lineage",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Lineage",
-  "tile_note": "Starter and design provenance"
+  "tab_label": "Lineage"
 }

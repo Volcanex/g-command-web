@@ -295,13 +295,27 @@
       const r = await fetch(`${API_BASE}/api/todos/calendar?date_from=${iso(start)}&date_to=${iso(end)}`);
       if (!r.ok) throw new Error(`status ${r.status}`);
       items = await r.json();
-      const open = items.filter(it => !it.done && !it.failed && !it.dropped && it.date <= on(7) && !routine(it)).length;
-      count.textContent = `${open} open this week`;
       paint();
+      dueCount();
     } catch (e) {
       const msg = `<p class="empty">Calendar unavailable: the brain did not answer (${esc(e.message)}). Reload to try again.</p>`;
       (view === 'list' ? listEl : monthDay).innerHTML = msg;
       count.textContent = 'Unavailable';
+    }
+  }
+
+  // The head's count is the agenda's (core/panels/agenda.py counts), the same
+  // one Home's agenda card and calendar panel use, so no two heads disagree.
+  // Without the brain's agenda there is no count rather than a second rule.
+  async function dueCount() {
+    try {
+      const r = await fetch('/api/panels/agenda', { credentials: 'same-origin' });
+      const d = r.ok ? await r.json() : null;
+      const n = d && d.due ? d.due.week : null;
+      count.hidden = n == null;
+      if (n != null) count.textContent = n ? `${n} due this week` : 'Nothing due this week';
+    } catch (e) {
+      count.hidden = true;
     }
   }
 

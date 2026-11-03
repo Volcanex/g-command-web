@@ -3,7 +3,7 @@
 // phone nav sheet, and the theme switch. The app passes in what is its own (brand name, nav
 // items, menu items, what closes the sheet) as props; nothing here knows its routes.
 import { html, useEffect, useRef, useState } from "./html.js";
-import { wireRailToggle, RAIL_KEY } from "./rail.js";
+import { wireRailToggle, railPinned, groupOpen, setGroupOpen, RAIL_KEY } from "./rail.js";
 import { Icon } from "./icon.js";
 import { Menu } from "./core.js";
 
@@ -61,27 +61,33 @@ export function NavItem({ to, icon, label, current, badge, onClick, target, chil
   </a>`;
 }
 
-/* A rail parent with its children, one level deep (kit.css .nav-group). The parent is a page
-   (`item`, NavItem props); `children` are NavItems given class "nav-child". The children show
-   while the parent or a child is current (`current`), and the twist opens them by hand. */
-export function NavGroup({ item, current, label = "Show pages", children }) {
-  const [manual, setManual] = useState(null);
-  const open = manual === null ? !!current : manual;
-  return html`<div class="nav-group" data-open=${open ? "" : undefined}>
-    <div class="nav-group-row">
-      <${NavItem} ...${item} />
-      <button class="nav-twist" type="button" aria-label=${label} aria-expanded=${open ? "true" : "false"}
-        onClick=${() => setManual(!open)}></button>
-    </div>
+/* A rail group, one level deep (kit.css .nav-group): the parent is a disclosure row with the
+   group's icon and label that opens and closes its children in place, never a page of its own.
+   Open by default; closed by hand is remembered per viewer under the rail's key, and a group
+   holding the current page (`current`) always opens. `children` are NavItems given class
+   "nav-child", each with its own icon. */
+export function NavGroup({ id, icon, label, current, railKey = RAIL_KEY, children }) {
+  const ref = useRef(null);
+  const [open, setOpen] = useState(() => !!current || groupOpen(id, railKey));
+  useEffect(() => { if (current) setOpen(true); }, [current]);
+  const flip = () => {
+    const next = !open;
+    setOpen(next);
+    if (ref.current) setGroupOpen(ref.current, next, railKey);
+  };
+  return html`<div ref=${ref} class="nav-group" data-group=${id} data-open=${open ? "" : undefined}>
+    <button class="nav-item nav-group-toggle" type="button" aria-expanded=${open ? "true" : "false"} onClick=${flip}>
+      <${Icon} name=${icon} /><span class="ellipsis">${label}</span><span class="nav-caret" aria-hidden="true"></span>
+    </button>
     <div class="nav-children">${children}</div>
   </div>`;
 }
 
 /* ------------------------------------------------------------------ sidebar */
 
-/* The brand, with the rail's collapse toggle beside it (rail.js). railKey names where this
-   rail's state is remembered, so two apps on one page (Studio inside Command) keep their own;
-   collapse=false leaves the toggle out. */
+/* The brand, with the rail's pin toggle beside it (rail.js: "Keep open", then "Collapse").
+   railKey names where this rail's state is remembered, so two apps on one page (Studio inside
+   Command) keep their own; collapse=false leaves the toggle out. */
 export function Brand({ href, name, collapse = true, railKey = RAIL_KEY }) {
   return html`<div class="brand-row">
     <a class="brand" href=${href}>
@@ -95,7 +101,9 @@ export function Brand({ href, name, collapse = true, railKey = RAIL_KEY }) {
 export function RailToggle({ railKey = RAIL_KEY }) {
   const ref = useRef(null);
   useEffect(() => { if (ref.current) wireRailToggle(ref.current, railKey); }, []);
-  return html`<button ref=${ref} class="g-rail-toggle" type="button" aria-label="Collapse the menu"></button>`;
+  const pinned = railPinned(railKey);
+  return html`<button ref=${ref} class="g-rail-toggle" type="button" aria-label=${pinned ? "Collapse" : "Keep open"}
+    aria-pressed=${pinned ? "true" : "false"}></button>`;
 }
 
 /* The signed-in person at the foot of the sidebar, with their menu. menuSide="right" opens the
@@ -110,13 +118,16 @@ export function UserFoot({ name, email, initials, items, menuLabel = "Account", 
 
 /* ------------------------------------------------------------------ shell */
 
-/* brand, nav and foot fill the sidebar; title shows in the top bar on a phone; actions sit
+/* brand, nav and foot fill the sidebar (railKey: the same key as the Brand's toggle); title
+   shows in the top bar on a phone; actions sit
    at the top bar's end. topbar=false drops the top bar (an app that draws its own). The bar is
    .app-topbar, plus .has-actions when it carries actions, so an app can drop a bar that is only
    the menu button wherever the rail sits beside the content. */
-export function AppShell({ brand, nav, foot, title, actions, topbar = true, closeKey, children }) {
+export function AppShell({ brand, nav, foot, title, actions, topbar = true, closeKey, railKey = RAIL_KEY, children }) {
   const [open, setOpen] = useNavSheet(closeKey);
-  return html`<div class="g-shell" data-nav-open=${open ? "" : undefined}>
+  // The rail's first state, so a pinned rail never flashes collapsed; rail.js owns it after.
+  const [rail] = useState(() => (railPinned(railKey) ? "pinned" : "collapsed"));
+  return html`<div class="g-shell" data-rail=${rail} data-nav-open=${open ? "" : undefined}>
     <aside aria-label="Main">
       ${brand}
       ${nav}

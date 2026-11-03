@@ -9,7 +9,5 @@
   "nav_label": "Crons",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Crons",
-  "tile_note": "Scheduled jobs across the hosts",
-  "tile_line": "panel:crons"
+  "tab_label": "Crons"
 }

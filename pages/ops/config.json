@@ -44,6 +44,5 @@
       }
     ]
   },
-  "tile_note": "Services, compute, tickets and crons",
-  "tile_line": "services"
+  "web_page": false
 }

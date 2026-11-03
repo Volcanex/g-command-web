@@ -8,7 +8,5 @@
   "nav_label": "References",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "References",
-  "tile_note": "Most cited URLs",
-  "tile_line": "refs"
+  "tab_label": "References"
 }

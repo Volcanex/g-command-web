@@ -3,10 +3,12 @@
   "slug": "graph",
   "description": "Force-directed graph of wikilinks across the brain.",
   "nav": false,
-  "order": 42,
+  "order": 40,
   "body_class": "graph-page",
   "nav_icon": "graph",
   "nav_label": "Graph",
   "gsys": true,
-  "nav_current": "/brain"
+  "tabs": "brain",
+  "tab_label": "Graph",
+  "app_nav": false
 }

@@ -36,7 +36,8 @@
 .brand {
   display: flex; align-items: center; gap: var(--sp-2);
   min-height: var(--h-3);
-  padding: var(--sp-1) var(--sp-2) var(--sp-3);
+  /* 4px in, so the 24px mark centres on the icon column (28px from the rail's edge) */
+  padding: var(--sp-1) var(--sp-2) var(--sp-3) var(--sp-1);
   color: var(--text-primary); text-decoration: none;
 }
 .brand .g-mark { width: 24px; height: 24px; }
@@ -59,14 +60,25 @@
 .nav-list { display: flex; flex-direction: column; gap: var(--sp-1); }
 .nav-head { padding: var(--sp-4) var(--sp-2) var(--sp-1); font-size: 11px; line-height: var(--lh-1); font-weight: 500; color: var(--text-placeholder); }
 
-/* Nesting, one level (g-navigation R3). A parent is itself a page: its link fills the row and a
-   twist button beside it opens the children. The app sets data-open on the group when the parent
-   or a child is current, so the children show then; the twist opens them by hand otherwise.
-     <div class="nav-group" data-open>
-       <div class="nav-group-row"><a class="nav-item">Parent</a><button class="nav-twist"></button></div>
-       <div class="nav-children"><a class="nav-item nav-child" aria-current="page">Child</a></div>
-     </div> */
+/* Nesting, one level (g-navigation R3). A group's parent is a disclosure row, not a page: a
+   button with the group's icon and name that opens and closes its children in place. Groups
+   are open by default (rail.js wireGroups, or NavGroup in Preact); each child carries its own
+   icon, set in a little from the parent's on a guide line that drops from the parent's icon.
+     <div class="nav-group" data-group="life" data-open>
+       <button class="nav-item nav-group-toggle" type="button" aria-expanded="true">
+         <svg/><span class="ellipsis">Life</span><span class="nav-caret"></span></button>
+       <div class="nav-children"><a class="nav-item nav-child" aria-current="page"><svg/><span class="ellipsis">Calendar</span></a></div>
+     </div>
+   The older form, a parent page with a twist button beside it (.nav-group-row, .nav-twist),
+   still draws for an app that has not moved yet. */
 .nav-group { display: flex; flex-direction: column; gap: var(--sp-1); }
+button.nav-item { width: 100%; }
+.nav-caret {
+  flex: none; width: 5px; height: 5px; margin: -3px var(--sp-1) 0 auto;
+  border-right: 1.5px solid var(--text-placeholder); border-bottom: 1.5px solid var(--text-placeholder);
+  rotate: -45deg; transition: rotate var(--dur-fast) var(--ease-out);
+}
+.nav-group[data-open] > .nav-group-toggle .nav-caret { rotate: 45deg; }
 .nav-group-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .nav-group-row > .nav-item { flex: 1 1 auto; min-width: 0; }
 .nav-twist {
@@ -81,13 +93,17 @@
   rotate: -45deg; transition: rotate var(--dur-fast) var(--ease-out);
 }
 .nav-group[data-open] > .nav-group-row > .nav-twist::before { rotate: 45deg; margin-top: -4px; }
+/* The guide line sits under the parent's icon (the rail's 12px inset, the item's 8px, half the
+   16px icon, less the line), and a child's icon starts 4px past it: the same place whether the
+   rail is open or collapsed to icons, so peeking never moves an icon. */
 .nav-children {
   display: none; flex-direction: column; gap: 2px;
-  margin-left: calc(var(--sp-2) + 7px); padding-left: var(--sp-2);
+  margin-left: 15px; padding-left: 0;
   border-left: 1px solid var(--border-subtle);
 }
 .nav-group[data-open] > .nav-children { display: flex; }
-.nav-item.nav-child { height: var(--h-2); }
+.nav-item.nav-child { height: var(--h-2); padding-left: var(--sp-1); }
+.nav-group-row + .nav-children .nav-item.nav-child { padding-left: var(--sp-2); }
 
 .side-foot {
   margin-top: auto;
@@ -100,12 +116,27 @@
 .side-foot .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: var(--lh-1); }
 .side-foot .who span:last-child { color: var(--text-placeholder); font-size: 11px; }
 
-/* Collapsible rail (rail.js): a toggle beside the brand. Open by default; collapsed is an
-   icon-only rail whose items show their label as a tooltip, remembered per viewer. Phones keep
-   the sheet, so the toggle and the collapsed look apply from 721px up. Child combinators keep
-   one shell's state off another shell nested in its content (Studio inside Command).
+/* The rail (rail.js), from 721px up. Collapsed to icons by default; hovering it for a moment or
+   moving focus into it opens it as an overlay above the content (data-rail-peek), so the
+   content never reflows; the toggle beside the brand pins it open (data-rail="pinned") and the
+   content then makes room. Everything inside keeps its open-width layout in every state and the
+   rail only clips it, so opening reveals labels where they already are instead of moving
+   anything. Width and the content's shift ease on --spring-smooth (perceived 300ms); labels
+   fade on the same curve. Phones keep the sheet. Child combinators keep one shell's state off
+   another shell nested in its content (Studio inside Command).
      <div class="brand-row"><a class="brand">...</a><button class="g-rail-toggle"></button></div> */
 .brand-row { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+/* A long rail scrolls between its brand and its foot, which stay put: the pin button beside the
+   G is always in reach, however far down the current page is. They sit flush with the rail's
+   edges (its --sp-3 padding taken back) on its own surface. */
+.g-shell > aside > .brand-row {
+  position: sticky; top: calc(-1 * var(--sp-3)); z-index: 2;
+  margin-top: calc(-1 * var(--sp-3)); padding-top: var(--sp-3); background: var(--surface-1);
+}
+.g-shell > aside > .side-foot {
+  position: sticky; bottom: calc(-1 * var(--sp-3)); z-index: 2;
+  margin-bottom: calc(-1 * var(--sp-3)); padding-bottom: var(--sp-3); background: var(--surface-1);
+}
 .brand-row > .brand { flex: 1 1 auto; min-width: 0; }
 .g-rail-toggle {
   flex: none; display: grid; place-items: center;
@@ -113,19 +144,45 @@
   border: none; border-radius: var(--radius-sm); background: none; color: var(--text-placeholder); cursor: pointer;
 }
 .g-rail-toggle:hover { background: var(--fill-hover); color: var(--text-primary); }
-.g-rail-toggle svg { width: 16px; height: 16px; }
+.g-rail-toggle svg { width: 16px; height: 16px; transition: scale var(--dur-fast) var(--ease-out); }
+.g-shell[data-rail="collapsed"] > aside .g-rail-toggle svg { scale: -1 1; }
 @media (max-width: 720px) { .g-rail-toggle { display: none; } }
 @media (min-width: 721px) {
-  .g-shell[data-rail="collapsed"] { grid-template-columns: 56px minmax(0, 1fr); }
-  .g-shell[data-rail="collapsed"] > aside { padding-inline: var(--sp-2); overflow-x: hidden; }
-  .g-shell[data-rail="collapsed"] > aside .brand-row { flex-direction: column; align-items: center; }
-  .g-shell[data-rail="collapsed"] > aside .brand { padding-inline: 0; justify-content: center; }
-  .g-shell[data-rail="collapsed"] > aside .g-rail-toggle svg { scale: -1 1; }
-  .g-shell[data-rail="collapsed"] > aside :is(.brand b, .nav-item > :not(svg, .ph), .nav-head, .nav-twist, .nav-children, .side-foot .who, [data-rail-hide]) { display: none; }
-  .g-shell[data-rail="collapsed"] > aside .nav-item { justify-content: center; padding: 0; }
-  .g-shell[data-rail="collapsed"] > aside .nav-list > * + .nav-head { display: block; height: 0; padding: 0; overflow: hidden; font-size: 0; margin: var(--sp-2) 0; border-top: 1px solid var(--border-subtle); }
-  .g-shell[data-rail="collapsed"] > aside .nav-group:has(.nav-child[aria-current]) > .nav-group-row > .nav-item { background: var(--fill-active); color: var(--text-primary); }
-  .g-shell[data-rail="collapsed"] > aside .side-foot { flex-direction: column; align-items: center; }
+  .g-shell { --rail-w: 224px; --rail-mini: 56px; grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+  .g-shell[data-rail="collapsed"] { grid-template-columns: var(--rail-mini) minmax(0, 1fr); }
+  .g-shell > aside { position: relative; z-index: 30; width: var(--rail-w); overflow-x: hidden; }
+  .g-shell > aside > * { flex: none; width: calc(var(--rail-w) - 2 * var(--sp-3)); }
+  .g-shell > aside > .side-foot { margin-top: auto; }
+  .g-shell[data-rail="collapsed"] > aside { width: var(--rail-mini); }
+  .g-shell[data-rail="collapsed"][data-rail-peek] > aside { width: var(--rail-w); box-shadow: var(--shadow-overlay); }
+  .g-shell[data-rail-ready] { transition: grid-template-columns var(--spring-smooth-dur) var(--spring-smooth); }
+  .g-shell[data-rail-ready] > aside { transition: width var(--spring-smooth-dur) var(--spring-smooth), box-shadow var(--dur-slow) var(--ease-out); }
+
+  /* What only the open rail shows fades; it keeps its place and is clipped while collapsed. */
+  .g-shell > aside :is(.brand b, .nav-item > :not(svg, .ph), .nav-twist, .side-foot .who, .g-rail-toggle, [data-rail-hide]) {
+    transition: opacity var(--spring-smooth-dur) var(--spring-smooth);
+  }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek]) > aside :is(.brand b, .nav-item > :not(svg, .ph), .nav-twist, .side-foot .who, .g-rail-toggle, [data-rail-hide]) {
+    opacity: 0;
+  }
+  /* Collapsed, a section heading keeps its height (so peeking moves nothing) and shows as a
+     short rule under the icons. */
+  .g-shell > aside .nav-head { position: relative; transition: color var(--spring-smooth-dur) var(--spring-smooth); }
+  .g-shell > aside .nav-list > * + .nav-head::after {
+    content: ""; position: absolute; left: var(--sp-2); width: 16px; height: 1px;
+    top: calc(var(--sp-4) + var(--lh-1) / 2); background: var(--border);
+    opacity: 0; transition: opacity var(--spring-smooth-dur) var(--spring-smooth);
+  }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek]) > aside .nav-head { color: transparent; }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek]) > aside .nav-list > * + .nav-head::after { opacity: 1; }
+  /* Collapsed and settled, an item's hover and current fill hugs its icon. While the rail
+     closes (data-rail-settling) items keep their width, so labels fade instead of squeezing. */
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek], [data-rail-settling]) > aside .nav-item { width: 32px; }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek], [data-rail-settling]) > aside .nav-children > .nav-item { width: 24px; }
+}
+@media (min-width: 721px) and (prefers-reduced-motion: reduce) {
+  /* No sliding width: the rail changes at once and its labels crossfade. */
+  .g-shell > aside :is(.brand b, .nav-item > :not(svg, .ph), .nav-twist, .side-foot .who, .g-rail-toggle, [data-rail-hide]) { transition-duration: var(--dur-base) !important; }
 }
 
 /* ---------------------------------------------------------------- top bar */
@@ -365,6 +422,7 @@ a.tile:hover .tile-title { text-decoration: underline; }
     --cowork-pink: oklch(0.63 0.19 350);   --cowork-pink-ink: oklch(0.99 0.01 350);
     --cowork-agent: oklch(0.52 0.03 250);  --cowork-agent-ink: oklch(0.99 0.01 250);
   }
+}
 
 /* Set by cursor.js (paintOwnCursor, wireOwnCursor) as tinted SVGs with their hotspots. Only on
    a mouse or trackpad, and never under forced colours, where the system cursors stay. */

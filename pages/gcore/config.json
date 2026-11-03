@@ -9,6 +9,5 @@
   "nav_label": "Passport",
   "gsys": true,
   "tabs": "setup",
-  "tab_label": "Passport",
-  "tile_note": "Manifest, conventions, passport"
+  "tab_label": "Passport"
 }

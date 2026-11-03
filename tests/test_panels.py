@@ -114,8 +114,19 @@ def test_brief_stops_at_workings_and_skips_services_and_promotions():
     data = {"date": "2026-10-19", "body": "# Brief\n\n- **Services:** stale count\n- **Overdue:** [[pay|Pay tax]]\nA plain fact.\nPromote to brain? one\n- Promote to brain? two\n## Working\n- Never shown"}
     assert build("brief", FixtureContext({SOURCES["brief"]: data})) == expected(
         "brief", meta="Mon 19 Oct", blocks=[{"type": "bullets", "items": [
-            {"label": "Overdue", "text": "Pay tax"}, {"text": "A plain fact."},
+            {"text": "A plain fact."},
             {"text": "2 notes waiting to go into the brain", "link": "/pulse"}]}])
+
+
+def test_brief_leaves_the_calendar_to_the_live_agenda():
+    """The morning's brief said "Today: Team Standup 09:30" after the standup
+    was cancelled, beside an agenda that named nothing for today. Its calendar
+    lines are the agenda's, so they are left to the live agenda."""
+    body = "Services: 33/36 up.\n\nToday: Team Standup 09:30.\nTomorrow: Team Standup 09:30.\nOverdue: Home bills.\nThis week: MSc dissertation Thursday."
+    result = build("brief", FixtureContext({SOURCES["brief"]: {"date": "2026-10-19", "body": body}}))
+    assert result == expected("brief", meta="Mon 19 Oct", state="empty", message="Nothing in today's brief beyond the agenda.")
+    kept = build("brief", FixtureContext({SOURCES["brief"]: {"body": "Today: standup\nMoney: rent due"}}))
+    assert kept["blocks"] == [{"type": "bullets", "items": [{"label": "Money", "text": "rent due"}]}]
 
 
 def test_brief_one_promotion_and_long_colon_prefix():
@@ -166,8 +177,10 @@ def test_calendar_today_chronological_carried_triage_future_and_actions():
          "lead": {"text": "09:00", "tone": "muted"}, "accent": "muted", "title_tone": "muted"},
         {"id": "future-z:2026-10-20", "title": "future-z", "link": "/note/todos/future-z", "done": False, "struck": False,
          "accent": "muted", "title_tone": "plain"}]
-    assert build("calendar", FixtureContext({CALENDAR_PATH: items})) == expected(
-        "calendar", title="Today, Mon 19 Oct", meta="6 open today, 3 carried over", blocks=[
+    agenda = {"today": [todo("early"), todo("later"), todo("untimed")], "overdue": [todo("late"), todo("vital")],
+              "tomorrow": [], "week": [], "bills": []}
+    assert build("calendar", FixtureContext({CALENDAR_PATH: items, SOURCES["agenda"]: agenda})) == expected(
+        "calendar", title="Today, Mon 19 Oct", meta="3 due today, 2 overdue", blocks=[
             {"type": "rows", "title": "Today", "count": 3, "rows": [
                 calendar_row("early", lead={"text": "08:00", "tone": "muted"}),
                 calendar_row("later", lead={"text": "12:00", "tone": "muted"}), calendar_row("untimed")]},
@@ -198,15 +211,30 @@ def test_calendar_patch_for_and_settled_counts(recurring, done, failed, body):
     assert "lead" not in row
     assert result["blocks"][0]["title"] == "Today"
     assert result["blocks"][0]["count"] == 1
-    assert result["meta"] == f"{int(not done and not failed)} open today, 0 carried over"
+    assert result["meta"] == ""  # no agenda to count from: no count rather than a second rule
 
 
 def test_calendar_settled_carried_over_items_drop_out():
     items = [todo("failed", date="2026-10-19", late_days=1, failed=True),
              todo("done", date="2026-10-19", late_days=1, done=True)]
     result = build("calendar", FixtureContext({CALENDAR_PATH: items}))
-    assert result["meta"] == "0 open today, 0 carried over"
+    assert result["meta"] == ""
     assert result["blocks"][0] == {"type": "rows", "title": "Today", "empty": "Nothing on today.", "rows": []}
+
+
+def test_calendar_head_counts_what_the_agenda_counts():
+    """The head and the agenda can never disagree: both count the brain's
+    agenda (core/panels/agenda.py counts), whatever the calendar feed holds."""
+    from core.panels.agenda import counts
+    agenda = {"today": [], "overdue": [], "tomorrow": [todo("call")], "lines": ["Tomorrow: call."],
+              "week": [todo("thesis"), todo("rent", category="finance")], "bills": [todo("rent", category="finance")]}
+    feed = [todo("standup", date="2026-10-19", recurring=True), todo("old", date="2026-10-19", late_days=2, done=True)]
+    result = build("calendar", FixtureContext({CALENDAR_PATH: feed, SOURCES["agenda"]: agenda}))
+    assert result["meta"] == "Nothing due today"
+    assert counts(agenda) == {"today": 0, "overdue": 0, "week": 3}
+    panel = build("agenda", FixtureContext({SOURCES["agenda"]: agenda}))
+    assert panel["due"] == counts(agenda)
+    assert counts(None) is None and counts({"lines": []}) is None
 
 
 @pytest.mark.parametrize("category,tone", [
@@ -436,7 +464,7 @@ def test_crons_description_tooltip_and_missing_host_error_fallback():
 
 
 EMPTY = [
-    ("calendar", [], {"title": "Today, Mon 19 Oct", "meta": "0 open today, 0 carried over", "blocks": [
+    ("calendar", [], {"title": "Today, Mon 19 Oct", "meta": "", "blocks": [
         {"type": "rows", "title": "Today", "empty": "Nothing on today.", "rows": []}, *next_days()]}),
     ("brief", {}, {"state": "empty", "message": "No brief yet today."}),
     ("tasks", [], {"state": "empty", "message": "No undated tasks.", "meta": "0 undated"}),

@@ -9,7 +9,5 @@
   "nav_label": "Compute",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Compute",
-  "tile_note": "Quotas, balances and resets",
-  "tile_line": "panel:compute"
+  "tab_label": "Compute"
 }

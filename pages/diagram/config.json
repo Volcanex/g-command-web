@@ -9,7 +9,5 @@
   "nav_label": "Diagram",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Diagram",
-  "tile_note": "The whole system drawn, live",
-  "tile_line": "services"
+  "tab_label": "Diagram"
 }

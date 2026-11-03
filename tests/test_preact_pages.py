@@ -102,3 +102,14 @@ def test_todos_redirects_permanently_to_the_calendar():
     assert r.status_code == 301 and r.headers["location"] == "/calendar"
     r = client.get("/todos/?status=done", follow_redirects=False)
     assert r.status_code == 301 and r.headers["location"] == "/calendar?status=done"
+
+
+def test_old_hub_urls_move_permanently():
+    """The hub pages went when the rail became the one navigation: Life and
+    System to Home (the full dash shows both), Brain to its graph."""
+    from fastapi.testclient import TestClient
+    import server
+    client = TestClient(server.app)
+    for old, new in (("/home", "/"), ("/ops", "/"), ("/brain", "/graph"), ("/brain?x=1", "/graph?x=1")):
+        r = client.get(old, follow_redirects=False)
+        assert r.status_code == 301 and r.headers["location"] == new, old

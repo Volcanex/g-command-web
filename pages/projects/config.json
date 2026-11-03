@@ -5,10 +5,9 @@
   "nav": false,
   "order": 34,
   "body_class": "projects-page",
-  "nav_icon": "squares-four",
+  "nav_icon": "folder",
   "nav_label": "Projects",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Projects",
-  "tile_note": "Health and compliance per project"
+  "tab_label": "Projects"
 }

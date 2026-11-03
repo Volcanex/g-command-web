@@ -14,24 +14,27 @@ PAGES = Path(__file__).resolve().parent.parent / "pages"
 
 
 class Navigation(HTMLParser):
-    """The rail as data: sections of top-level entries, each nav-child link
-    nested under the entry before it."""
+    """The rail as data: sections of top-level entries (the first, the rail's
+    top, has no heading), a group as an entry with its nav-child links nested
+    under it. A group is a button, not a link: `slug` is None."""
     def __init__(self):
         super().__init__()
-        self.sections = []
+        self.sections = [{"title": None, "entries": []}]
         self.link = None
         self.capture = None
         self.text = ""
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == "div" and "nav-head" in (attrs.get("class") or "").split():
+        cls = (attrs.get("class") or "").split()
+        if tag == "div" and "nav-head" in cls:
             self.capture = "section"
             self.text = ""
-        if tag == "a":
+        if tag == "a" or (tag == "button" and "nav-group-toggle" in cls):
             self.capture = "link"
             self.text = ""
-            self.link = {"slug": attrs["href"].lstrip("/"), "child": "nav-child" in attrs["class"].split()}
+            self.link = {"slug": attrs["href"].lstrip("/") if tag == "a" else None, "child": "nav-child" in cls,
+                         "group": tag == "button"}
         if tag == "i" and self.link:
             self.link["icon"] = attrs["class"].split("ph-")[-1]
 
@@ -43,15 +46,33 @@ class Navigation(HTMLParser):
         if tag == "div" and self.capture == "section":
             self.sections.append({"title": self.text, "entries": []})
             self.capture = None
-        if tag == "a" and self.link:
+        if tag in ("a", "button") and self.link:
             link, self.link = self.link, None
             link["label"] = self.text
             self.capture = None
             entries = self.sections[-1]["entries"]
+            group = link.pop("group")
             if link.pop("child"):
-                entries[-1].setdefault("children", []).append({"slug": link["slug"], "label": link["label"]})
+                entries[-1].setdefault("children", []).append(link)
             else:
+                if group:
+                    link["children"] = []
                 entries.append(link)
+
+
+def moved():
+    """server.py MOVED, read without importing the server (its import sets up
+    state other tests' contexts would then see)."""
+    import ast
+    tree = ast.parse((PAGES.parent / "server.py").read_text())
+    node = next(n for n in tree.body if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "MOVED")
+    return ast.literal_eval(node.value)
+
+
+def rail(configs_):
+    parser = Navigation()
+    parser.feed(compiler.build_nav_html(configs_))
+    return [s for s in parser.sections if s["entries"] or s["title"]]
 
 
 def configs(pages):
@@ -68,26 +89,34 @@ def configs(pages):
 
 
 def check_navigation(pages):
-    """The apps' manifest and the web rail come from one tree: the same
-    sections and entries, and an entry's tabs (less itself) are its nested
-    children in the rail. The rail's own extras (web_nav, app_nav) aside."""
+    """The apps' manifest and the web rail come from one tree. The web rail
+    differs only where a config says so: a group is a disclosure row whose
+    own page leads its children unless `web_page` is false (then server.py
+    MOVED sends the URL on), `web_section`/`web_order` move an entry on the
+    web only, and app_nav/web_nav keep an entry to one side. So every page
+    the apps can open is on the web rail, or is a group whose URL moved."""
     manifest = build_manifest(pages)
-    source = configs(pages)
-    parser = Navigation()
-    # app_nav false is a web-only entry (Home, Chat): the apps leave it out;
-    # web_nav false (Full dash) is the reverse, so compare the tree without both.
-    parser.feed(compiler.build_nav_html([dict(c, web_nav=True) for c in source if c.get("app_nav", True)]))
-    actual = []
+    source = {c["slug"]: c for c in configs(pages)}
+    web = rail([dict(c, web_nav=True) for c in source.values()])
+    links = {e["slug"] for s in web for e in s["entries"] for e in [e, *e.get("children", [])] if e["slug"] is not None}
+    groups = {e["label"]: e for s in web for e in s["entries"] if e["slug"] is None}
     for section in manifest["sections"]:
-        entries = []
         for entry in section["entries"]:
-            row = {key: entry[key] for key in ("slug", "label", "icon")}
-            kids = [{"slug": tab["slug"], "label": tab["label"]} for tab in entry.get("tabs", []) if tab["slug"] != entry["slug"]]
-            if kids:
-                row["children"] = kids
-            entries.append(row)
-        actual.append({"title": section["title"], "entries": entries})
-    assert actual == parser.sections
+            for page in [entry, *entry.get("tabs", [])]:
+                config = source[page["slug"]]
+                if config.get("web_page", True) is False:
+                    assert page["slug"] in moved(), page["slug"]
+                else:
+                    assert compiler.page_href(config).lstrip("/") in links, page["slug"]
+            if entry.get("tabs"):
+                group = groups[entry["label"]]
+                assert group["icon"] == entry["icon"]
+                kids = [t["slug"] for t in entry["tabs"] if source[t["slug"]].get("web_page", True)]
+                assert sorted(k["slug"] for k in group["children"] if k["slug"] in kids) == sorted(kids)
+    for section in web:
+        for entry in section["entries"]:
+            for child in entry.get("children", []):
+                assert child.get("icon") and child["icon"] != "circle", child
     return manifest
 
 
@@ -111,6 +140,25 @@ def test_manifest_matches_real_sidebar_and_tabs():
     assert [entry["slug"] for entry in manifest["sections"][0]["entries"]] == ["home", "ops", "full-dash"]
 
 
+def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
+    """g-navigation: Home (the full dash), Chat, Upload, Life, System at the
+    top with no heading, then the other sections; groups are open disclosure
+    rows, never pages, and every child carries its own icon."""
+    web = rail(configs(PAGES))
+    assert [s["title"] for s in web] == [None, "Work", "Knowledge", "Publish", "Setup"]
+    top = web[0]["entries"]
+    assert [(e["slug"], e["label"]) for e in top] == [("", "Home"), ("chat", "Chat"), ("upload", "Upload"), (None, "Life"), (None, "System")]
+    assert [k["slug"] for k in top[3]["children"]] == ["calendar", "pulse"]
+    assert [k["slug"] for k in top[4]["children"]] == ["diagram", "system", "compute", "crons", "tickets", "projects", "levels"]
+    brain = [e for e in web[2]["entries"] if e["label"] == "Brain"][0]
+    assert brain["slug"] is None and [k["slug"] for k in brain["children"]][:2] == ["graph", "notes"]
+    setup = web[4]["entries"][0]
+    assert setup["slug"] is None and [k["label"] for k in setup["children"]] == ["Bootstrap", "Install", "Passport"]
+    html = compiler.build_nav_html(configs(PAGES))
+    assert html.count('class="nav-group"') == 4 and html.count("data-open") == 4
+    assert "hub" not in html and 'class="nav-twist"' not in html
+
+
 def test_manifest_defaults_ties_tabs_panel_flags_and_bad_configs(tmp_path):
     data = {
         "a": {"title": "Alpha & tools", "nav": True, "order": 3, "tabs": 5, "panels": ["money"]},
@@ -127,13 +175,21 @@ def test_manifest_defaults_ties_tabs_panel_flags_and_bad_configs(tmp_path):
     (tmp_path / "bad" / "config.json").write_text("{broken")
     (tmp_path / "missing").mkdir()
     (tmp_path / "file").write_text("not a page")
+    (tmp_path / "d" / "config.json").write_text(json.dumps(dict(data["d"], nav_icon="clock")))
+    (tmp_path / "e" / "config.json").write_text(json.dumps(dict(data["e"], nav_icon="clock")))
+    (tmp_path / "a" / "config.json").write_text(json.dumps(dict(data["a"], tab_icon="clock")))
     manifest = check_navigation(tmp_path)
     assert [section["title"] for section in manifest["sections"]] == ["Together", "Alpha & tools"]
+    # the web rail: the first section is the top, unheaded; a group leads with its own page
+    web = rail(configs(tmp_path))
+    assert [s["title"] for s in web] == [None, "Alpha & tools"]
+    group = web[1]["entries"][0]
+    assert group["slug"] is None and [k["slug"] for k in group["children"]] == ["a", "d", "e"]
     entry = manifest["sections"][1]["entries"][0]
     assert entry == {"slug": "a", "label": "Alpha & tools", "icon": "circle", "panels": ["money"], "tabs": [
-        {"slug": "d", "label": "First & tab", "icon": "circle", "panels": []},
+        {"slug": "d", "label": "First & tab", "icon": "clock", "panels": []},
         {"slug": "a", "label": "Alpha & tools", "icon": "circle", "panels": ["money"]},
-        {"slug": "e", "label": "Last", "icon": "circle"}]}
+        {"slug": "e", "label": "Last", "icon": "clock"}]}
     assert "panels" not in manifest["sections"][0]["entries"][0]
 
 

@@ -8,5 +8,7 @@
   "body_class": "upload-page",
   "nav_section": "Publish",
   "nav_icon": "upload-simple",
-  "nav_label": "Upload"
+  "nav_label": "Upload",
+  "web_section": "Overview",
+  "web_order": 1.5
 }

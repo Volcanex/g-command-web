@@ -9,6 +9,5 @@
   "nav_label": "Nerves",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Nerves",
-  "tile_note": "The CLAUDE.md and AGENTS.md web"
+  "tab_label": "Nerves"
 }

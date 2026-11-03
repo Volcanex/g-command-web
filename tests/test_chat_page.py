@@ -1,4 +1,4 @@
-"""Chat: a Preact page in the Life group on the apps' Voice session (pages/chat)."""
+"""Chat: a Preact page at the top of the rail on the apps' Voice session (pages/chat)."""
 import json
 import subprocess
 from pathlib import Path
@@ -10,14 +10,14 @@ import compile as c
 PAGE = Path(__file__).resolve().parent.parent / "pages" / "chat"
 
 
-def test_chat_sits_in_life_after_the_daily_pages_and_stays_out_of_the_apps_nav():
+def test_chat_sits_at_the_top_of_the_rail_after_home_and_stays_out_of_the_apps_nav():
     config = json.loads((PAGE / "config.json").read_text())
-    life = [json.loads(p.read_text()) for p in PAGE.parent.glob("*/config.json")]
-    life = sorted((d for d in life if d.get("tabs") == "life" and not d.get("nav")), key=lambda d: d.get("order", 999))
-    assert config["tabs"] == "life" and config["nav"] is False
-    assert [d["title"] for d in life] == ["Calendar", "Chat"]
+    assert config["nav"] is True and "tabs" not in config
+    pages = [dict(json.loads(p.read_text()), slug=p.parent.name) for p in PAGE.parent.glob("*/config.json")]
+    top = c.page_tree(pages)[0][1]
+    assert [entry.get("slug") for entry, _ in top][:3] == ["index", "chat", "upload"]
     from core.panels.manifest import build_manifest
-    tabs = [t["slug"] for s in build_manifest(PAGE.parent)["sections"] for e in s["entries"] for t in e.get("tabs", [])]
+    tabs = [t["slug"] for s in build_manifest(PAGE.parent)["sections"] for e in s["entries"] for t in [e, *e.get("tabs", [])]]
     assert "chat" not in tabs
     assert config["app_nav"] is False  # the apps draw their own Chat entry
 

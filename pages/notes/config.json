@@ -8,7 +8,5 @@
   "nav_label": "Notes",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Notes",
-  "tile_note": "Every note in the brain",
-  "tile_line": "notes"
+  "tab_label": "Notes"
 }

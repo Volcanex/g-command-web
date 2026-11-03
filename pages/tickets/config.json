@@ -9,7 +9,5 @@
   "nav_label": "Tickets",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Tickets",
-  "tile_note": "g-admin tickets, every project",
-  "tile_line": "panel:tickets"
+  "tab_label": "Tickets"
 }

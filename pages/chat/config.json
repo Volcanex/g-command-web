@@ -2,14 +2,12 @@
   "title": "Chat",
   "slug": "chat",
   "description": "Chat with Voice, the brain's agent. The same conversation as the Mac and iPhone apps, cleared at 4am London time.",
-  "nav": false,
+  "nav": true,
   "app_nav": false,
-  "order": 12,
+  "order": 1,
   "nav_icon": "chats-circle",
   "nav_label": "Chat",
   "gsys": true,
   "body_class": "chat-page",
-  "tabs": "life",
-  "tab_label": "Chat",
-  "tile_note": "Talk to Voice, as in the apps"
+  "nav_section": "Overview"
 }

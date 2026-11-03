@@ -3,9 +3,11 @@
   "slug": "pulse",
   "description": "The live layer: money, messages and deadlines. Ephemeral, and it feeds the brain's todos.",
   "nav": false,
-  "order": 40,
-  "nav_icon": "pulse",
+  "order": 11,
+  "nav_icon": "notepad",
   "nav_label": "Pulse",
   "gsys": true,
-  "nav_current": "/home"
+  "tabs": "life",
+  "tab_label": "Pulse",
+  "app_nav": false
 }

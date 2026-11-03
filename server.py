@@ -238,8 +238,11 @@ async def logout_page():
 
 # Pages folded into another. A permanent redirect, so old links and the apps'
 # saved routes land on the page that replaced them. Todos merged into the
-# calendar on 2026-11-03: every item has a date now.
-MOVED = {"todos": "/calendar"}
+# calendar on 2026-11-03: every item has a date now. The hub pages went the
+# same day, when the rail became the one navigation (g-navigation): Life and
+# System were overviews of what Home's full dash now shows, and Brain's page
+# was its graph. Their configs stay, since the apps' manifest draws them.
+MOVED = {"todos": "/calendar", "home": "/", "ops": "/", "brain": "/graph"}
 
 
 @app.get("/{path:path}", include_in_schema=False)

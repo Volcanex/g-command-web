@@ -9,5 +9,6 @@
   "nav_label": "Brain",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Overview"
+  "tab_label": "Overview",
+  "web_page": false
 }

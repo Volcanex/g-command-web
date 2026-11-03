@@ -63,6 +63,31 @@ def fallback(ctx):
     return lines
 
 
+def counts(data):
+    """How many items the brain's agenda names: due today, overdue, and in the
+    whole week its lines cover (today, overdue, tomorrow, the rest of the week
+    less finance, which it names on the bills line instead, and those bills).
+    Every count shown beside the calendar comes from here, so a head can never
+    say "0 open today" while the agenda names something for today. None when
+    the brain's agenda is not there to count."""
+    if not isinstance(data, dict) or not isinstance(data.get("today"), list):
+        return None
+    named = lambda key: {item.get("slug") for item in data.get(key) or [] if isinstance(item, dict)}  # noqa: E731
+    week = {item.get("slug") for item in data.get("week") or []
+            if isinstance(item, dict) and str(item.get("category") or "").lower() != "finance"}
+    return {"today": len(named("today")), "overdue": len(named("overdue")),
+            "week": len(named("today") | named("overdue") | named("tomorrow") | week | named("bills"))}
+
+
+def due_today(due):
+    """The calendar head's count, in the agenda's words."""
+    if not due:
+        return ""
+    if not due["today"] and not due["overdue"]:
+        return "Nothing due today"
+    return f"{due['today']} due today" + (f", {due['overdue']} overdue" if due["overdue"] else "")
+
+
 def lines_for(ctx):
     try:
         data = ctx.get("/api/todos/agenda")
@@ -70,16 +95,16 @@ def lines_for(ctx):
         data = None
     if isinstance(data, dict) and isinstance(data.get("lines"), list):
         lines = [plain(line) for line in data["lines"]]
-        return [line for line in lines if line][:LIMIT] or ["Nothing due this week."], "agenda"
+        return [line for line in lines if line][:LIMIT] or ["Nothing due this week."], "agenda", counts(data)
     try:
         lines = fallback(ctx)
     except Exception:
-        return ["Calendar unavailable: the brain did not answer."], "error"
-    return lines[:LIMIT] or ["Nothing due this week."], "calendar"
+        return ["Calendar unavailable: the brain did not answer."], "error", None
+    return lines[:LIMIT] or ["Nothing due this week."], "calendar", None
 
 
 @builder("agenda")
 def build(ctx):
-    lines, source = lines_for(ctx)
-    return {"meta": lines[0], "source": source,
+    lines, source, due = lines_for(ctx)
+    return {"meta": lines[0], "source": source, "due": due,
             "blocks": [{"type": "bullets", "items": [{"text": line} for line in lines]}]}

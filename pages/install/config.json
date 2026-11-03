@@ -8,6 +8,5 @@
   "order": 61,
   "gsys": true,
   "tabs": "setup",
-  "tab_label": "Install",
-  "tile_note": "Connect an MCP client"
+  "tab_label": "Install"
 }

@@ -1,3 +1,16 @@
 <!-- seed:panel-kit -->
-<!-- seed:hub-head -->
+<!-- Life's agenda first: the brain's deterministic lines (GET /api/todos/agenda, through the
+     agenda panel), filled by js/hub.js. The full dash follows. No page head: the top bar
+     already says Home (g-navigation R7). -->
+<div class="dash-top">
+  <section class="card fd-panel agenda-card" aria-labelledby="agenda-title">
+    <header class="fd-panel-head">
+      <i class="ph ph-calendar-check" aria-hidden="true"></i>
+      <h2 class="card-title" id="agenda-title">Agenda</h2>
+      <span class="fd-spacer"></span>
+      <a class="btn btn-tertiary btn-sm btn-icon" href="/calendar" data-tip="Open calendar" aria-label="Open calendar"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>
+    </header>
+    <div class="essentials" data-lines="agenda"></div>
+  </section>
+</div>
 <!-- seed:dash-layout -->

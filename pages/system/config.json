@@ -9,7 +9,5 @@
   "nav_label": "Services",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Services",
-  "tile_note": "Service topology and health",
-  "tile_line": "services"
+  "tab_label": "Services"
 }

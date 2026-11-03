@@ -2,7 +2,7 @@
   "title": "Home",
   "slug": "index",
   "href": "/",
-  "description": "System across the top, Life below: the two hubs at a glance.",
+  "description": "The whole G-System at a glance: Life's agenda, then the full dash.",
   "nav": true,
   "app_nav": false,
   "order": 0,
@@ -13,30 +13,44 @@
   "layout": {
     "columns": [
       {
-        "width": 1,
+        "width": 2,
         "items": [
           {
-            "row": [
-              "health",
-              "compute",
-              "tickets",
-              "crons"
-            ],
-            "head": "ops",
-            "grow": 2
+            "panel": "calendar",
+            "grow": 3
           },
           {
             "row": [
-              "calendar",
-              "money"
+              "tasks",
+              "money",
+              "brief"
             ],
-            "head": "home",
-            "grow": 3,
-            "lines": "agenda"
+            "grow": 2
           }
+        ]
+      },
+      {
+        "width": 1,
+        "min": 320,
+        "items": [
+          {
+            "panel": "health",
+            "fit": true
+          },
+          {
+            "panel": "compute",
+            "fit": true
+          },
+          {
+            "panel": "tickets",
+            "fit": true,
+            "max": 22
+          },
+          "crons"
         ]
       }
     ]
   },
-  "body_class": "full-dash-page home-page"
+  "body_class": "full-dash-page home-page",
+  "layout_note": "The full dash (pages/full-dash) under the agenda card: life on the left, system on the right."
 }

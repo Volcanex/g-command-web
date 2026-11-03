@@ -29,8 +29,5 @@
   },
   "tabs": "life",
   "tab_label": "Overview",
-  "tagline": "brief",
-  "tile_note": "Deadlines and money",
-  "tile_line": "panel:calendar",
-  "lines": "agenda"
+  "web_page": false
 }

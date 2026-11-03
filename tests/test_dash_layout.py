@@ -27,10 +27,11 @@ def test_no_hand_placed_dash(slug):
     content = (PAGES / slug / "content.html").read_text() if (PAGES / slug / "content.html").is_file() else ""
     assert not re.search(r'class="[^"]*\bfd-(dash|col|row)\b', content), "dash placement belongs in config.json layout"
     assert "panels" not in CONFIGS[slug], "panel order comes from layout"
-    if slug in DASHES:
-        # a hub dash puts its head and tiles (compile.py hub_head) above the dash
-        assert content in ("<!-- seed:panel-kit -->\n<!-- seed:dash-layout -->\n",
-                           "<!-- seed:panel-kit -->\n<!-- seed:hub-head -->\n<!-- seed:dash-layout -->\n")
+    if slug in DASHES and slug != "index":
+        assert content == "<!-- seed:panel-kit -->\n<!-- seed:dash-layout -->\n"
+    if slug == "index":
+        # Home puts Life's agenda card above the dash, and nothing else
+        assert content.startswith("<!-- seed:panel-kit -->") and content.rstrip().endswith("<!-- seed:dash-layout -->")
 
 
 @pytest.mark.parametrize("slug", DASHES)
