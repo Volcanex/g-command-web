@@ -79,7 +79,7 @@ TEMPLATES_DIR = PROJECT_ROOT / "core" / "templates"
 # ExecStartPre runs this, so a compile by hand matches the one on restart.
 # Only these keys are taken, so the secrets in the same file never enter
 # this process.
-ENV_KEYS = ("BRAIN_API", "MCP_HEADLESS_URL", "MCP_URL", "OWNER_SITE_URL", "PUBLIC_HOST",
+ENV_KEYS = ("BRAIN_API", "MCP_HEADLESS_URL", "MCP_URL", "OWNER_SITE_URL", "PUBLIC_HOST", "STUDIO_ORIGIN",
             "G_DESIGN_DOCS", "SEED_MANIFEST_PATH", "SEED_MANIFEST_PREFIX", "SEED_MANIFEST_TEMPLATE")
 
 
@@ -119,6 +119,12 @@ PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "")
 MCP_URL = os.environ.get("MCP_URL") or "https://mcp.example.com/mcp"
 MCP_HEADLESS_URL = os.environ.get("MCP_HEADLESS_URL") or "https://brain.example.com/mcp"
 
+# g-studio's origin, e.g. https://studio.gabrielpenman.com. /studio imports the real studio
+# from <origin>/static/mount.js and runs it in the page (no iframe, nothing bundled here); the
+# studio must list this server's origin in its GS_EMBED_ORIGINS. Unset, /studio says so.
+_studio = urlsplit((os.environ.get("STUDIO_ORIGIN") or "").strip())
+STUDIO_ORIGIN = f"{_studio.scheme}://{_studio.netloc}" if _studio.scheme in ("http", "https") and _studio.netloc else ""
+
 DEFAULTS = {
     "title": "Untitled",
     "description": "",
@@ -137,6 +143,7 @@ DEFAULTS = {
     "mcp_headless_host": urlsplit(MCP_HEADLESS_URL).netloc,
     # The setup page's agent prompt tells an agent where to read it from.
     "public_origin": f"https://{PUBLIC_HOST}" if PUBLIC_HOST else "https://command.example.com",
+    "studio_origin": STUDIO_ORIGIN,
     "subnav": "",
 }
 
@@ -187,7 +194,7 @@ def register_token(name: str, renderer: Callable[[dict], str]) -> None:
 
 # Instance values that page bodies quote. Escaped, so a token is safe in text
 # and in attribute values alike.
-for _key in ("mcp_url", "mcp_headless_url", "mcp_headless_host", "public_origin"):
+for _key in ("mcp_url", "mcp_headless_url", "mcp_headless_host", "public_origin", "studio_origin"):
     register_token(_key, lambda context, key=_key: html.escape(str(context[key]), quote=True))
 
 

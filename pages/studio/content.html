@@ -1,0 +1,43 @@
+<!-- The real g-studio app, run in this page: its mount.js comes from the studio's own origin
+     (STUDIO_ORIGIN) and talks to the studio's API with the studio session cookie. Nothing of
+     the studio is bundled here. Deep links are this page plus the studio's hash route:
+     /studio#/site/<pid>/pages. The studio must list this origin in GS_EMBED_ORIGINS. -->
+<div class="studio-host" data-studio-host data-origin="<!-- seed:studio_origin -->">
+  <div class="studio-msg" data-msg hidden>
+    <div class="card studio-msg-card">
+      <h2 class="card-title" data-msg-title>Studio is not set up here</h2>
+      <p data-msg-body>Set STUDIO_ORIGIN in this server's .env to the studio's address, then restart Command.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  body.studio-page .site-main { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+  body.studio-page .site-main > * { max-width: none; }
+  .studio-host { flex: 1; min-height: 0; position: relative; }
+  .studio-msg { display: grid; place-items: center; height: 100%; padding: var(--sp-5); }
+  .studio-msg[hidden] { display: none; }
+  .studio-msg-card { max-width: 480px; }
+  .studio-msg-card p { color: var(--text-secondary); font-size: var(--font-size-ui); margin: var(--sp-2) 0 0; }
+</style>
+
+<script type="module">
+  const host = document.querySelector('[data-studio-host]');
+  const origin = host.dataset.origin;
+  const say = (title, body) => {
+    host.querySelector('[data-msg-title]').textContent = title;
+    host.querySelector('[data-msg-body]').textContent = body;
+    host.querySelector('[data-msg]').hidden = false;
+  };
+  if (!origin) {
+    say('Studio is not set up here', "Set STUDIO_ORIGIN in this server's .env to the studio's address, then restart Command.");
+  } else {
+    try {
+      const { mount } = await import(origin + '/static/mount.js');
+      mount(host, { apiBase: origin + '/api' });
+    } catch (e) {
+      console.error(e);
+      say('Studio could not be loaded', `Check that ${origin} is up and lists this site in GS_EMBED_ORIGINS.`);
+    }
+  }
+</script>

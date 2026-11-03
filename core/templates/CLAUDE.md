@@ -22,8 +22,9 @@ These fill the shell only: `content.html` is spliced in raw and not
 scanned for `{{ }}`. A page body quotes an instance value through a
 `<!-- seed:NAME -->` token instead, expanded (escaped) by `compile.py`
 before the splice. Built in: `mcp_url` (`MCP_URL`), `mcp_headless_url`
-(`MCP_HEADLESS_URL`), `mcp_headless_host` (its host) and `public_origin`
-(`https://` plus `PUBLIC_HOST`). Each falls back to an example.com
+(`MCP_HEADLESS_URL`), `mcp_headless_host` (its host), `public_origin`
+(`https://` plus `PUBLIC_HOST`) and `studio_origin` (`STUDIO_ORIGIN`, g-studio's origin, empty
+when unset). Each falls back to an example.com
 placeholder, so no page names the owner's hosts. Every
 `pages/*/panels/*.html` file is also a token, `panel-{name}`, expanded raw:
 that is how the dashes share panels.
