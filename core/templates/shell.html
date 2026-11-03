@@ -34,14 +34,21 @@
   <script defer src="/css/gsys/g-ui.js"></script>
   <script defer src="/js/chrome.js"></script>
   <script defer src="/js/hub.js"></script>
+  <script type="module">import { wireRails } from "/css/gsys/kit/rail.js"; wireRails();</script>
 </head>
 <body class="g-shell {{ body_class }}" data-nav-current="{{ nav_current }}">
+  <!-- The rail's remembered state before first paint (kit rail.js, same key), so a
+       collapsed rail never flashes open. -->
+  <script>try{if(localStorage.getItem('g-rail-command')==='collapsed')document.body.setAttribute('data-rail','collapsed');}catch(e){}</script>
 
   <aside aria-label="Main">
-    <a href="/" class="brand">
-      <span class="g-mark" aria-hidden="true"></span>
-      <b>Command</b>
-    </a>
+    <div class="brand-row">
+      <a href="/" class="brand">
+        <span class="g-mark" aria-hidden="true"></span>
+        <b>Command</b>
+      </a>
+      <button class="g-rail-toggle" type="button" data-rail-key="g-rail-command" aria-label="Collapse the menu"></button>
+    </div>
 
 {{! nav_pages }}
 
@@ -54,11 +61,14 @@
   </aside>
 
   <main class="g-main">
-    <!-- The kit's phone bar (g-navigation R7): the menu button and the title.
-         Beside the rail it is hidden; the page head carries the title. -->
-    <header class="topbar app-topbar">
+    <!-- The slim bar (kit .topbar-slim, 48px, g-navigation R7): the menu button on a
+         phone, where the page sits (Parent, then Page, from compile.py crumbs) and
+         page-level actions, which a page script puts in [data-topbar-actions]. -->
+    <header class="topbar topbar-slim">
       <button class="btn btn-tertiary btn-sm btn-icon g-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" onclick="toggleNav()"><i class="ph ph-list" aria-hidden="true"></i></button>
-      <span class="topbar-title">{{ title }}</span>
+      {{! crumbs }}
+      <span class="grow"></span>
+      <div class="topbar-group" data-topbar-actions></div>
     </header>
 
     <div class="content" id="main-content">

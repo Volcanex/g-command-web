@@ -3,3 +3,4 @@
 export * from "./icon.js";
 export * from "./core.js";
 export * from "./shell.js";
+export * from "./rail.js";

@@ -155,6 +155,7 @@ DEFAULTS = {
     "public_origin": f"https://{PUBLIC_HOST}" if PUBLIC_HOST else "https://command.example.com",
     "studio_origin": STUDIO_ORIGIN,
     "nav_current": "",
+    "crumbs": "",
 }
 
 # `{{ key }}` substitutes context[key] HTML-escaped; `{{! key }}` keeps
@@ -388,6 +389,7 @@ def compile_page(page_dir: Path, shell: str) -> tuple[Path | None, dict | None, 
     context = {**DEFAULTS, **{k: v for k, v in config.items() if isinstance(v, (str, int, float))}}
     context["slug"] = slug
     context["nav_current"] = config.get("nav_current") or config.get("href") or f"/{slug}"
+    context["crumbs"] = crumbs({**config, "slug": slug})
 
     # A panel page's `layout` (core/panels/CLAUDE.md, Layout) becomes its dash
     # markup and placement CSS here, before the panel tokens it holds expand.
@@ -669,6 +671,29 @@ def hub_head(context: dict) -> str:
             f'<h1 class="page-title">{html.escape(str(context.get("title", "")))}</h1>'
             f'<p class="page-sub">{html.escape(str(context.get("description", "")))}</p>{tag}'
             "</div></div>" + hub_tiles(context["slug"]) + "</div>")
+
+
+def parent_of(config: dict) -> dict | None:
+    """The page a page sits under: its group's head, or for a page off the
+    rail the page its `nav_current` names."""
+    if config.get("tabs") and not config.get("nav"):
+        return next((c for c in _PAGES if c.get("nav") and str(c.get("tabs")) == str(config["tabs"])), None)
+    if config.get("nav_current"):
+        return next((c for c in _PAGES if page_href(c) == config["nav_current"] and c.get("slug") != config.get("slug")), None)
+    return None
+
+
+def crumbs(config: dict) -> str:
+    """The top bar's title: `Parent > Page` for a nested page, else the
+    title. A child is named as the rail names it."""
+    parent = parent_of(config)
+    if not parent:
+        return f'<span class="topbar-title">{html.escape(str(config.get("title", "")))}</span>'
+    label = _child_label(config) if config.get("tabs") else config.get("title", "")
+    return ('<nav class="topbar-crumbs" aria-label="Breadcrumb">'
+            f'<a class="hide-sm" href="{html.escape(page_href(parent))}">{html.escape(str(parent.get("nav_label") or parent.get("title", "")))}</a>'
+            '<span class="crumb-sep hide-sm" aria-hidden="true"></span>'
+            f'<span class="topbar-title" aria-current="page">{html.escape(str(label))}</span></nav>')
 
 
 def _band_heads() -> dict:

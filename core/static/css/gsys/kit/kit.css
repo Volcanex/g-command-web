@@ -99,12 +99,40 @@
 .side-foot .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: var(--lh-1); }
 .side-foot .who span:last-child { color: var(--text-placeholder); font-size: 11px; }
 
+/* Collapsible rail (rail.js): a toggle beside the brand. Open by default; collapsed is an
+   icon-only rail whose items show their label as a tooltip, remembered per viewer. Phones keep
+   the sheet, so the toggle and the collapsed look apply from 721px up. Child combinators keep
+   one shell's state off another shell nested in its content (Studio inside Command).
+     <div class="brand-row"><a class="brand">...</a><button class="g-rail-toggle"></button></div> */
+.brand-row { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+.brand-row > .brand { flex: 1 1 auto; min-width: 0; }
+.g-rail-toggle {
+  flex: none; display: grid; place-items: center;
+  width: var(--h-3); height: var(--h-3); padding: 0; margin-bottom: var(--sp-2);
+  border: none; border-radius: var(--radius-sm); background: none; color: var(--text-placeholder); cursor: pointer;
+}
+.g-rail-toggle:hover { background: var(--fill-hover); color: var(--text-primary); }
+.g-rail-toggle svg { width: 16px; height: 16px; }
+@media (max-width: 720px) { .g-rail-toggle { display: none; } }
+@media (min-width: 721px) {
+  .g-shell[data-rail="collapsed"] { grid-template-columns: 56px minmax(0, 1fr); }
+  .g-shell[data-rail="collapsed"] > aside { padding-inline: var(--sp-2); overflow-x: hidden; }
+  .g-shell[data-rail="collapsed"] > aside .brand-row { flex-direction: column; align-items: center; }
+  .g-shell[data-rail="collapsed"] > aside .brand { padding-inline: 0; justify-content: center; }
+  .g-shell[data-rail="collapsed"] > aside .g-rail-toggle svg { scale: -1 1; }
+  .g-shell[data-rail="collapsed"] > aside :is(.brand b, .nav-item > .ellipsis, .nav-item > .badge, .nav-head, .nav-twist, .nav-children, .side-foot .who, [data-rail-hide]) { display: none; }
+  .g-shell[data-rail="collapsed"] > aside .nav-item { justify-content: center; padding: 0; }
+  .g-shell[data-rail="collapsed"] > aside .nav-list > * + .nav-head { display: block; height: 0; padding: 0; overflow: hidden; font-size: 0; margin: var(--sp-2) 0; border-top: 1px solid var(--border-subtle); }
+  .g-shell[data-rail="collapsed"] > aside .nav-group:has(.nav-child[aria-current]) > .nav-group-row > .nav-item { background: var(--fill-active); color: var(--text-primary); }
+  .g-shell[data-rail="collapsed"] > aside .side-foot { flex-direction: column; align-items: center; }
+}
+
 /* ---------------------------------------------------------------- top bar */
 
 .topbar {
   display: flex; align-items: center; gap: var(--sp-2);
-  min-height: var(--h-5);  /* 48px with its rule, on the grid (g-navigation R7) */
-  padding: 0 var(--gutter);
+  min-height: calc(var(--h-control) + 2 * var(--sp-3));
+  padding: var(--sp-3) var(--gutter);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--surface-1);
   flex: none;
@@ -113,6 +141,15 @@
 .topbar .page-title, .topbar-title { font-size: 15px; line-height: var(--lh-2); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .topbar .grow { flex: 1 1 auto; min-width: 0; }
 .topbar-group { display: flex; align-items: center; gap: var(--sp-1); flex: none; }
+/* The slim bar (g-navigation R7): 48px with its rule at every width, for an app whose bar
+   carries a title and a few actions rather than a document's state. */
+.topbar.topbar-slim { min-height: var(--h-5); padding-block: 0; }
+/* Where the page sits: Parent, a caret, Page. The parent is a link; the page is the title. */
+.topbar-crumbs { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; font-size: 15px; line-height: var(--lh-2); }
+.topbar-crumbs a { color: var(--text-secondary); text-decoration: none; white-space: nowrap; flex: none; }
+.topbar-crumbs a:hover { color: var(--text-primary); }
+.topbar-crumbs .crumb-sep { flex: none; width: 5px; height: 5px; margin: 0 var(--sp-1) 0 2px; border-right: 1.5px solid var(--text-placeholder); border-bottom: 1.5px solid var(--text-placeholder); rotate: -45deg; }
+.topbar-crumbs .topbar-title { flex: 0 1 auto; }
 
 .content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .content-page {
@@ -239,14 +276,11 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
 /* ---------------------------------------------------------------- mobile */
 
 @media (max-width: 720px) {
+  .topbar { padding: var(--sp-2) var(--gutter); min-height: calc(var(--h-control) + 2 * var(--sp-2)); }
   .content-page { padding-top: var(--sp-4); }
   .hide-sm { display: none !important; }
 }
 @media (min-width: 721px) { .show-sm { display: none !important; } }
-/* R7: a top bar carries the state and verbs of the thing on the page. The shell bar with
-   nothing of that kind (the menu button and a title) is for the phone only, where the rail is a
-   sheet; beside the rail the page head carries the title. */
-@media (min-width: 721px) { .app-topbar:not(.has-actions) { display: none; } }
 
 /* Rail skeleton row, while the nav loads. */
 .nav-skel { height: var(--h-3); border-radius: var(--radius-sm); }

@@ -26,7 +26,8 @@ def build_manifest(pages_dir, native=None):
         # the apps already draw) out of the apps.
         if config.get("nav") and config.get("app_nav", True):
             sections[config.get("nav_section") or config.get("title", "Other")].append(config)
-        if config.get("tabs"):
+        # a web-only page (Chat, which the apps draw natively) is no app tab either
+        if config.get("tabs") and config.get("app_nav", True):
             groups[str(config["tabs"])].append(config)
 
     def entry(config, tab=False):

@@ -2,7 +2,8 @@
 // The app shell (g-design .g-shell): sidebar with brand, nav and user foot, the top bar, the
 // phone nav sheet, and the theme switch. The app passes in what is its own (brand name, nav
 // items, menu items, what closes the sheet) as props; nothing here knows its routes.
-import { html, useEffect, useState } from "./html.js";
+import { html, useEffect, useRef, useState } from "./html.js";
+import { wireRailToggle, RAIL_KEY } from "./rail.js";
 import { Icon } from "./icon.js";
 import { Menu } from "./core.js";
 
@@ -78,11 +79,23 @@ export function NavGroup({ item, current, label = "Show pages", children }) {
 
 /* ------------------------------------------------------------------ sidebar */
 
-export function Brand({ href, name }) {
-  return html`<a class="brand" href=${href}>
-    <span class="g-mark" aria-hidden="true"></span>
-    <b>${name}</b>
-  </a>`;
+/* The brand, with the rail's collapse toggle beside it (rail.js). railKey names where this
+   rail's state is remembered, so two apps on one page (Studio inside Command) keep their own;
+   collapse=false leaves the toggle out. */
+export function Brand({ href, name, collapse = true, railKey = RAIL_KEY }) {
+  return html`<div class="brand-row">
+    <a class="brand" href=${href}>
+      <span class="g-mark" aria-hidden="true"></span>
+      <b>${name}</b>
+    </a>
+    ${collapse && html`<${RailToggle} railKey=${railKey} />`}
+  </div>`;
+}
+
+export function RailToggle({ railKey = RAIL_KEY }) {
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current) wireRailToggle(ref.current, railKey); }, []);
+  return html`<button ref=${ref} class="g-rail-toggle" type="button" aria-label="Collapse the menu"></button>`;
 }
 
 /* The signed-in person at the foot of the sidebar, with their menu. menuSide="right" opens the
