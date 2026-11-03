@@ -23,7 +23,7 @@ def build(ctx):
     for key, name, provider in QUOTAS:
         quota = quotas.get(key)
         if not quota:
-            blocks.append({"type": "rows", "title": name, "empty": "No reading yet", "rows": []})
+            # A quota with no reading is left out rather than shown as an empty row on every dash.
             continue
         left = rounded(quota["remaining_pct"])
         short = bool(quota.get("runs_out_at") and parsed(quota["runs_out_at"]).timestamp() < parsed(quota["resets_at"]).timestamp())
@@ -41,6 +41,8 @@ def build(ctx):
             remaining = chip("in " + span(seconds), "muted")
         meter["sub"] = [reset, remaining]
         blocks.append(meter)
+    if not blocks:
+        blocks.append({"type": "rows", "title": "Quotas", "empty": "No quota readings yet", "rows": []})
     foot = []
     credit = pace.get("openrouter")
     if credit and credit.get("remaining_usd") is not None:

@@ -700,7 +700,7 @@ function Diagram() {
     <div class="page-head">
       <div class="page-head-text">
         <div class="row-tight">
-          <h1 class="page-title">Diagram</h1>
+          <h1 class="sr-only">Diagram</h1>
           <${Badge} kind="plain" class="num">${stats}<//>
         </div>
         <p class="page-sub">${mode === "levels"

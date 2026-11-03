@@ -11,6 +11,7 @@
   #lv-where .lvw-unit { font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder); }
 
   #lv-where .lvw-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin: 0 0 var(--sp-3); }
+  #lv-where .lvw-stale { margin: 0 0 var(--sp-3); font-size: var(--font-size-ui); line-height: var(--lh-2); }
   #lv-where .lvw-stat { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
   #lv-where .lvw-stat .k { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
   #lv-where .lvw-stat .v { font-size: 28px; line-height: var(--lh-5); font-weight: 500; letter-spacing: -0.01em; color: var(--text-primary); }
@@ -105,10 +106,16 @@
     const t = L.trend || {};
     const a = t.first_four_weeks || {}, b = t.last_four_weeks || {};
     if (!cur) return "";
-    const so = cur.partial_week ? "so far" : "";
-    return `<div class="lvw-stats">
+    /* "This week" only when the latest logged week is the calendar's week; a log that stopped
+       updating says which week it is, never passes an old week off as this one. */
+    const start = new Date(String(cur.week_start || "") + "T00:00:00");
+    const current = !isNaN(start) && Date.now() - start.getTime() < 7 * 864e5;
+    const when = current ? "this week" : `in the week of ${shortDate(cur.week_start)}`;
+    const so = current && cur.partial_week ? "so far" : "";
+    const stale = current ? "" : `<p class="lvw-stale lv-dim">The prompt log stops at the week of ${esc(shortDate(cur.week_start))}, so these are its latest figures.</p>`;
+    return `${stale}<div class="lvw-stats">
       <div class="card lvw-stat is-lead">
-        <span class="k">Correction rate this week</span>
+        <span class="k">Correction rate ${esc(when)}</span>
         <span class="v num">${pct(cur.correction_rate)}<small>${esc(so)}</small></span>
         <span class="vs">First four weeks <b class="num">${pct(a.correction_rate)}</b>, last four <b class="num">${pct(b.correction_rate)}</b></span>
         <span class="lead">Prompts where you fixed agent work. Push this down.</span>
@@ -119,7 +126,7 @@
         <span class="vs">First four weeks <b class="num">${pct(a.l2_l3_share)}</b>, last four <b class="num">${pct(b.l2_l3_share)}</b></span>
       </div>
       <div class="card lvw-stat">
-        <span class="k">Prompts this week</span>
+        <span class="k">Prompts ${esc(when)}</span>
         <span class="v num">${(cur.prompts || 0).toLocaleString("en-GB")}<small>${esc(so)}</small></span>
         <span class="vs"><b class="num">${cur.sessions || 0}</b> sessions, ${esc(wkLabel(cur))} from ${esc(shortDate(cur.week_start))}</span>
       </div>

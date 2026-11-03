@@ -1,6 +1,5 @@
 <div class="term-app">
   <div class="term-bar">
-    <button id="btn-nav" class="btn btn-tertiary btn-icon" aria-label="Open navigation"><i class="ph ph-list"></i></button>
     <span class="select-wrap term-pick">
       <select id="session-select" class="select" aria-label="Choose session"><option value="">Loading</option></select>
     </span>
@@ -47,15 +46,15 @@
 </div>
 
 <style>
-  /* The shell's chrome is .topbar / .g-status inside .g-main. Both are hidden
-     here and .content / .site-main give up their padding, scroll and width: this page
-     is a full-bleed app, and anything left stacked on it pushes the terminal
-     off the bottom of the screen. Height comes from --vvh (the *visual*
+  /* The shell's slim top bar stays, as on every page (g-navigation R7 and R10): it says
+     where you are and carries the phone's menu button. The status line is hidden and
+     .content / .site-main give up their padding, scroll and width: this page is a
+     full-bleed app, and anything else stacked on it pushes the terminal off the bottom
+     of the screen. Height comes from --vvh (the *visual*
      viewport), the only measure that shrinks when the iOS keyboard opens.
      --vvtop is applied as `top` rather than as a transform, because a
      transformed body becomes the containing block for every fixed overlay and
      the menu, toasts and tooltips would then land offset by that much. */
-  body.sessions-page .topbar,
   body.sessions-page .g-status { display: none; }
   body.sessions-page {
     position: fixed;
@@ -91,10 +90,6 @@
   }
   .bar-spacer { flex: 0 1 auto; }
   #conn { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
-  /* The shell's own hamburger lives in the hidden top bar, so this page
-     carries the one that opens the nav, on the widths where it exists. */
-  #btn-nav { display: none; }
-  @media (max-width: 720px) { #btn-nav { display: inline-flex; } }
 
   .term-body { flex: 1 1 auto; display: flex; min-height: 0; }
   /* xterm paints its own background from term.options.theme; the wrapper
@@ -556,12 +551,8 @@
   bindHold($('btn-scroll-down'), false);
 
   // ---- menu ----
-  // The nav drawer's own toggle sits in the shell's top bar, which this page
-  // hides; #btn-more opens the popover through popovertarget, so only the
-  // drawer needs wiring here.
-  $('btn-nav').addEventListener('click', () => {
-    if (window.toggleNav) toggleNav();
-  });
+  // #btn-more opens the popover through popovertarget; the nav drawer's toggle is the
+  // shell's, in its top bar.
 
   $('btn-new').addEventListener('click', async () => {
     const host = hostSel.value;

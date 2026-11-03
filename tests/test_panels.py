@@ -470,8 +470,7 @@ EMPTY = [
     ("tasks", [], {"state": "empty", "message": "No undated tasks.", "meta": "0 undated"}),
     ("money", [], {"state": "empty", "message": "Nothing owed or to sort.", "meta": "0 open"}),
     ("health", {}, {"blocks": [{"type": "line", "items": [{"text": "All 0 services up", "tone": "ok", "badge": True}]}]}),
-    ("compute", {}, {"blocks": [{"type": "rows", "title": name, "empty": "No reading yet", "rows": []}
-                                for name in ("Claude week", "Claude 5 hour", "Codex week")]}),
+    ("compute", {}, {"blocks": [{"type": "rows", "title": "Quotas", "empty": "No quota readings yet", "rows": []}]}),
     ("tickets", {}, {"state": "empty", "message": "No open tickets.", "meta": "0 open"}),
     ("crons", {}, {"meta": "0 jobs", "blocks": [{"type": "line", "items": [{"text": "All 0 jobs ok", "tone": "ok", "badge": True}]}]}),
 ]

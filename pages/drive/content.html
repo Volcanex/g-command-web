@@ -1,7 +1,7 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Workspaces</h1>
+      <h1 class="sr-only">Workspaces</h1>
       <span class="badge badge-plain" data-live>Loading</span>
     </div>
     <p class="page-sub">
@@ -23,14 +23,14 @@
 
   .drive-loading { font-size: var(--font-size-ui); color: var(--text-placeholder); }
 
-  .drive-list { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .drive-list { display: flex; flex-direction: column; gap: var(--sp-3); }
 
-  .ws-card { padding: var(--pad-card) var(--pad-card) 4px; }
+  .ws-card { padding: var(--pad-card); }
 
   .ws-head { display: flex; align-items: center; gap: var(--sp-2); padding-bottom: var(--sp-3); }
   .ws-head .grow { flex: 1; }
+  .ws-head .card-title { flex: none; }
   .ws-num {
-    min-width: 1.2em;
     font-family: var(--font-mono); font-size: var(--font-size-ui);
     font-variant-numeric: tabular-nums; color: var(--text-placeholder);
   }
@@ -43,8 +43,9 @@
   .ses-age { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ses-kill { width: 1%; position: relative; z-index: 1; text-align: right; }
 
+  .ws-card .table tbody tr:last-child td { border-bottom: none; }
   .ws-empty {
-    padding: 2px 0 var(--sp-3);
+    padding: 0;
     font-size: var(--font-size-ui); color: var(--text-placeholder);
   }
 </style>
@@ -240,11 +241,12 @@
     const head = document.createElement('div');
     head.className = 'ws-head';
     head.innerHTML =
-      `<span class="ws-num"></span>` +
       `<span class="card-title"></span>` +
+      `<span class="ws-num"></span>` +
       `<span class="badge badge-plain"></span>` +
       `<span class="grow"></span>`;
-    head.querySelector('.ws-num').textContent = number;
+    // The workspace's id, after its name: a bare number before the title read as a count.
+    head.querySelector('.ws-num').textContent = `ws${number}`;
     head.querySelector('.card-title').textContent = name;
     head.querySelector('.badge').textContent = host;
 

@@ -1,7 +1,7 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Runners</h1>
+      <h1 class="sr-only">Runners</h1>
       <span class="badge badge-plain num" id="run-count">Loading</span>
     </div>
     <p class="page-sub">Real browsers that run test pages for agents, with the jobs they have queued and what came back. This page only reads the fleet, and agents queue jobs with <code>g-run</code>.</p>
@@ -26,7 +26,7 @@
   <div class="card run-card">
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>Device</th><th>Status</th><th>GPU adapter</th><th>WebGPU</th><th>Screen</th><th>Current job</th></tr></thead>
+        <thead><tr><th>Device</th><th>Status</th><th class="hide-sm">GPU adapter</th><th class="hide-sm">WebGPU</th><th class="hide-sm">Screen</th><th>Current job</th></tr></thead>
         <tbody id="run-devices"><tr><td colspan="6" class="muted">Loading devices</td></tr></tbody>
       </table>
     </div>
@@ -38,7 +38,7 @@
   <div class="card run-card">
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>URL</th><th>Device</th><th>By</th><th>State</th><th class="r">Age</th><th class="r">Attempts</th></tr></thead>
+        <thead><tr><th>URL</th><th class="hide-sm">Device</th><th class="hide-sm">By</th><th>State</th><th class="r">Age</th><th class="r hide-sm">Attempts</th></tr></thead>
         <tbody id="run-queue"><tr><td colspan="6" class="muted">Loading queue</td></tr></tbody>
       </table>
     </div>
@@ -51,7 +51,7 @@
   <div class="card run-card">
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>Result</th><th>Device</th><th>URL</th><th class="r">Runner page rAF (ms)</th><th>Posted</th><th>Ended</th><th class="r">Finished</th></tr></thead>
+        <thead><tr><th>Result</th><th class="hide-sm">Device</th><th>URL</th><th class="r hide-sm">Runner page rAF (ms)</th><th class="hide-sm">Posted</th><th class="hide-sm">Ended</th><th class="r">Finished</th></tr></thead>
         <tbody id="run-results"><tr><td colspan="7" class="muted">Loading results</td></tr></tbody>
       </table>
     </div>
@@ -153,9 +153,9 @@
       return `<tr>
         <td class="mono">${esc(d.name)}<span class="run-sub">${esc(info.platform || '')}</span></td>
         <td>${status}<span class="run-sub num">Seen ${esc(seen)}</span></td>
-        <td class="gpu" title="${esc(adapter)}">${esc(adapter) || unknown}</td>
-        <td>${webgpu || unknown}</td>
-        <td class="num">${esc(screen) || unknown}</td>
+        <td class="gpu hide-sm" title="${esc(adapter)}">${esc(adapter) || unknown}</td>
+        <td class="hide-sm">${webgpu || unknown}</td>
+        <td class="num hide-sm">${esc(screen) || unknown}</td>
         <td>${job}</td>
       </tr>`;
     }).join('');
@@ -169,11 +169,11 @@
     }
     queueEl.innerHTML = queue.map(j => `<tr>
       <td class="url" title="${esc(j.url)}">${esc(shortUrl(j.url))}</td>
-      <td class="mono">${esc(j.state === 'claimed' && j.claimed_by ? j.claimed_by : j.device)}</td>
-      <td>${esc(plain(j.by || '')) || '<span class="muted">None</span>'}</td>
+      <td class="mono hide-sm">${esc(j.state === 'claimed' && j.claimed_by ? j.claimed_by : j.device)}</td>
+      <td class="hide-sm">${esc(plain(j.by || ''))}</td>
       <td><span class="badge ${STATE_BADGE[j.state] || 'badge-plain'}">${esc(sentence(j.state))}</span></td>
       <td class="r num">${esc(age(j.created, now))}</td>
-      <td class="r num">${esc(j.attempts ?? 0)}</td>
+      <td class="r num hide-sm">${esc(j.attempts ?? 0)}</td>
     </tr>`).join('');
   }
 
@@ -201,11 +201,11 @@
       const why = j.reason || r.error || '';
       return `<tr>
         <td>${badge}</td>
-        <td class="mono">${esc(j.claimed_by || j.device)}</td>
+        <td class="mono hide-sm">${esc(j.claimed_by || j.device)}</td>
         <td class="url" title="${esc(j.url)}">${esc(shortUrl(j.url))}${why ? `<span class="run-sub">${esc(plain(why))}</span>` : ''}</td>
-        <td class="r num">${frames}</td>
-        <td>${posted}</td>
-        <td>${esc(sentence(r.ended || '')) || '<span class="muted">None</span>'}</td>
+        <td class="r num hide-sm">${frames}</td>
+        <td class="hide-sm">${posted}</td>
+        <td class="hide-sm">${esc(sentence(r.ended || ''))}</td>
         <td class="r num">${esc(clock(j.finished))}</td>
       </tr>`;
     }).join('');

@@ -1,10 +1,10 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Tickets</h1>
+      <h1 class="sr-only">Tickets</h1>
       <span class="badge badge-plain num" id="tix-count">Loading</span>
     </div>
-    <p class="page-sub">Every g-admin ticket across every project that speaks the contract. Pull a brief, hand it to an agent, mark it baked once the change lands.</p>
+    <p class="page-sub">Pull a brief, hand it to an agent, mark it baked once the change lands.</p>
   </div>
   <div class="page-actions">
     <span class="tix-checked" id="tix-checked"></span>
@@ -54,8 +54,8 @@
     <table class="table">
       <thead>
         <tr>
-          <th>Project</th><th>Kind</th><th>Severity</th><th>Page</th><th>Note</th>
-          <th>Status</th><th class="r">Updated</th>
+          <th>Project</th><th class="hide-sm">Kind</th><th class="hide-sm">Severity</th><th class="hide-sm">Page</th><th>Note</th>
+          <th>Status</th><th class="r hide-sm">Updated</th>
         </tr>
       </thead>
       <tbody id="tix-rows">
@@ -102,6 +102,11 @@
   .tix-chip[aria-pressed="true"] { border-color: var(--accent-edge); background: var(--accent-fill-subtle, var(--surface)); }
   .tix-chip .chip-name { font-family: var(--font-mono); color: var(--text-primary); }
   .tix-chip .badge { font-variant-numeric: tabular-nums; }
+  /* On a phone the chips are one row that scrolls, not a stack of full-width boxes. */
+  @media (max-width: 720px) {
+    .tix-projects { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .tix-chip { flex: none; }
+  }
 
   .tix-card { padding: var(--pad-card); }
   .toolbar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding-bottom: var(--sp-3); }
@@ -256,7 +261,7 @@
       const c = counts[pid];
       return `<button class="tix-chip" data-chip-project="${escapeHtml(pid)}" aria-pressed="${fProject.value === pid}">
         <span class="chip-name">${escapeHtml(pid)}</span>
-        <span class="badge badge-warn num">${c.open} open</span>
+        <span class="badge ${c.open ? 'badge-warn' : 'badge-plain'} num">${c.open} open</span>
         <span class="badge badge-ok num">${c.baked} baked</span>
       </button>`;
     }).join('');
@@ -291,12 +296,12 @@
       const updated = (t.updated_at || t.created_at || '').replace('T', ' ').slice(0, 16);
       return `<tr class="tix-row" data-key="${escapeHtml(ticketKey(t))}">
         <td class="proj">${escapeHtml(t.project)}</td>
-        <td>${escapeHtml(sentence(t.kind))}</td>
-        <td><span class="badge ${SEVERITY_BADGE[t.severity] || 'badge-plain'}">${escapeHtml(sentence(t.severity))}</span></td>
-        <td class="page-cell" title="${escapeHtml(page.path || '')}">${escapeHtml(page.title || page.path || '')}</td>
+        <td class="hide-sm">${escapeHtml(sentence(t.kind))}</td>
+        <td class="hide-sm"><span class="badge ${SEVERITY_BADGE[t.severity] || 'badge-plain'}">${escapeHtml(sentence(t.severity))}</span></td>
+        <td class="page-cell hide-sm" title="${escapeHtml(page.path || '')}">${escapeHtml(page.title || page.path || '')}</td>
         <td class="note" title="${escapeHtml(plain(t.note))}">${escapeHtml(plain(t.note)) || '<span class="muted">No note</span>'}</td>
         <td><span class="badge ${STATUS_BADGE[t.status] || 'badge-plain'}">${escapeHtml(sentence(t.status))}</span></td>
-        <td class="r updated">${escapeHtml(updated)}</td>
+        <td class="r updated hide-sm">${escapeHtml(updated)}</td>
       </tr>`;
     }).join('');
   }

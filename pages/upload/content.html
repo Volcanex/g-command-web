@@ -1,7 +1,7 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Upload</h1>
+      <h1 class="sr-only">Upload</h1>
       <span class="badge badge-plain" data-count>Loading</span>
     </div>
     <p class="page-sub">Drop files straight onto the server. They land in <code data-dir>…</code>.</p>
@@ -41,7 +41,7 @@
         <tr>
           <th>Name</th>
           <th class="r">Size</th>
-          <th>Added</th>
+          <th class="hide-sm">Added</th>
           <th></th>
         </tr>
       </thead>
@@ -134,7 +134,7 @@
       return '<tr>'
         + '<td class="name"><a href="' + API + '/file/' + encodeURIComponent(f.name) + '" download>' + esc(f.name) + '</a></td>'
         + '<td class="r size">' + bytes(f.size) + '</td>'
-        + '<td class="when">' + esc(fmtWhen(f.mtime)) + '</td>'
+        + '<td class="when hide-sm">' + esc(fmtWhen(f.mtime)) + '</td>'
         + '<td class="act"><button class="btn btn-tertiary btn-sm btn-icon hold-btn" data-hold-ms="900"'
         + ' data-tip="Hold to delete" data-del="' + esc(f.name)
         + '" aria-label="Hold to delete ' + esc(f.name) + '"></button></td>'

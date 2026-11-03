@@ -1,10 +1,10 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">References</h1>
+      <h1 class="sr-only">References</h1>
       <span data-summary class="badge badge-plain">Loading</span>
     </div>
-    <p class="page-sub">URLs cited across the brain, ranked by note count.</p>
+    <p class="page-sub">Ranked by how many notes cite each URL.</p>
   </div>
 </div>
 
@@ -12,7 +12,7 @@
   <div class="table-wrap">
     <table class="table refs-table">
       <thead>
-        <tr><th>URL</th><th class="r">Notes</th><th class="r">Variants</th><th>Status</th></tr>
+        <tr><th>URL</th><th class="r">Notes</th><th class="r hide-sm">Variants</th><th>Status</th></tr>
       </thead>
       <tbody data-rows>
         <tr><td colspan="4" class="dim">Loading</td></tr>
@@ -38,7 +38,6 @@
   .graph-head { margin-top: var(--sp-2); }
   [data-summary], [data-ref-stats] { font-variant-numeric: tabular-nums; }
   .dim { color: var(--text-placeholder); }
-  .refs-card { padding-top: 4px; padding-bottom: 4px; }
   .refs-table td.url { word-break: break-all; min-width: 224px; }
   .refs-table td.url a { color: var(--text-primary); text-decoration: none; }
   .refs-table td.url a:hover { text-decoration: underline; }
@@ -69,12 +68,18 @@
     if (!r.ok) throw new Error(`refs ${r.status}`);
     const data = await r.json();
     document.querySelector('[data-summary]').textContent =
-      `${data.summary.total_urls} URLs (${data.summary.distinct_canonical} canonical), ${data.summary.broken} broken`;
+      data.summary.distinct_canonical === data.summary.total_urls
+        ? `${data.summary.total_urls} URLs, ${data.summary.broken} broken`
+        : `${data.summary.total_urls} URLs, ${data.summary.distinct_canonical} distinct, ${data.summary.broken} broken`;
     const rows = document.querySelector('[data-rows]');
     if (!data.top.length) {
       rows.innerHTML = '<tr><td colspan="4" class="dim">No references yet.</td></tr>';
       return;
     }
+    // The checker's codes (http-404, error-ConnectError) said as words a person reads.
+    const WORDS = { ok: 'Ok', 'error-ConnectError': 'No answer', 'error-InvalidURL': 'Not a valid URL',
+      'error-UnsupportedProtocol': 'Not a web link', 'error-ReadTimeout': 'Timed out', 'error-ConnectTimeout': 'Timed out' };
+    const statusLabel = (st) => WORDS[st] || (st.startsWith('http-') ? `HTTP ${st.slice(5)}` : st.startsWith('error-') ? 'Did not load' : st);
     rows.innerHTML = data.top.map(r => {
       const broken = r.status && (r.status.startsWith('http-4') || r.status.startsWith('http-5') || r.status.startsWith('error-'));
       const safeUrl = r.url.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -82,12 +87,12 @@
       return `<tr class="${broken ? 'broken' : ''}">
         <td class="url"><a href="${safeUrl}" target="_blank" rel="noopener">${safeUrl}</a></td>
         <td class="n">${r.notes}</td>
-        <td class="v">${r.variants}</td>
-        <td class="status">${r.status ? `<span class="badge ${badge}">${r.status}</span>` : ''}</td>
+        <td class="v hide-sm">${r.variants}</td>
+        <td class="status">${r.status ? `<span class="badge ${badge}" title="${r.status}">${statusLabel(r.status)}</span>` : ''}</td>
       </tr>`;
     }).join('');
   } catch (e) {
-    document.querySelector('[data-rows]').innerHTML = `<tr><td colspan="4">Error: ${e.message}</td></tr>`;
+    document.querySelector('[data-rows]').innerHTML = `<tr><td colspan="4" class="dim">The reference index did not load (${e.message}). Reload the page to try again.</td></tr>`;
   }
 })();
 </script>

@@ -1,19 +1,15 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Compute</h1>
+      <h1 class="sr-only">Compute</h1>
       <span class="badge badge-plain" data-overall>Loading</span>
-      <span class="head-actions">
-        <button class="btn btn-sm" data-preset="meeting" data-tip="Both providers on Burn and Fast until midnight London time">Go all out today</button>
-        <button class="btn btn-sm btn-ghost" data-preset="clear">Clear overrides</button>
-      </span>
     </div>
   </div>
 </div>
 <div class="glance" data-glance></div>
 
 <h2 class="section-head">Selection</h2>
-<p class="page-sub">How g-env picks a model for a job, and what it nearly picked. Every bar is one model at one effort: quality and taste push it right, quota price and slowness pull it back, and it lands on its score. The dashed line is the pick's score, so each gap is how far a rival fell short. Change the what-ifs to preview another day; nothing is saved.</p>
+<p class="section-sub">How g-env picks a model for a job, and what it nearly picked. Every bar is one model at one effort: quality and taste push it right, quota price and slowness pull it back, and it lands on its score. The dashed line is the pick's score, so each gap is how far a rival fell short. Change the what-ifs to preview another day; nothing is saved.</p>
 <div class="card compute-card sel-card" data-sel>
   <div class="sel-controls">
     <div class="sel-group">
@@ -65,8 +61,14 @@
   </div>
 </div>
 
-<h2 class="section-head">Temperature and speed</h2>
-<p class="page-sub">Temperature is safe burn over actual burn per work hour: Burn means plenty spare, Freezing means ration it. Claude is the protected quota; Codex should run out each week. Speed is separate: Slow with Burn buys quality, Fast with Burn buys speed. Overrides clear at midnight London time.</p>
+<div class="section-row">
+  <h2 class="section-head">Temperature and speed</h2>
+  <span class="head-actions">
+    <button class="btn btn-sm" data-preset="meeting" data-tip="Both providers on Burn and Fast until midnight London time">Go all out today</button>
+    <button class="btn btn-sm btn-ghost" data-preset="clear">Clear overrides</button>
+  </span>
+</div>
+<p class="section-sub">Temperature is safe burn over actual burn per work hour: Burn means plenty spare, Freezing means ration it. Claude is the protected quota; Codex should run out each week. Speed is separate: Slow with Burn buys quality, Fast with Burn buys speed. Overrides clear at midnight London time.</p>
 
 <div class="compute-grid" data-temps></div>
 
@@ -77,32 +79,29 @@
     <label><input type="radio" name="win" value="week">This quota week</label>
   </div>
 </div>
-<p class="page-sub" data-spend-sub>Units are an estimate of relative quota cost, one unit being one Opus output token. Not a billed number.</p>
+<p class="section-sub" data-spend-sub>Units are an estimate of relative quota cost, one unit being one Opus output token. Not a billed number.</p>
 <div class="compute-grid" data-spend></div>
 
 <h2 class="section-head">Codex jobs</h2>
-<p class="page-sub">Sol and Luna jobs from g-agent-run, with the time since each role last finished a job.</p>
+<p class="section-sub">Sol and Luna jobs from g-agent-run, with the time since each role last finished a job.</p>
 <div class="role-strip" data-roles></div>
 <div class="card table-card"><div class="table-wrap"><table class="table" aria-label="Recent jobs" data-jobs></table></div></div>
 
 <h2 class="section-head">Models</h2>
-<p class="page-sub" data-models-sub>Artificial Analysis intelligence index against cost and time to first token per effort level. The dashed line is the Pareto frontier: nothing beats a point on it for both score and price. Ringed points are what the system uses now.</p>
+<p class="section-sub" data-models-sub>Artificial Analysis intelligence index against cost and time to first token per effort level. The dashed line is the Pareto frontier: nothing beats a point on it for both score and price. Ringed points are what the system uses now.</p>
 <div class="compute-grid wide" data-models></div>
 
 <p class="api-note" data-note hidden></p>
 
 <style>
-  /* A section's sub sits under its heading, not a stack gap below it. */
-  .section-head + .page-sub, .section-row + .page-sub { margin-top: calc(var(--sp-1) - var(--sp-4)); }
   .head-actions { margin-left: auto; display: flex; gap: var(--sp-2); }
-  .compute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--sp-4); }
+  .compute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--sp-3); }
   .compute-grid.wide { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
   .compute-card { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
   .compute-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
-  .section-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-4); }
+  .section-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); margin-top: var(--sp-4); }
   .section-row .section-head { margin: 0; }
-  .section-head { font-size: 16px; margin: var(--sp-4) 0 0; }
-  .glance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-4); }
+  .glance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
   @media (min-width: 1680px) { .glance { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .glance .card { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
   .g-left { display: flex; align-items: baseline; gap: var(--sp-2); }
@@ -146,7 +145,7 @@
   .sel-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-5); align-items: start; }
   .sel-anatomy, .sel-map { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
   .plot-value { height: 360px; }
-  .sel-lower { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-4); margin-top: var(--sp-4); }
+  .sel-lower { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-3); margin-top: var(--sp-3); }
   .sel-matrix th:not(:first-child), .sel-matrix td:not(:first-child) { text-align: left; }
   .sel-matrix td[data-cell] { cursor: pointer; white-space: nowrap; }
   .sel-matrix td[data-cell]:hover { background: var(--fill-hover); }
@@ -164,7 +163,6 @@
   .table td.label-cell { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .api-note { margin-top: var(--sp-4); padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-secondary); font-size: var(--font-size-ui); }
   @media (max-width: 640px) {
-    .head-actions { margin-left: 0; width: 100%; }
     .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .glance { grid-template-columns: 1fr; }
     .compute-grid.wide { grid-template-columns: 1fr; }

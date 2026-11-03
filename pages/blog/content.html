@@ -1,10 +1,10 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Blog</h1>
+      <h1 class="sr-only">Blog</h1>
       <span class="badge badge-plain" data-gsite-badge>g-site</span>
     </div>
-    <p class="page-sub">g-site editor: posts, copy, projects, generation and editions.</p>
+    
   </div>
 </div>
 
@@ -29,7 +29,7 @@
     <div class="table-wrap">
       <table class="table posts-table">
         <thead>
-          <tr><th>Title</th><th>Slug</th><th>Type</th><th>Date</th><th>Status</th></tr>
+          <tr><th>Title</th><th class="hide-sm">Slug</th><th class="hide-sm">Type</th><th>Date</th><th>Status</th></tr>
         </thead>
         <tbody data-posts-rows>
           <tr><td colspan="5" class="dim">Loading posts</td></tr>
@@ -457,8 +457,8 @@
       return `
       <tr data-row-slug="${escapeHtml(p.slug)}">
         <td>${escapeHtml(p.title)}</td>
-        <td class="slug">${escapeHtml(p.slug)}</td>
-        <td><span class="badge badge-plain">${escapeHtml(type === 'artifact' ? 'Artifact' : 'Markdown')}</span></td>
+        <td class="slug hide-sm">${escapeHtml(p.slug)}</td>
+        <td class="hide-sm"><span class="badge badge-plain">${escapeHtml(type === 'artifact' ? 'Artifact' : 'Markdown')}</span></td>
         <td class="date">${escapeHtml(p.date || '')}</td>
         <td class="status">${postStatusBadges(p)}</td>
       </tr>`;

@@ -132,10 +132,10 @@ function Graph({ embedded = false }) {
     <div class="page-head">
       <div class="page-head-text">
         <div class="row-tight">
-          <h1 class="page-title">Graph</h1>
+          <h1 class="sr-only">Graph</h1>
           <${Badge} kind="plain" class="num">${stats}<//>
         </div>
-        <p class="page-sub">Wikilinks between notes. Drag to orbit, scroll to zoom, hover for titles, click to open.</p>
+        <p class="page-sub">Drag to orbit, scroll to zoom, hover for titles, click to open.</p>
       </div>
       <div class="page-actions">
         <span class="graph-legend">

@@ -1,10 +1,10 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">System</h1>
+      <h1 class="sr-only">Services</h1>
       <span class="badge badge-plain" id="sys-overall">Checking</span>
     </div>
-    <p class="page-sub">Live topology and service health. Topology from the instance manifest, state from the brain status index.</p>
+    <p class="page-sub">Topology from the instance manifest, state from the brain status index.</p>
   </div>
   <div class="page-actions">
     <span class="sys-checked" id="sys-checked">Fetching status</span>
@@ -31,7 +31,7 @@
   .sec-head .spacer { flex: 1; }
   .sec-note { font-size: 12px; color: var(--text-placeholder); font-variant-numeric: tabular-nums; }
 
-  .panel { padding: var(--sp-2) var(--pad-card); }
+  .panel { padding: var(--pad-card); }
   .panel-head { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0 var(--sp-1); }
   .panel-head .spacer { flex: 1; }
 
@@ -83,6 +83,10 @@
   const refreshBtn = document.getElementById('sys-refresh');
   const STATUS_URL = BRAIN_API + '/api/status';
   const POLL_MS = 60_000;
+  // Manifest and status text arrives with em dashes and middle dots; g.tidy swaps them for
+  // display (g-design bans both in interface copy). The source is never rewritten.
+  const tidy = (s) => (window.g && g.tidy ? g.tidy(s) : String(s ?? ''));
+  const escText = (s) => tidy(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
   const STATE_BADGE = {
     up: { kind: 'ok', label: 'Up' },
@@ -263,7 +267,7 @@
     row.innerHTML = `
       <span class="tree-prefix">${prefix}${connector}</span>
       <span class="tree-id"><a href="${r.url}" target="_blank" rel="noopener">${r.id}</a></span>
-      <span class="tree-desc">${r.description}</span>`;
+      <span class="tree-desc">${escText(r.description)}</span>`;
     treeEl.appendChild(row);
     const kids = children[id] || [];
     const childPrefix = prefix + (isLast ? '    ' : '│   ');
@@ -309,8 +313,8 @@
       const b = badgeFor(state);
       const detail = row.querySelector('.detail');
       g.status(row.querySelector('.badge'), b);
-      detail.textContent = (s && s.detail) || '';
-      if (s && s.detail) detail.title = s.detail;
+      detail.textContent = tidy((s && s.detail) || '');
+      if (s && s.detail) detail.title = tidy(s.detail);
     }
 
     // ── dependencies ──
@@ -322,7 +326,7 @@
       const state = (d && d.state) || 'unknown';
       const detail = row.querySelector('.detail');
       g.status(row.querySelector('.badge'), badgeFor(state));
-      detail.textContent = (d && d.detail) || '';
+      detail.textContent = tidy((d && d.detail) || '');
       if (d && d.detail) detail.title = d.detail;
     }
 

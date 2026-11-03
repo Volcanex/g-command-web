@@ -1,15 +1,16 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Browser</h1>
+      <h1 class="sr-only">Browser</h1>
       <span class="badge badge-plain" id="br-mode">Mode unknown</span>
       <span class="badge badge-plain" id="br-state">Connecting</span>
     </div>
   </div>
   <div class="page-actions">
-    <button class="btn btn-secondary btn-sm" id="br-full">Full screen</button>
-    <button class="btn btn-secondary btn-sm" id="br-pop">Open in a new tab</button>
-    <button class="btn btn-secondary btn-sm" id="br-restart">Restart browser</button>
+    <!-- On a phone the three keep their icon and lose their words, so the head stays one row. -->
+    <button class="btn btn-secondary btn-sm" id="br-full" aria-label="Full screen" data-tip="Full screen"><i class="ph ph-corners-out" aria-hidden="true"></i><span class="hide-sm">Full screen</span></button>
+    <button class="btn btn-secondary btn-sm" id="br-pop" aria-label="Open in a new tab" data-tip="Open in a new tab"><i class="ph ph-arrow-square-out" aria-hidden="true"></i><span class="hide-sm">Open in a new tab</span></button>
+    <button class="btn btn-secondary btn-sm" id="br-restart" aria-label="Restart browser" data-tip="Restart browser"><i class="ph ph-arrow-clockwise" aria-hidden="true"></i><span class="hide-sm">Restart browser</span></button>
   </div>
 </div>
 

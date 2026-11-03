@@ -30,8 +30,10 @@ page's host picker is filled from `GET /api/sessions`, so it names no host.
   behind it can scroll, and `--vvtop` is applied as `top`, never as a transform:
   a transformed body becomes the containing block for every fixed overlay, and
   the menu, toasts and tooltips would land offset by that much.
-- **The shell chrome is `.g-top` / `.g-status` inside `.g-main`.** Both are
-  hidden here and `.site-main` gives up its padding, scroll and max-width.
+- **The shell chrome is `.topbar` / `.g-status` inside `.g-main`.** The slim top
+  bar stays (g-navigation R7 and R10: it names the page and holds the phone's menu
+  button, so the page carries no hamburger of its own); the status line is hidden
+  and `.site-main` gives up its padding, scroll and max-width.
   Successive versions have hidden the wrong selectors (`.site-header` /
   `.site-footer`, then `.cz-top` / `.cz-status`, neither of which exists) and
   each time the bars stayed, stacked on a full-height main, and the page

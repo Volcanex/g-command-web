@@ -1,10 +1,10 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Hours</h1>
+      <h1 class="sr-only">Hours</h1>
       <span class="badge badge-plain">This week</span>
     </div>
-    <p class="page-sub">What you and your agents did this week, reconstructed from Claude Code session logs across every host.</p>
+    <p class="page-sub">Reconstructed from Claude Code session logs across every host.</p>
   </div>
 </div>
 
@@ -80,6 +80,7 @@
     font-variant-numeric: tabular-nums;
   }
   .hr-dl b { display: block; color: var(--text-primary); font-weight: 500; }
+  .hr-day.is-future .hr-dl { color: var(--text-placeholder); }
   .hr-key { display: flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
   .hr-key i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 2px; }
   .hr-key .you { background: var(--chart-1); }
@@ -140,7 +141,8 @@
       var stale = (Date.now() - new Date(p.generated_at).getTime()) > 6*3600*1000;
       h += '<div class="hr-stale' + (stale ? ' warn' : '') + '">Snapshot ' + esc(ago(p.generated_at)) +
            (stale ? ', stale, the refresh timer may not be running' : '') +
-           (p.errors && p.errors.length ? ', hosts skipped: ' + esc(p.errors.join('; ')) : '') +
+           (p.errors && p.errors.length ? '. Not counted: ' + esc(p.errors.map(function (e) { return String(e).split(':')[0].trim(); }).join(', ')) +
+             ', which did not answer, so its hours are missing until the next refresh' : '') +
            '</div>';
     }
 
@@ -176,9 +178,12 @@
       maxd = Math.max(maxd, a, b);
     });
     h += '<div class="hr-sec">By day</div><div class="hr-days">';
+    var now = new Date(), todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     p.days.forEach(function (d, i) {
       var you = p.presence[d] || 0;
       var bot = p.projects.reduce(function (s, r) { return s + (r.per_day_agent ? r.per_day_agent[i] : 0); }, 0);
+      // A day still to come has no hours yet: no bars and no 0.0h, just its name.
+      if (d > todayIso) { h += '<div class="hr-day is-future"><div class="hr-pair"></div><div class="hr-dl"><b>&nbsp;</b>' + DOW[i] + '</div></div>'; return; }
       h += '<div class="hr-day"><div class="hr-pair">' +
              '<span class="hr-stick you" style="height:' + (you/maxd*140).toFixed(1) + 'px"></span>' +
              '<span class="hr-stick bot" style="height:' + (bot/maxd*140).toFixed(1) + 'px"></span>' +

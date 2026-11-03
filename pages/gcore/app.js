@@ -4,6 +4,9 @@
 import { html, useState, useEffect, useRef, Badge, Button, Loaded, mount, useJson } from "../../core/app/boot.js";
 import "./app.css";
 
+// Em dashes and middle dots in the conventions text are swapped for display (g-design).
+const tidy = (t) => (window.g && window.g.tidy ? window.g.tidy(t) : String(t ?? ""));
+
 const MASK = "•".repeat(12);
 
 /* One passport row. The value is fetched when clicked and dropped when hidden. */
@@ -67,7 +70,7 @@ function Body({ data }) {
           <thead><tr><th>Service</th><th>Host</th><th>Domain</th><th>Unit</th><th>Health</th></tr></thead>
           <tbody>
             ${(data.manifest?.services || []).map((s) => html`<tr key=${s.id}>
-              <td>${s.id}</td><td>${s.host || "-"}</td><td>${s.domain || "-"}</td><td>${s.unit || "-"}</td><td>${health(s)}</td>
+              <td>${s.id}</td><td>${s.host || ""}</td><td>${s.domain || ""}</td><td>${s.unit || ""}</td><td>${health(s)}</td>
             </tr>`)}
           </tbody>
         </table>
@@ -83,7 +86,7 @@ function Body({ data }) {
     </section>
     <section class="card gcore-block">
       <div class="block-head"><span class="card-title">conventions.md</span></div>
-      <pre class="gcore-pre" ref=${convRef}>${data.conventions || "(none)"}</pre>
+      <pre class="gcore-pre" ref=${convRef}>${data.conventions ? tidy(data.conventions) : "No conventions file in this checkout."}</pre>
     </section>`;
 }
 
@@ -93,10 +96,10 @@ function Gcore() {
     <div class="page-head">
       <div class="page-head-text">
         <div class="row-tight">
-          <h1 class="page-title">gcore</h1>
+          <h1 class="sr-only">Passport</h1>
           <${Badge} kind="plain">Topology source of truth<//>
         </div>
-        <p class="page-sub">Manifest, conventions and the secret passport, read from the instance checkout on this host.</p>
+        <p class="page-sub">Read from the instance checkout on this host.</p>
       </div>
     </div>
     <${Loaded} state=${state}>${(data) => html`<${Body} data=${data} />`}<//>`;

@@ -1,10 +1,10 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Notes</h1>
+      <h1 class="sr-only">Notes</h1>
       <span class="badge badge-plain num" data-count>Loading</span>
     </div>
-    <p class="page-sub">Everything in the brain, filterable.</p>
+    
   </div>
 </div>
 
@@ -39,7 +39,7 @@
   <div class="table-wrap">
     <table class="table">
       <thead>
-        <tr><th>Title</th><th>Kind</th><th>Status</th><th class="r">Version</th><th class="r">Updated</th></tr>
+        <tr><th>Title</th><th>Kind</th><th class="hide-sm">Status</th><th class="r hide-sm">Version</th><th class="r">Updated</th></tr>
       </thead>
       <tbody data-rows>
         <tr><td colspan="5" class="muted">Loading notes</td></tr>
@@ -104,7 +104,7 @@
   // arrive carrying markdown. A table cell is not a .prose surface.
   // Looked up per call: g-ui.js is deferred, so it has not defined `g` yet
   // when this inline script first runs.
-  const plain = (s) => g.plain(s);
+  const plain = (s) => g.tidy(g.plain(s));  // markdown flattened, em dashes and middle dots swapped (g-design)
   let all = [];
 
   // Green reads as "settled", red as "needs a rewrite"; everything else is
@@ -132,8 +132,8 @@
       <tr class="${n.status}">
         <td class="title"><a href="/note/${n.path}">${escapeHtml(plain(n.title))}</a></td>
         <td class="kind">${sentence(n.kind)}</td>
-        <td class="status"><span class="badge ${TONE[n.status] || 'badge-plain'}">${sentence(n.status)}</span></td>
-        <td class="r mono">${n.version}</td>
+        <td class="status hide-sm"><span class="badge ${TONE[n.status] || 'badge-plain'}">${sentence(n.status)}</span></td>
+        <td class="r mono hide-sm">${n.version}</td>
         <td class="r updated num">${n.updated || ''}</td>
       </tr>`).join('') || '<tr><td colspan="5" class="muted">No notes match these filters</td></tr>';
   }

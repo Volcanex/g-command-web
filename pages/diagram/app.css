@@ -15,9 +15,9 @@ body.diagram-page { --col-page: 100%; }
 .dg-dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; flex: none; }
 .dg-legend-line { stroke: var(--text-secondary); stroke-width: 1.5; fill: none; }
 
-.dg-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-4); align-items: start; }
+.dg-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-3); align-items: start; }
 .dg-layout > .dg-flows { grid-column: 1 / -1; }
-.dg-side { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.dg-side { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
 .dg-canvas { padding: 0; overflow: hidden; max-width: none; display: flex; flex-direction: column; min-width: 0; }
 .dg-svg { display: block; font-family: var(--font-ui); }
 .dg-h3 { margin: var(--sp-4) 0 0; font-size: 12px; line-height: var(--lh-1); font-weight: 600; color: var(--text-primary); }

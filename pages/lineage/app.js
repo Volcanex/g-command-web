@@ -26,7 +26,12 @@ function drawGraph(svgEl, { nodes, links }) {
   svg.selectAll("*").remove();
 
   const g = svg.append("g");
-  svg.call(d3.zoom().scaleExtent([0.3, 4]).on("zoom", (e) => g.attr("transform", e.transform)));
+  let userMoved = false;
+  const zoom = d3.zoom().scaleExtent([0.3, 4]).on("zoom", (e) => {
+    if (e.sourceEvent) userMoved = true;  // a person zoomed or panned: stop reframing under them
+    g.attr("transform", e.transform);
+  });
+  svg.call(zoom);
 
   const sim = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id((d) => d.id).distance(100).strength(0.8))
@@ -56,6 +61,21 @@ function drawGraph(svgEl, { nodes, links }) {
     node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
     label.attr("x", (d) => d.x).attr("y", (d) => d.y);
   });
+
+  // Keep every node and label inside the card while it settles, then frame it at rest.
+  // A label runs right of its node, so the right edge gets the room of the longest one.
+  const longest = Math.max(0, ...nodes.map((d) => String(d.label || "").length)) * 6 + 16;
+  const fit = (animate) => {
+    const xs = nodes.map((d) => d.x), ys = nodes.map((d) => d.y), pad = 24;
+    const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + longest;
+    const y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+    const k = Math.min(width / (x1 - x0), HEIGHT / (y1 - y0), 1.6);
+    const t = d3.zoomIdentity.translate(width / 2, HEIGHT / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    (animate ? svg.transition().duration(400) : svg).call(zoom.transform, t);
+  };
+  let ticks = 0;
+  sim.on("tick.fit", () => { if (!userMoved && ++ticks % 10 === 1) fit(false); });
+  sim.on("end.fit", () => { if (!userMoved) fit(true); });
   return { stop: () => sim.stop() };
 }
 
@@ -87,7 +107,7 @@ function Lineage() {
     <div class="page-head">
       <div class="page-head-text">
         <div class="row-tight">
-          <h1 class="page-title">Lineage</h1>
+          <h1 class="sr-only">Lineage</h1>
           <${Badge} kind="plain">Layer 4<//>
           <${Badge} kind="plain" class="num">${stats}<//>
         </div>

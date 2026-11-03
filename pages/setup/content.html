@@ -1,7 +1,7 @@
 <div class="page-head">
   <div class="page-head-text">
     <div class="row-tight">
-      <h1 class="page-title">Setup</h1>
+      <h1 class="sr-only">Setup</h1>
       <span class="badge badge-plain" data-no-tokens>Machine bootstrap</span>
     </div>
     <p class="page-sub">Bootstrap any machine into G-System. One command on Mac, one command on Linux. An agent can read and execute this page directly.</p>
@@ -190,6 +190,10 @@ ls ~/.claude/agents            # g-executor, g-explore</code><button class="btn 
     white-space: pre;
   }
   .code-block .copy-btn { position: absolute; top: 6px; right: 6px; }
+  /* A command wider than the card scrolls inside its well, clear of the copy button; on a
+     phone it wraps instead, so the whole command reads without sideways scrolling. */
+  .code-block:has(.copy-btn) { padding-right: calc(var(--sp-3) + var(--h-3)); }
+  @media (max-width: 720px) { .code-block code { white-space: pre-wrap; overflow-wrap: anywhere; } }
   .pair-box { display: flex; align-items: flex-start; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-3); }
   .pair-qr { width: 200px; height: 200px; padding: var(--sp-2); background: #fff; border-radius: var(--radius-sm); }
   .pair-qr svg { display: block; width: 100%; height: 100%; }
