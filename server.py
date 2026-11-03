@@ -236,11 +236,20 @@ async def logout_page():
     return resp
 
 
+# Pages folded into another. A permanent redirect, so old links and the apps'
+# saved routes land on the page that replaced them. Todos merged into the
+# calendar on 2026-11-03: every item has a date now.
+MOVED = {"todos": "/calendar"}
+
+
 @app.get("/{path:path}", include_in_schema=False)
 async def serve_pages(path: str, request: Request):
     """Serve compiled HTML pages with clean URLs."""
     if path.startswith("api/"):
         return JSONResponse({"error": "not found"}, status_code=404)
+    if (moved := MOVED.get(path.strip("/"))) is not None:
+        query = request.url.query
+        return RedirectResponse(moved + ("?" + query if query else ""), status_code=301)
 
     # Whole-site password gate.
     redirect = _admin_gated(path, request)

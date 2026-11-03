@@ -479,6 +479,11 @@ details[open] > .fd-bullet { white-space: normal; color: var(--text-primary); }
   min-height: var(--h-2); padding: 0 var(--sp-1);
   color: var(--text-primary); text-decoration: none; border-radius: var(--radius-sm);
 }
+.essentials { display: flex; flex-direction: column; gap: var(--sp-1); }
+.essentials:empty { min-height: var(--lh-2); }
+.essentials-line { margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-primary); }
+.fd-band > .essentials { padding: 0 var(--sp-2); }
+.hub-top .essentials { margin-top: var(--sp-2); }
 .fd-band-head:hover { background: var(--fill-hover); }
 .fd-band-head .ph { color: var(--text-placeholder); }
 .fd-band-head .fd-meta.is-danger { color: var(--danger-text); }

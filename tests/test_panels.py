@@ -21,6 +21,7 @@ CALENDAR_ERROR = {"title": "Not saved", "desc": "The brain did not accept the ch
 SOURCES = {
     "calendar": CALENDAR_PATH,
     "brief": "/api/pulse/brief",
+    "agenda": "/api/todos/agenda",
     "tasks": "/api/todos?status=open",
     "money": "/api/todos?status=open",
     "health": "/api/status",
@@ -200,14 +201,12 @@ def test_calendar_patch_for_and_settled_counts(recurring, done, failed, body):
     assert result["meta"] == f"{int(not done and not failed)} open today, 0 carried over"
 
 
-def test_calendar_failed_carried_counts_like_javascript():
+def test_calendar_settled_carried_over_items_drop_out():
     items = [todo("failed", date="2026-10-19", late_days=1, failed=True),
              todo("done", date="2026-10-19", late_days=1, done=True)]
     result = build("calendar", FixtureContext({CALENDAR_PATH: items}))
-    assert result["meta"] == "0 open today, 1 carried over"
-    assert result["blocks"][0]["title"] == "Carried over"
-    assert result["blocks"][0]["count"] == 2
-    assert [row["title"] for row in result["blocks"][0]["rows"]] == ["done", "failed"]
+    assert result["meta"] == "0 open today, 0 carried over"
+    assert result["blocks"][0] == {"type": "rows", "title": "Today", "empty": "Nothing on today.", "rows": []}
 
 
 @pytest.mark.parametrize("category,tone", [
@@ -455,7 +454,7 @@ def test_empty_panels(name, data, fields):
     assert build(name, FixtureContext({SOURCES[name]: data, "/api/compute/state": {}})) == expected(name, **fields)
 
 
-@pytest.mark.parametrize("name", PANELS)
+@pytest.mark.parametrize("name", [n for n in PANELS if n != "agenda"])
 @pytest.mark.parametrize("failure", [TimeoutError("private http://brain.invalid"), HTTPException(503, "private"), ValueError("private JSON")])
 def test_each_builder_returns_its_safe_error_panel(name, failure):
     module = importlib.import_module("core.panels." + name)
@@ -492,7 +491,7 @@ def test_route_returns_panel_json(client, monkeypatch, name, data, fields):
     assert response.json() == expected(name, **fields)
 
 
-@pytest.mark.parametrize("name", PANELS)
+@pytest.mark.parametrize("name", [n for n in PANELS if n != "agenda"])
 def test_route_upstream_errors_are_200_without_diagnostics(client, monkeypatch, name):
     monkeypatch.setattr(api, "Context", lambda request: FixtureContext({SOURCES[name]: TimeoutError("private http://brain.invalid")}))
     client.cookies.set("seed_admin", "ok")

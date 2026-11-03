@@ -42,6 +42,13 @@ def normalise(layout):
     }
 
 
+def essentials(panel, depth=0):
+    """The slot for a band's or hub's essentials: the lines of the panel it
+    names (the agenda), filled by core/static/js/hub.js. It never stays
+    blank: a failure fills it with a failure line."""
+    return "  " * depth + f'<div class="essentials" data-lines="{html.escape(str(panel))}"></div>'
+
+
 def render(slug, layout, heads=None):
     """The web dash: `.fd-dash` of `.fd-col` columns, `.fd-row` for panels
     side by side, then the page's placement CSS for wide windows. A row with
@@ -65,6 +72,8 @@ def render(slug, layout, heads=None):
                 lines.append('    <section class="fd-band">')
                 lines.append(f'      <a class="fd-band-head" href="{html.escape(href)}"><h2 class="card-title">{html.escape(label)}</h2>'
                              f'<span class="fd-meta hub-line"{live}></span><i class="ph ph-arrow-right" aria-hidden="true"></i></a>')
+                if item.get("lines"):
+                    lines.append(essentials(item["lines"], 3))
                 lines.append('      <div class="fd-row">')
                 lines += [panel(name, 4) for name in item["row"]]
                 lines.append("      </div>")

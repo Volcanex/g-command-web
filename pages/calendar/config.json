@@ -1,7 +1,7 @@
 {
   "title": "Calendar",
   "slug": "calendar",
-  "description": "Every dated todo on a month grid, with the reminders each one will fire.",
+  "description": "Every item has a date. Tick it off or move it.",
   "nav": false,
   "order": 10,
   "nav_icon": "calendar-blank",
@@ -9,6 +9,6 @@
   "gsys": true,
   "tabs": "life",
   "tab_label": "Calendar",
-  "tile_note": "Every dated todo on a month grid",
+  "tile_note": "Overdue, today and this week",
   "tile_line": "panel:calendar"
 }

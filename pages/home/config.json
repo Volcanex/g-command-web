@@ -1,7 +1,7 @@
 {
   "title": "Life",
   "slug": "home",
-  "description": "Deadlines first: dated todos for today and the week, open todos and money.",
+  "description": "Deadlines first: what is due, and money going out.",
   "nav": true,
   "order": 2,
   "nav_section": "Overview",
@@ -9,7 +9,7 @@
   "nav_label": "Life",
   "gsys": true,
   "body_class": "full-dash-page life-page",
-  "layout_note": "Deadlines first: the calendar of dated todos has two thirds of the width and the full height. Pulse is one tagline line in the head, not a panel.",
+  "layout_note": "Deadlines first: the calendar has two thirds of the width and the full height, money beside it. The essentials sit in the head.",
   "layout": {
     "columns": [
       {
@@ -22,7 +22,6 @@
         "width": 1,
         "min": 300,
         "items": [
-          "tasks",
           "money"
         ]
       }
@@ -31,6 +30,7 @@
   "tabs": "life",
   "tab_label": "Overview",
   "tagline": "brief",
-  "tile_note": "Deadlines, todos and money",
-  "tile_line": "todos"
+  "tile_note": "Deadlines and money",
+  "tile_line": "panel:calendar",
+  "lines": "agenda"
 }

@@ -133,7 +133,7 @@ def test_history_carries_blocks_and_old_panels_become_links(client, tmp_path):
     assert turns[0]["attachments"] == [{"id": "a" * 32}]
     first = turns[1]["blocks"][0]
     assert first["type"] == "rows" and first["rows"][0]["link"] == "/calendar"
-    assert turns[1]["blocks"][1]["blocks"][0]["rows"][0]["link"] == "/todos"
+    assert turns[1]["blocks"][1]["blocks"][0]["rows"][0]["link"] == "/calendar"
     assert "blocks" not in turns[2]
 
 

@@ -45,7 +45,8 @@ def test_layout_shape(slug):
         assert set(column) <= {"width", "min", "items"}
         for item in column["items"]:
             item = {"panel": item} if isinstance(item, str) else item
-            assert set(item) <= {"panel", "row", "grow", "fit", "shrink", "max", "head"}
+            assert set(item) <= {"panel", "row", "grow", "fit", "shrink", "max", "head", "lines"}
+            assert "lines" not in item or ("head" in item and item["lines"] in PANELS)
             assert "head" not in item or ("row" in item and item["head"] in CONFIGS)
             assert ("panel" in item) != ("row" in item)
             assert not (item.get("fit") and "grow" in item)

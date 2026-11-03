@@ -28,11 +28,11 @@
           {
             "row": [
               "calendar",
-              "tasks",
               "money"
             ],
             "head": "home",
-            "grow": 3
+            "grow": 3,
+            "lines": "agenda"
           }
         ]
       }

@@ -670,7 +670,8 @@ def hub_head(context: dict) -> str:
             '<div class="page-head"><div class="page-head-text">'
             f'<h1 class="page-title">{html.escape(str(context.get("title", "")))}</h1>'
             f'<p class="page-sub">{html.escape(str(context.get("description", "")))}</p>{tag}'
-            "</div></div>" + hub_tiles(context["slug"]) + "</div>")
+            + (dash_layout.essentials(page["lines"]) if page.get("lines") else "")
+            + "</div></div>" + hub_tiles(context["slug"]) + "</div>")
 
 
 def parent_of(config: dict) -> dict | None:

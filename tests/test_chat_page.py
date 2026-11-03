@@ -15,7 +15,7 @@ def test_chat_sits_in_life_after_the_daily_pages_and_stays_out_of_the_apps_nav()
     life = [json.loads(p.read_text()) for p in PAGE.parent.glob("*/config.json")]
     life = sorted((d for d in life if d.get("tabs") == "life" and not d.get("nav")), key=lambda d: d.get("order", 999))
     assert config["tabs"] == "life" and config["nav"] is False
-    assert [d["title"] for d in life] == ["Calendar", "Todos", "Chat"]
+    assert [d["title"] for d in life] == ["Calendar", "Chat"]
     from core.panels.manifest import build_manifest
     tabs = [t["slug"] for s in build_manifest(PAGE.parent)["sections"] for e in s["entries"] for t in e.get("tabs", [])]
     assert "chat" not in tabs

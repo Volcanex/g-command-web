@@ -98,7 +98,8 @@ def test_manifest_matches_real_sidebar_and_tabs():
     assert manifest["panels"] == {
         "calendar": {"title": "Today", "icon": "calendar-blank"},
         "brief": {"title": "Brief", "icon": "sun-horizon"},
-        "tasks": {"title": "Todos", "icon": "check-square"},
+        "agenda": {"title": "This week", "icon": "calendar-check"},
+        "tasks": {"title": "Undated", "icon": "check-square"},
         "money": {"title": "Money", "icon": "wallet"},
         "health": {"title": "Health", "icon": "heartbeat"},
         "compute": {"title": "Compute", "icon": "gauge"},

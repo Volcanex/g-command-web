@@ -92,3 +92,13 @@ def test_root_serves_home(monkeypatch):
     assert r.status_code == 200
     assert "<title>Home - " in r.text
     assert client.get("/full-dash", follow_redirects=False).status_code == 200
+
+
+def test_todos_redirects_permanently_to_the_calendar():
+    from fastapi.testclient import TestClient
+    import server
+    client = TestClient(server.app)
+    r = client.get("/todos", follow_redirects=False)
+    assert r.status_code == 301 and r.headers["location"] == "/calendar"
+    r = client.get("/todos/?status=done", follow_redirects=False)
+    assert r.status_code == 301 and r.headers["location"] == "/calendar?status=done"

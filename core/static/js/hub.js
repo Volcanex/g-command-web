@@ -5,7 +5,8 @@
    the line empty, and an empty line takes no room. */
 (() => {
   const slots = [...document.querySelectorAll("[data-line]")];
-  if (!slots.length) return;
+  const essentials = [...document.querySelectorAll("[data-lines]")];
+  if (!slots.length && !essentials.length) return;
   const BRAIN = window.BRAIN_API || "/api/brain";
   const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
   const plain = (t) => (window.g && window.g.plain ? window.g.plain(t) : String(t));
@@ -48,6 +49,25 @@
       return { text: plain(item.label ? `${item.label}: ${item.text}` : item.text) };
     },
   };
+
+  /* The essentials: a panel's bullets as up to three plain lines (the
+     agenda). The panel already turns a brain failure into a line; this only
+     covers Command itself not answering, so the slot is never blank. */
+  const fill = (el, lines) => {
+    el.replaceChildren(...lines.slice(0, 3).map((text) => {
+      const p = document.createElement("p");
+      p.className = "essentials-line";
+      p.textContent = plain(text);
+      return p;
+    }));
+  };
+  for (const el of essentials) {
+    get(`/api/panels/${encodeURIComponent(el.dataset.lines)}`).then((d) => {
+      const items = ((d.blocks || [])[0] || {}).items || [];
+      const lines = items.map((item) => item.text).filter(Boolean);
+      fill(el, lines.length ? lines : [d.message || "Calendar unavailable: no lines came back."]);
+    }, (e) => fill(el, [`Calendar unavailable: Command did not answer (${e.message}).`]));
+  }
 
   for (const el of slots) {
     const [key, arg] = el.dataset.line.split(":");

@@ -52,7 +52,9 @@ def build(ctx):
     end = today + timedelta(days=6)
     data = ctx.get(f"/api/todos/calendar?date_from={today.isoformat()}&date_to={end.isoformat()}")
     items = data if isinstance(data, list) else []
-    todays = [item for item in items if item.get("date") == today.isoformat() and not item.get("dropped")]
+    # Late work already ticked off is gone; only what is still owed carries over.
+    todays = [item for item in items if item.get("date") == today.isoformat() and not item.get("dropped")
+              and not (item.get("late_days") and (item.get("done") or item.get("failed")))]
     own = sorted((item for item in todays if not item.get("late_days")), key=chronological)
     carried = sorted((item for item in todays if item.get("late_days")), key=triage)
     opened = sum(not item.get("done") and not item.get("failed") for item in todays)

@@ -27,7 +27,7 @@ nest one level under it in the rail, labelled by `tab_label`, ordered by
 from the same tree (`<!-- seed:hub-head -->` on a dash, `<!-- seed:hub-tiles -->`
 on any page), with `tile_note` and a live line from `tile_line`
 (`core/static/js/hub.js`: `services`, `todos`, `notes`, `refs`,
-`panel:<name>`). Groups: `life` (Life `/home`, Calendar, Todos), `system`
+`panel:<name>`). Groups: `life` (Life `/home`, Calendar, Chat), `system`
 (System `/ops`, Diagram, Services `/system`, Compute, Crons, Tickets,
 Projects, Levels), `brain` (Brain `/brain` with the Graph as a panel, Notes,
 Voice, Nerves, References, Lineage) and `setup` (Setup, Install, Passport).
