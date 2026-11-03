@@ -84,7 +84,9 @@
 <p class="api-note" data-note hidden></p>
 
 <style>
-  .section-head { font-size: 16px; margin: var(--sp-5) 0 var(--sp-2); }
+  /* A section's sub sits under its heading, not a stack gap below it. */
+  .section-head + .page-sub, .section-row + .page-sub { margin-top: calc(var(--sp-1) - var(--sp-4)); }
+  .section-head { font-size: 16px; margin: var(--sp-2) 0 0; }
   .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
   .gv-card { margin: var(--sp-3) 0; display: flex; flex-direction: column; gap: var(--sp-3); }
   .gv-flush { padding: 0; overflow: hidden; }

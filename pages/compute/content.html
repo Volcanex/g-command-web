@@ -92,14 +92,16 @@
 <p class="api-note" data-note hidden></p>
 
 <style>
+  /* A section's sub sits under its heading, not a stack gap below it. */
+  .section-head + .page-sub, .section-row + .page-sub { margin-top: calc(var(--sp-1) - var(--sp-4)); }
   .head-actions { margin-left: auto; display: flex; gap: var(--sp-2); }
   .compute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--sp-4); }
   .compute-grid.wide { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
   .compute-card { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
   .compute-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
-  .section-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-6, 32px); }
+  .section-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-top: var(--sp-4); }
   .section-row .section-head { margin: 0; }
-  .section-head { font-size: 16px; margin: var(--sp-6, 32px) 0 0; }
+  .section-head { font-size: 16px; margin: var(--sp-4) 0 0; }
   .glance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-4); }
   @media (min-width: 1680px) { .glance { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .glance .card { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }

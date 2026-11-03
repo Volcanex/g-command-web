@@ -45,9 +45,22 @@ and on a tab page with no link of its own it marks the group's entry.
 
 The shell links the vendored g-design pack (`core/static/css/gsys/`:
 `g.css` + `g-ui.js` + `fonts/`, produced by g-design's
-`scripts/vendor.mjs`. Never hand-edit,
-re-vendor to update) plus `core/static/css/gsys/chrome.css` (g-command-web's
-sidebar / top bar / status line on `.g-shell`). Dark is the default (no
+`scripts/vendor.mjs`), then the app kit (`gsys/kit/kit.css`, Studio's
+shell look, produced by g-design's `scripts/vendor-preact.mjs`; the JS
+beside it is unused until pages move to Preact). Never hand-edit either,
+re-vendor to update. Last comes `core/static/css/gsys/chrome.css`, which
+holds only what is Command's own (the Phosphor glyph in nav items, the
+side-foot toggles, the tab strip, the status line, the page reveal).
+
+The shell markup is the kit's: `aside` with `.brand`, `.nav-list`
+(`.nav-head` and `.nav-item`, from `build_nav_html()`) and `.side-foot`;
+`main.g-main` with `.topbar`, `.content` (the scroller) holding
+`.content-page.site-main` (the page, a stack with a `--sp-4` gap, so a
+top-level block needs no margin of its own), and the `.g-status` line.
+A page head is the kit's too: `.page-head` > `.page-head-text` (a
+`.row-tight` with `h1.page-title` and its badges, then `.page-sub`) and
+`.page-actions`. On a wide screen the bar hides its title when the page
+has a `.page-head`. Dark is the default (no
 `data-theme` attribute); the sidebar-foot toggles flip theme/density via
 `g.theme` / `g.density` (localStorage keys `g-theme`/`g-density`,
 applied pre-paint by an inline `<head>` script). Page CSS goes in that
@@ -67,12 +80,12 @@ Scope `data-tokens` to prose, or mark components `data-no-tokens`.
 `shell.html` interpolates `{{ body_class }}` on `<body>`. Set
 `"body_class": "is-something"` in a page's `config.json` to scope
 overrides without polluting global stylesheets. The login page uses
-`login-page` (console.css hides the sidebar/top/status for it);
+`login-page` (chrome.css hides the sidebar/top/status for it);
 full-dash, home and ops use `full-dash-page` (full-bleed, no measure cap).
 
 ## Inside the apps
 The G-Command iPhone and Mac apps load web pages with ` GCommandApp/<version>`
 in the user agent. A head script then sets `data-app` on `<html>`, and
-`chrome.css` hides the sidebar, top bar and status bar: the app draws the
+`chrome.css` hides the sidebar, top bar and status line: the app draws the
 navigation and title. Browsers never send the marker, so the site itself is
 unchanged.
