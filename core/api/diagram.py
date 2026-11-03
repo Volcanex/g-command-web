@@ -8,6 +8,7 @@ the way pages/levels/api.py imports glevels.export) with its seams filled from l
            from BRAIN_UPSTREAM, the same upstream core/api/brain.py proxies.
   clients  the project:g-studio node, from Studio's `GET /api/gadmin/blocks` with the
            `X-Gadmin-Token` this server already holds (GADMIN_TOKEN); it never reaches the browser.
+  workspace health, copied from the host each workspace works on.
   live     each declared http/sse/websocket connects edge: "down" when the target's service (or
            dependency) is down, "up" when all of them are up, else null.
 
@@ -24,6 +25,7 @@ import os
 import sys
 import threading
 import time
+from collections import Counter
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -187,6 +189,10 @@ def _overlay(base: dict, live: dict) -> dict:
                 if nid in nodes and any(states.values()):
                     nodes[nid]["health"] = {"state": _worst(states.values()), "services": states,
                                             "source": "brain /api/status"}
+        # a workspace reads as healthy as the host it works on
+        for e in g["edges"]:
+            if e["kind"] == "works_on" and e["from"] in nodes and (nodes.get(e["to"]) or {}).get("health"):
+                nodes[e["from"]]["health"] = {**nodes[e["to"]]["health"], "source": f"its host, {e['to']}"}
         # live check on declared request/stream edges
         for e in g["edges"]:
             if e["kind"] != "connects":
@@ -237,6 +243,8 @@ def _overlay(base: dict, live: dict) -> dict:
         "drift": sum(1 for e in g["edges"] if e.get("drift")),
         "live_down": sum(1 for e in g["edges"] if e.get("live") == "down"),
         "clients": g["sources"]["clients"]["count"],
+        "problems": len(g.get("problems") or []),
+        "kinds": dict(sorted(Counter(n["kind"] for n in g["nodes"]).items())),
     }
     return g
 

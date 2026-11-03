@@ -72,6 +72,35 @@ body.diagram-page { --col-page: 100%; }
 @keyframes dg-flow { from { stroke-dashoffset: 20; } to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .dg-move { animation: none; opacity: 0; } }
 
+/* Whole system: bands, collapsible groups, chips, and the focused part's wires over them. */
+.dg-bands { position: relative; display: flex; flex-direction: column; gap: var(--sp-3); }
+.dg-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+.dg-wire { fill: none; stroke: var(--text-secondary); stroke-width: 1.25; opacity: 0.8; }
+.dg-wire.in { stroke-dasharray: 4 3; }
+.dg-band { border-top: 1px solid var(--border-subtle); padding-top: var(--sp-2); }
+.dg-band:first-of-type { border-top: 0; padding-top: 0; }
+.dg-band-head { all: unset; display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; width: 100%; height: var(--h-1); }
+.dg-band-head:focus-visible, .dg-group-head:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+.dg-band-title { font-size: 13px; line-height: var(--lh-1); font-weight: 600; color: var(--text-primary); }
+.dg-band-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dg-groups { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-top: var(--sp-2); }
+.dg-group-box { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--sp-2); min-width: 0; max-width: 100%; }
+.dg-group-head { all: unset; display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.dg-group-head .g-tree-caret, .dg-band-head .g-tree-caret { visibility: visible; }
+.dg-group-head[aria-expanded="true"] > .g-tree-caret::before, .dg-band-head[aria-expanded="true"] > .g-tree-caret::before { rotate: 45deg; margin-left: 0; margin-top: -2px; }
+.dg-chipset { display: flex; flex-wrap: wrap; gap: var(--sp-1); padding-top: var(--sp-2); }
+.dg-chip { all: unset; position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--sp-1); height: 24px; padding: 0 var(--sp-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel); font-size: 12px; line-height: var(--lh-1); color: var(--text-primary); cursor: pointer; white-space: nowrap; }
+.dg-chip:hover { border-color: var(--border-hover); }
+.dg-chip:focus-visible, .dg-chip.is-focus { outline: 2px solid var(--focus-ring); outline-offset: 0; }
+.dg-chip.is-flagged { border-color: var(--warn); }
+.dg-chip.is-dup span { text-decoration: line-through; color: var(--text-secondary); }
+.dg-c-unknown { border-style: dashed; color: var(--text-secondary); }
+.dg-c-charter, .dg-c-gate { background: var(--surface-2); }
+.dg-chip-flag { font-size: 10px; font-weight: 700; color: var(--warn-text); }
+.dg-chip .dg-dot { width: 8px; height: 8px; }
+.dg-wrap { overflow-wrap: anywhere; }
+
 /* Phone: the lists come first and the diagram scrolls inside its card. */
 @media (max-width: 900px) {
   .dg-layout { grid-template-columns: minmax(0, 1fr); }

@@ -7,6 +7,7 @@
 import { html, useState, useEffect, useRef, Badge, Button, ErrorState, Empty, mount, getJson } from "../../core/app/boot.js";
 import { useMemo } from "preact/hooks";
 import ELK from "elkjs/lib/elk.bundled.js";
+import { BANDS, Layers, Links, world } from "./layers.js";
 import "./app.css";
 
 const API = "/api/diagram";
@@ -134,7 +135,11 @@ function problems(m, data) {
   if (src.status && !src.status.ok) out.push({ key: "src:status", tone: "unknown", title: "Health unavailable", why: `The brain status did not answer (${plain(src.status.reason)}), so nodes show no health.` });
   if (src.clients && !src.clients.ok) out.push({ key: "src:clients", tone: "unknown", title: "Studio clients unavailable", why: `Studio's machine API did not answer (${plain(src.clients.reason)}), so g-studio is drawn without its clients.` });
   if (src.gcore && !src.gcore.ok) out.push({ key: "src:gcore", tone: "down", title: "Graph unavailable", why: `gcore's graph did not assemble (${plain(src.gcore.reason)}).` });
-  for (const p of data.problems || []) out.push({ key: `gp:${JSON.stringify(p)}`, tone: "warn", title: "gcore", why: plain(typeof p === "string" ? p : p.text || p.message || JSON.stringify(p)) });
+  for (const p of data.problems || []) {
+    const n = p.node && m.nodes.get(p.node);
+    out.push({ key: `gp:${JSON.stringify(p)}`, tone: "warn", node: n ? p.node : undefined, title: n ? short(n) : plain(p.node || "gcore"),
+      why: plain(typeof p === "string" ? p : p.problem || p.text || p.message || JSON.stringify(p)) });
+  }
   const rank = { down: 0, warn: 1, unknown: 2 };
   return out.sort((a, b) => rank[a.tone] - rank[b.tone]);
 }
@@ -435,6 +440,10 @@ function Diagram() {
   const [query, setQuery] = useState("");
   const [focus, setFocus] = useState(null);
   const [fit, setFit] = useState(false);
+  const [mode, setMode] = useState("layers");
+  const [by, setBy] = useState("natural");
+  const [hidden, setHidden] = useState(() => new Set());
+  const [collapsed, setCollapsed] = useState(() => new Set());
   const [width, setWidth] = useState(900);
   const [lay, setLay] = useState(null);
   const [layError, setLayError] = useState(null);
@@ -455,6 +464,9 @@ function Diagram() {
 
   const m = useMemo(() => (data && data.nodes ? model(data) : null), [data]);
   const flagged = useMemo(() => (m ? problems(m, data) : []), [m]);
+  const w = useMemo(() => (data && data.nodes ? world(data) : null), [data]);
+  const toggleIn = (set) => (k) => set((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const collapseAll = () => setCollapsed(collapsed.size ? new Set() : new Set(BANDS.map((b) => b.id)));
   const f = { kinds, host, problems: onlyProblems, depends, query };
   const vis = useMemo(() => (m ? visible(m, f) : null), [m, kinds, host, onlyProblems, depends, query]);
   // Re-lay out only when the drawn structure changes, not on every health refresh.
@@ -477,7 +489,10 @@ function Diagram() {
   const s = data && data.summary;
   const studioWhy = data && data.sources && data.sources.clients && !data.sources.clients.ok ? data.sources.clients.reason : null;
   const stats = error && !data ? "Unavailable" : s
-    ? `${vis ? vis.edges.filter((e) => e.kind === "connects").length : 0} flows, ${s.drift} drifted, ${s.live_down} down` : "Loading";
+    ? mode === "layers" ? `${s.nodes} parts, ${s.edges} links, ${flagged.length} flagged`
+    : `${vis ? vis.edges.filter((e) => e.kind === "connects").length : 0} flows, ${s.drift} drifted, ${s.live_down} down` : "Loading";
+  const seg = (name, value, set, opts) => html`<div class="g-segmented g-segmented-sm" role="radiogroup" aria-label=${name}>
+    ${opts.map(([v, label]) => html`<label key=${v}><input type="radio" name=${name} value=${v} checked=${value === v} onChange=${() => set(v)} />${label}</label>`)}</div>`;
 
   return html`
     <div class="page-head">
@@ -486,12 +501,40 @@ function Diagram() {
           <h1 class="page-title">Diagram</h1>
           <${Badge} kind="plain" class="num">${stats}<//>
         </div>
-        <p class="page-sub">How the G-System flows, drawn from every repo's declared connects and what gcore observes in the code. Node colour is live health, refreshed every 30 seconds.</p>
+        <p class="page-sub">${mode === "layers"
+          ? "The whole G-System, one band per level, read from gcore's manifest, g-levels and every checkout. Health is live, refreshed every 30 seconds. Choose a part to draw its links."
+          : "How the G-System flows, drawn from every repo's declared connects and what gcore observes in the code. Node colour is live health, refreshed every 30 seconds."}</p>
       </div>
     </div>
     ${error && !data
       ? html`<section class="card"><${ErrorState} error=${error} title="Could not load the diagram" retry=${() => setTick((t) => t + 1)} /></section>`
       : html`
+      <div class="dg-filters">
+        ${seg("View", mode, (v) => { setMode(v); setFocus(null); }, [["layers", "Whole system"], ["flows", "Flows"]])}
+      </div>
+      ${mode === "layers" ? html`
+      <div class="dg-filters">
+        <input class="input dg-q" type="search" placeholder="Search parts" aria-label="Search parts"
+          value=${query} onInput=${(e) => setQuery(e.currentTarget.value.trim().toLowerCase())} />
+        ${seg("Group by", by, setBy, [["natural", "Group by kind"], ["host", "Group by host"]])}
+        <span class="dg-chips" role="group" aria-label="Bands">
+          ${BANDS.map((b) => html`<${Button} key=${b.id} size="sm" kind=${hidden.has(b.id) ? "secondary" : "primary"} aria-pressed=${!hidden.has(b.id)} onClick=${() => toggleIn(setHidden)(b.id)}>${b.title}<//>`)}
+        </span>
+        <${Button} size="sm" kind=${onlyProblems ? "primary" : "secondary"} aria-pressed=${onlyProblems} onClick=${() => setOnlyProblems(!onlyProblems)}>Only problems<//>
+        <${Button} size="sm" kind="tertiary" class="dg-fit" onClick=${collapseAll}>${collapsed.size ? "Expand all" : "Collapse all"}<//>
+      </div>
+      ${error && html`<p class="small dg-stale">The last refresh failed, so this is the previous reading. It tries again in 30 seconds.</p>`}
+      <div class="dg-layout">
+        <div class="card dg-canvas dg-pad">
+          ${!w ? html`<p class="muted small">Loading the graph</p>`
+            : html`<${Layers} data=${data} w=${w} focus=${focus} setFocus=${setFocus} collapsed=${collapsed} toggle=${toggleIn(setCollapsed)}
+                filters=${{ by, query, problemsOnly: onlyProblems, hidden }} />`}
+        </div>
+        <div class="dg-side">
+          ${focus && w && html`<${Links} id=${focus} w=${w} setFocus=${setFocus} />`}
+          <${Flagged} list=${flagged} setFocus=${setFocus} />
+        </div>
+      </div>` : html`
       <div class="dg-filters">
         <input class="input dg-q" type="search" placeholder="Search nodes" aria-label="Search nodes"
           value=${query} onInput=${(e) => setQuery(e.currentTarget.value.trim().toLowerCase())} />
@@ -522,7 +565,7 @@ function Diagram() {
           <${Flagged} list=${flagged} setFocus=${setFocus} />
         </div>
         ${m && vis && html`<${FlowList} m=${m} edges=${vis.edges} setFocus=${setFocus} />`}
-      </div>`}`;
+      </div>`}`}`;
 }
 
 mount(Diagram);

@@ -17,9 +17,11 @@ GRAPH = {
         {"id": "project:g-command-web", "kind": "project", "name": "g-command-web", "health": None},
         {"id": "repo:gbrain", "kind": "repo", "name": "gbrain", "health": None},
         {"id": "dependency:openrouter", "kind": "dependency", "name": "openrouter", "health": None},
+        {"id": "workspace:2", "kind": "workspace", "name": "2", "health": None},
     ],
     "edges": [
         {"kind": "runs_on", "from": "service:g-studio", "to": "host:h"},
+        {"kind": "works_on", "from": "workspace:2", "to": "host:h"},
         {"kind": "has_service", "from": "project:g-studio", "to": "service:g-studio"},
         {"kind": "has_service", "from": "repo:gbrain", "to": "service:brain-api"},
         {"kind": "connects", "from": "project:g-command-web", "to": "project:g-studio", "via": "http",
@@ -94,7 +96,10 @@ def test_joined_payload(client, monkeypatch):
     assert live[("project:g-command-web", "repo:gbrain", "http")] == "up"
     assert live[("project:g-studio", "dependency:openrouter", "http")] == "up"
     assert live[("project:g-studio", "repo:gbrain", "vendor")] is None
-    assert body["summary"] == {"nodes": 7, "edges": 7, "drift": 1, "live_down": 1, "clients": 1}
+    assert body["summary"] == {"nodes": 8, "edges": 8, "drift": 1, "live_down": 1, "clients": 1, "problems": 0,
+                               "kinds": {"dependency": 1, "host": 1, "project": 2, "repo": 1, "service": 2,
+                                         "workspace": 1}}
+    assert n["workspace:2"]["health"]["state"] == "down" and n["workspace:2"]["health"]["source"] == "its host, host:h"
     studio_call = [h for u, h in seen if u.startswith("http://studio.invalid")][0]
     assert studio_call == {"X-Gadmin-Token": "test-secret-token"}
     assert "test-secret-token" not in json.dumps(body)
