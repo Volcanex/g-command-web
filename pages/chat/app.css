@@ -1,0 +1,103 @@
+/* Chat: the log fills the content area and scrolls; the composer stays at its
+   foot. Alias tokens only, so dark and light both come from g-system. */
+body.chat-page .content { overflow: hidden; }
+body.chat-page .content-page { max-width: none; height: 100%; padding: 0; gap: 0; }
+
+.chat-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.chat-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--sp-5) var(--gutter); }
+.chat-turns { list-style: none; margin: 0 auto; padding: 0; max-width: var(--col-content); display: flex; flex-direction: column; gap: var(--sp-4); }
+
+.chat-turn { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.chat-me { align-items: flex-end; }
+.chat-bubble {
+  max-width: min(80%, 560px); padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-card); border-bottom-right-radius: var(--radius-sm);
+  background: var(--accent-fill); color: var(--accent-fg);
+  font-size: var(--font-size-ui); line-height: var(--lh-2);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.chat-me.is-failed .chat-bubble { background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--danger-edge); }
+.chat-meta { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--lh-1); font-size: 11px; line-height: var(--lh-1); color: var(--text-placeholder); }
+.chat-fail { color: var(--danger-text); }
+.chat-atts { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+.chat-att img { display: block; max-width: 220px; max-height: 220px; border-radius: var(--radius); border: 1px solid var(--border); }
+.chat-file { display: inline-flex; align-items: center; gap: var(--sp-1); max-width: 260px; padding: var(--sp-1) var(--sp-2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-secondary); text-decoration: none; }
+
+.chat-voice { align-items: stretch; }
+.chat-prose { max-width: var(--col-text); overflow-wrap: anywhere; }
+.chat-prose > :first-child { margin-top: 0; }
+.chat-prose > :last-child { margin-bottom: 0; }
+.chat-typing { font-size: var(--font-size-ui); line-height: var(--lh-2); }
+.chat-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); color: var(--text-muted); }
+.chat-tools .ph { font-size: 14px; }
+.chat-spin { animation: chat-spin 1.6s linear infinite; }
+@keyframes chat-spin { to { transform: rotate(360deg); } }
+
+.chat-empty { max-width: var(--col-narrow); margin: var(--sp-8) auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
+.chat-empty .ph { font-size: 32px; color: var(--text-muted); }
+.chat-empty p { margin: 0; }
+.chat-empty-title { color: var(--text-primary); font-weight: 600; }
+.chat-offline { margin: 0; padding: 0 var(--gutter) var(--sp-2); font-size: 12px; line-height: var(--lh-1); text-align: center; }
+
+.chat-composer {
+  flex: none; display: flex; align-items: flex-end; gap: var(--sp-2);
+  width: 100%; max-width: calc(var(--col-content) + 2 * var(--gutter)); margin: 0 auto;
+  padding: var(--sp-3) var(--gutter) max(var(--sp-3), env(safe-area-inset-bottom));
+}
+.chat-input { flex: 1 1 auto; min-height: var(--h-control); max-height: 200px; resize: none; line-height: var(--lh-2); }
+
+/* Reply blocks: the dash's look, from the same tokens */
+.cb-blocks { display: flex; flex-direction: column; gap: var(--sp-3); max-width: var(--col-content); }
+.cb-card { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3); }
+.cb-group-label { font-size: 12px; line-height: var(--lh-1); font-weight: 600; color: var(--text-secondary); margin-bottom: var(--sp-1); }
+.cb-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.cb-row { position: relative; display: flex; align-items: center; gap: var(--sp-2); min-height: var(--h-control); padding: var(--sp-1) 0; border-top: 1px solid var(--border-subtle); min-width: 0; }
+.cb-row:first-child { border-top: 0; }
+.cb-row.has-accent { padding-left: var(--sp-3); }
+.cb-row.has-accent::before { content: ""; position: absolute; left: 0; top: var(--sp-2); bottom: var(--sp-2); width: 2px; border-radius: 2px; background: var(--cb-accent, var(--accent)); }
+.cb-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.cb-row-head { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+.cb-title { min-width: 0; color: var(--text-primary); text-decoration: none; font-size: var(--font-size-ui); line-height: var(--lh-2); }
+a.cb-title:hover { text-decoration: underline; }
+.cb-detail { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.cb-row.is-done .cb-title, .cb-row.is-struck .cb-title { color: var(--text-muted); text-decoration: line-through; }
+.cb-tick { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--h-control-sm); height: var(--h-control-sm); padding: 0; border: 0; background: none; color: var(--text-secondary); cursor: pointer; border-radius: var(--radius-full); }
+.cb-tick .ph { font-size: 18px; }
+.cb-tick:hover:not(:disabled) { color: var(--text-primary); }
+.cb-row.is-done .cb-tick { color: var(--ok-text); cursor: default; }
+.cb-trail { flex: none; }
+.cb-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: var(--lh-1); white-space: nowrap; }
+.cb-mark { flex: none; }
+.cb-tone-ok { color: var(--ok-text); } .cb-tone-warn { color: var(--warn-text); } .cb-tone-danger { color: var(--danger-text); }
+.cb-tone-accent { color: var(--accent); } .cb-tone-muted { color: var(--text-muted); } .cb-tone-plain { color: var(--text-secondary); }
+.cb-tone-chart-1 { color: var(--chart-1); } .cb-tone-chart-2 { color: var(--chart-2); } .cb-tone-chart-3 { color: var(--chart-3); }
+.cb-tone-chart-4 { color: var(--chart-4); } .cb-tone-chart-5 { color: var(--chart-5); } .cb-tone-chart-6 { color: var(--chart-6); }
+[data-accent="ok"] { --cb-accent: var(--ok); } [data-accent="warn"] { --cb-accent: var(--warn); } [data-accent="danger"] { --cb-accent: var(--danger); }
+[data-accent="chart-1"] { --cb-accent: var(--chart-1); } [data-accent="chart-2"] { --cb-accent: var(--chart-2); } [data-accent="chart-3"] { --cb-accent: var(--chart-3); }
+[data-accent="chart-4"] { --cb-accent: var(--chart-4); } [data-accent="chart-5"] { --cb-accent: var(--chart-5); } [data-accent="chart-6"] { --cb-accent: var(--chart-6); }
+.cb-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.cb-line-end { display: inline-flex; flex-wrap: wrap; gap: var(--sp-2); margin-left: auto; }
+.cb-meter-head { display: flex; align-items: center; gap: var(--sp-2); }
+.cb-meter-head .g-meter { flex: 1 1 auto; }
+.cb-meter-label { font-size: var(--font-size-ui); color: var(--text-primary); }
+.cb-meter-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.cb-meter-sub { display: flex; gap: var(--sp-2); margin-top: var(--sp-1); }
+.cb-spacer { flex: 1; }
+.cb-bullets { margin: 0; padding-left: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--font-size-ui); line-height: var(--lh-2); }
+.cb-bullets a { color: inherit; }
+.cb-small { margin: 0; font-size: 12px; line-height: var(--lh-1); white-space: pre-wrap; }
+.cb-image img { display: block; width: 100%; max-width: 560px; height: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+.cb-fold summary { cursor: pointer; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); }
+.cb-fold[open] summary { margin-bottom: var(--sp-2); }
+.cb-panel { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3); }
+.cb-panel-head { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.cb-panel-title { font-weight: 600; color: var(--text-primary); }
+.cb-panel-meta { font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-panel-link { margin-left: auto; }
+
+@media (max-width: 720px) {
+  .chat-log { padding: var(--sp-4) var(--gutter); }
+  .chat-bubble { max-width: 88%; }
+  .cb-detail { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) { .chat-spin { animation: none; } }
