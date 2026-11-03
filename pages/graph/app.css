@@ -1,0 +1,11 @@
+.graph-legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; }
+.graph-legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.graph-legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; flex: none; }
+.graph-wrap { padding: 0; overflow: hidden; max-width: none; }
+.graph-canvas { height: calc(100vh - 220px); min-height: 420px; background: var(--surface-1); }
+.graph-msg { margin: 0; padding: var(--sp-5); color: var(--text-secondary); font-size: var(--font-size-ui); }
+.graph-canvas .scene-tooltip {
+  font-family: var(--font-ui); font-size: 12px; color: var(--text-primary);
+  background: var(--overlay-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 3px 8px;
+}
