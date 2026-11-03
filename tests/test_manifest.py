@@ -65,7 +65,8 @@ def check_navigation(pages):
     manifest = build_manifest(pages)
     source = configs(pages)
     parser = Navigation()
-    parser.feed(compiler.build_nav_html(source))
+    # app_nav false is a web-only sidebar entry (Home): the apps leave it out.
+    parser.feed(compiler.build_nav_html([c for c in source if c.get("app_nav", True)]))
     actual = [{"title": section["title"], "entries": [
         {key: entry[key] for key in ("slug", "label", "icon")} for entry in section["entries"]]}
         for section in manifest["sections"]]

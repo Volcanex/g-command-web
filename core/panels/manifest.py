@@ -22,7 +22,9 @@ def build_manifest(pages_dir, native=None):
     sections = defaultdict(list)
     groups = defaultdict(list)
     for config in configs:
-        if config.get("nav"):
+        # app_nav false keeps a web-only entry (Home, a launcher for the nav
+        # the apps already draw) out of the apps.
+        if config.get("nav") and config.get("app_nav", True):
             sections[config.get("nav_section") or config.get("title", "Other")].append(config)
         if config.get("tabs"):
             groups[str(config["tabs"])].append(config)

@@ -1,0 +1,11 @@
+/* Home: the kit's tile grid, with the whole tile as the link. */
+.home-tile { position: relative; }
+.home-tile .tile-title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.home-tile:hover { border-color: var(--border-strong); }
+.home-tile .ph { font-size: 18px; flex: none; }
+.home-line.is-danger { color: var(--danger); }
+.home-line.is-ok { color: var(--ok); }
+/* On a phone the kit drops to one column; the launchers read better two up. */
+@media (max-width: 420px) {
+  .home-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(112px, auto); }
+}

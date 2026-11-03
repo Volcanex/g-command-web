@@ -10,7 +10,8 @@ name and the `gcommand` compat symlink on h keep the old name.
 **Licence:** GNU AGPL v3.0 only (`LICENSE`), open source. Vendored fonts and icons are listed in `THIRD_PARTY_NOTICES`.
 
 ## What it does
-- Three dashes from one set of panels (`pages/full-dash/panels/`): `/home` the life dash (calendar for today and the week, todos, money, a one-line-per-bullet brief), `/ops` the system dash (compute quotas with reset times, health showing only what is down, tickets, crons, disk) and `/full-dash`, both at once with nothing below the fold at 1280x800, where `/` lands so a down service is never a tab away.
+- Three dashes from one set of panels (`pages/full-dash/panels/`): `/home` the life dash (calendar for today and the week, todos, money, a one-line-per-bullet brief), `/ops` the system dash (compute quotas with reset times, health showing only what is down, tickets, crons, disk) and `/full-dash`, both at once with nothing below the fold at 1280x800.
+- `/` is Home (`pages/index`): a tile per place, with live lines (services down in red, so a down service is never a tab away, open todos, today's calendar, tickets). The first Preact page; pages move to Preact one by one by shipping `app.js` (`pages/CLAUDE.md`, "Preact pages").
 - The sidebar is three short sections (Dash, Daily, Tools: Brain, Design, Files, Runners); everything else is a tab under one of those entries (System, Brain, Files) or under the setup wrench in the sidebar foot. Every old URL still serves.
 - Renders the brain's graphs (notes, nerves, lineage, refs) by consuming the brain REST API at `BRAIN_API`.
 - `/design`: the g-design reference (guideline and component cards) in an index beside a frame. `compile.py` copies the checkout at `G_DESIGN_DOCS` (g-design's `apps/docs`) into `output/assets/design/` and indexes the cards by their `@dsCard` comment, so a g-design change shows here on the next restart.
@@ -33,8 +34,11 @@ gseed-app seed framework: static-first pages compiled by `compile.py`, served by
 
 ## Run
 ```
-python3 compile.py && python3 server.py
+npm ci && python3 compile.py && python3 server.py
 ```
+`npm ci` (preact, htm, esbuild, pinned in `package.json` to Studio's web) is
+needed once per checkout and after `package.json` changes; without it the
+Preact pages serve their plain `content.html` and the compile still succeeds.
 Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `gcommand` systemd unit on h.
 
 ## Gotchas

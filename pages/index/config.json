@@ -1,0 +1,13 @@
+{
+  "title": "Home",
+  "slug": "index",
+  "href": "/",
+  "description": "Every place in Command as a tile, with a live line where one is cheap.",
+  "nav": true,
+  "app_nav": false,
+  "order": 0,
+  "nav_section": "Dash",
+  "nav_icon": "house",
+  "nav_label": "Home",
+  "gsys": true
+}

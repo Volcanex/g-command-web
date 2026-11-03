@@ -238,7 +238,11 @@ async def serve_pages(path: str, request: Request):
     if redirect is not None:
         return redirect
 
+    # `/` is Home (pages/index, a Preact page). Before its first compile, or
+    # on a checkout without it, `/` still lands on the full dash.
     if path in ("", "/"):
+        if (resolved := _safe_under_output(OUTPUT_DIR / "index.html")) is not None:
+            return FileResponse(resolved)
         return RedirectResponse("/full-dash", status_code=302)
 
     # Direct file match
