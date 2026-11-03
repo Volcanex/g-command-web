@@ -79,7 +79,7 @@ html[data-app] body.g-shell { grid-template-columns: minmax(0, 1fr); }
 html[data-app] body.g-shell > aside, html[data-app] .topbar, html[data-app] .g-status, html[data-app] .g-scrim { display: none; }
 
 /* full-dash, home and ops: full-bleed */
-body.full-dash-page .content-page { max-width: none; padding: 0; gap: 0; }
+body.full-dash-page .content-page { max-width: none; height: 100%; padding: 0; gap: 0; }  /* .fd-dash fills it */
 @media (max-width: 720px) {
   .g-subnav { margin-left: 0; }
 }
