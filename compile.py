@@ -12,6 +12,11 @@ Each page is a directory under `pages/` with:
   entry can stand for several pages.
 - `content.html`: HTML fragment for the page body. May include a
   `<style>` block.
+- `app.js` (optional): a Preact page. Bundled by esbuild into
+  `output/js/pages/`; the body becomes its mount slot and content.html is
+  only the fallback when no bundle exists (see "Preact pages" below).
+- `href` (config, optional): the nav link, when the page answers somewhere
+  other than `/<slug>` (Home: `/`).
 
 The fragment is inserted into `core/templates/shell.html` at the
 `{{ content }}` placeholder. `{{ title }}` and any other `{{ key }}`
@@ -224,6 +229,115 @@ def expand_seed_tokens(content: str, context: dict) -> str:
     return SEED_TOKEN_RE.sub(sub, content)
 
 
+# ---------- Preact pages ----------------------------------------------------
+#
+# A page opts in by shipping `pages/<slug>/app.js` (Preact + htm on the kit,
+# through core/app/boot.js). esbuild bundles it into output/js/pages/, and the
+# page body becomes a mount slot plus a module script. content.html stays as
+# the fallback. A bundle failure never stops the build: the last good bundle
+# (kept in gitignored var/bundles/, since output/ is wiped) is served with a
+# notice, or with none the page serves content.html under an error block.
+# Every outcome is recorded in var/bundles/status.json (GET /api/bundles).
+BUNDLE_URL = "/js/pages"
+BUNDLE_OUT = OUTPUT_DIR / "js" / "pages"
+LAST_GOOD_DIR = PROJECT_ROOT / "var" / "bundles"
+ESBUILD = PROJECT_ROOT / "node_modules" / ".bin" / "esbuild"
+BUNDLE_TIMEOUT = 60
+_bundle_status: dict[str, dict] = {}
+
+
+def _bundle_name(slug: str) -> str:
+    return slug.replace("/", "__")
+
+
+def _run_esbuild(entry: Path, outfile: Path) -> str | None:
+    """Bundle entry into outfile (plus outfile.css if it imports CSS).
+    Returns None on success, else the error text."""
+    if not ESBUILD.is_file():
+        return "esbuild is not installed: run `npm ci` in the checkout"
+    import subprocess
+    try:
+        proc = subprocess.run(
+            [str(ESBUILD), str(entry), "--bundle", "--format=esm", "--minify", "--target=es2020",
+             "--legal-comments=none", "--log-level=error", f"--outfile={outfile}"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=BUNDLE_TIMEOUT,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"esbuild did not run: {exc}"
+    if proc.returncode != 0 or not outfile.is_file():
+        return (proc.stderr or proc.stdout or f"esbuild exited {proc.returncode}").strip()[-2000:]
+    return None
+
+
+def bundle_page(page_dir: Path, slug: str) -> dict:
+    """Bundle a page's app.js. Returns its status: `state` is built, stale
+    (the new bundle failed, the last good one is served) or failed (no bundle
+    at all), with `error`, and `js`/`css` hashes when a bundle is served."""
+    import time
+    name = _bundle_name(slug)
+    LAST_GOOD_DIR.mkdir(parents=True, exist_ok=True)
+    good_js, good_css = LAST_GOOD_DIR / f"{name}.js", LAST_GOOD_DIR / f"{name}.css"
+    tmp_js, tmp_css = LAST_GOOD_DIR / f"{name}.new.js", LAST_GOOD_DIR / f"{name}.new.css"
+    for f in (tmp_js, tmp_css):
+        f.unlink(missing_ok=True)
+
+    error = _run_esbuild(page_dir / "app.js", tmp_js)
+    if error is None:
+        tmp_js.replace(good_js)
+        if tmp_css.is_file():
+            tmp_css.replace(good_css)
+        else:
+            good_css.unlink(missing_ok=True)
+        state = "built"
+    else:
+        for f in (tmp_js, tmp_css):
+            f.unlink(missing_ok=True)
+        state = "stale" if good_js.is_file() else "failed"
+        print(f"  ✗ {slug}: app.js did not bundle, "
+              + ("serving the last good bundle" if state == "stale" else "serving content.html") + ":")
+        for line in error.splitlines()[:20]:
+            print(f"      {line}")
+
+    status = {"state": state, "error": error, "at": int(time.time())}
+    if good_js.is_file() and state != "failed":
+        BUNDLE_OUT.mkdir(parents=True, exist_ok=True)
+        for src, kind in ((good_js, "js"), (good_css, "css")):
+            if src.is_file():
+                shutil.copy2(src, BUNDLE_OUT / f"{name}.{kind}")
+                status[kind] = hashlib.sha256(src.read_bytes()).hexdigest()[:10]
+    _bundle_status[slug] = status
+    return status
+
+
+def app_body(slug: str, status: dict, fallback: str) -> str:
+    """The page body for a Preact page, given its bundle status."""
+    name = _bundle_name(slug)
+    if status["state"] == "failed":
+        detail = html.escape((status.get("error") or "").splitlines()[0] if status.get("error") else "")
+        return ('<div class="card"><div class="empty state-error" role="alert">'
+                '<div class="e-title">This page did not build</div>'
+                f'<div class="e-desc">Its script failed to bundle, so this is the plain version. {detail}</div>'
+                '</div></div>\n' + fallback)
+    parts = []
+    if "css" in status:
+        parts.append(f'<link rel="stylesheet" href="{BUNDLE_URL}/{name}.css?v={status["css"]}">')
+    if status["state"] == "stale":
+        parts.append('<p class="muted" role="status">This page runs its last good build: '
+                     'the newest one failed to bundle. Details at /api/bundles.</p>')
+    parts.append('<div data-page-app></div>')
+    parts.append(f'<script type="module" src="{BUNDLE_URL}/{name}.js?v={status["js"]}"></script>')
+    return "\n".join(parts)
+
+
+def write_bundle_status() -> None:
+    """Record every bundle outcome for GET /api/bundles. Pages no longer
+    bundled drop out; the file is rewritten whole on each compile."""
+    if not _bundle_status and not LAST_GOOD_DIR.is_dir():
+        return
+    LAST_GOOD_DIR.mkdir(parents=True, exist_ok=True)
+    (LAST_GOOD_DIR / "status.json").write_text(json.dumps(_bundle_status, indent=1, sort_keys=True), encoding="utf-8")
+
+
 def load_shell() -> str:
     if not SHELL_PATH.is_file():
         sys.exit(f"ERROR: shell template not found at {SHELL_PATH}")
@@ -278,6 +392,8 @@ def compile_page(page_dir: Path, shell: str, subnavs: dict | None = None) -> tup
     # Expand seed:* tokens before splicing into the shell so registered
     # renderers can produce HTML the shell template doesn't know about.
     content = expand_seed_tokens(content, context)
+    if (page_dir / "app.js").is_file():
+        content = app_body(slug, bundle_page(page_dir, slug), content)
     context["content"] = content
 
     html = render(shell, context)
@@ -472,8 +588,9 @@ def build_nav_html(configs: list[dict]) -> str:
             icon = c.get("nav_icon", "circle")
             label = c.get("nav_label") or c.get("title", slug)
             tabs = f' data-tabs="{html.escape(str(c["tabs"]))}"' if c.get("tabs") else ""
+            href = c.get("href") or f"/{slug}"
             parts.append(
-                f'      <a class="nav-item" href="/{slug}"{tabs}>'
+                f'      <a class="nav-item" href="{html.escape(str(href))}"{tabs}>'
                 f'<i class="ph ph-{icon}" aria-hidden="true"></i>'
                 f'<span class="ellipsis">{html.escape(str(label))}</span></a>'
             )
@@ -572,6 +689,11 @@ def main() -> None:
             handled.add(config.get("slug", page_dir.name))
         if err:
             errors += 1
+
+    write_bundle_status()
+    failed = sorted(s for s, st in _bundle_status.items() if st["state"] != "built")
+    if failed:
+        print(f"  ⚠ Preact pages not on their newest build: {', '.join(failed)} (var/bundles/status.json)")
 
     stub_built, stub_errors = emit_manifest_stubs(shell, handled)
     errors += stub_errors

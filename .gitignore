@@ -23,3 +23,5 @@ caddy-config/
 
 # Local compose overrides. The .example file is committed.
 docker-compose.override.yml
+
+node_modules/

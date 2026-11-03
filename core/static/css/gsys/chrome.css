@@ -89,3 +89,7 @@ body.full-dash-page .content-page { max-width: none; height: 100%; padding: 0; g
 @media (min-width: 721px) {
   body:has(.site-main .page-head) .topbar-title { display: none; }
 }
+
+/* A Preact page mounts into this slot (pages/CLAUDE.md, Preact pages). It
+   takes no box, so its blocks sit in the page stack like any other page. */
+[data-page-app] { display: contents; }

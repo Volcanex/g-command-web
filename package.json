@@ -1,0 +1,14 @@
+{
+  "name": "g-command-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Preact pages for g-command-web, bundled by esbuild from compile.py (pages/CLAUDE.md, Preact pages)",
+  "dependencies": {
+    "htm": "3.1.1",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

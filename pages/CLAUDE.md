@@ -6,8 +6,10 @@ layout and `core/templates/CLAUDE.md` for available template tokens.
 
 ## Example pages
 
+- `index/`: Home, at `/` (`href` in its config): a tile per place with a
+  live line where one is cheap. The first Preact page, see below.
 - `home/`: the life dash. With `ops/` (the system dash) and `full-dash/`
-  (both, where `/` lands) it is built from the shared panels in
+  (both) it is built from the shared panels in
   `full-dash/panels/`; see `full-dash/CLAUDE.md`.
 - `brain/`: the brain overview, first tab of the Brain group.
 - `crons/`: a page with the optional `api.py` sibling file. The
@@ -32,3 +34,31 @@ links name them directly.
 Put `api.py` next to the page if the endpoints are only used by that
 page (form submissions, page-specific data loads). Move to `core/api/`
 when two or more pages consume the same endpoints.
+
+## Preact pages
+
+A page moves to Preact by shipping `app.js` beside its `config.json`
+(`index/` and `nerves/` are the examples). Nothing else opts it in.
+
+- `app.js` imports everything from `core/app/boot.js` (the vendored kit at
+  `core/static/css/gsys/kit/`, htm, hooks, `getJson`, `useJson`,
+  `loadScript`) and ends with `mount(Page)`. It may `import "./app.css"`
+  for page styles (alias tokens only). Draw glyphs with the Phosphor font
+  (`<i class="ph ph-NAME">`); `core/app/icon-paths.js` holds only the
+  paths kit components draw themselves.
+- `compile.py` bundles it with esbuild (`node_modules/.bin/esbuild`, so a
+  checkout needs `npm ci`) into `output/js/pages/<slug>.js` (+ `.css`) and
+  the page body becomes a `[data-page-app]` slot (`display: contents`, so
+  the component's blocks sit in the page stack) plus a module script, both
+  stamped `?v=<hash>`. The shell, nav, tabs and URL stay as they are.
+- `content.html` is still required: it is the plain fallback.
+- Failure never stops a compile, so it never stops the unit starting. The
+  error is printed in full in the compile log; the last good bundle (kept
+  in gitignored `var/bundles/`, since `output/` is wiped) is served under a
+  one-line notice; with no last good bundle the page serves `content.html`
+  under a "This page did not build" block. Every outcome is in
+  `var/bundles/status.json`, served at `GET /api/bundles`
+  (`{pages, failing}`).
+- `app_nav: false` in a config keeps a nav entry out of the apps' manifest
+  (Home: the apps draw their own navigation).
+- Tests: `tests/test_preact_pages.py`.
