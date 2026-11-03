@@ -6,8 +6,8 @@ layout and `core/templates/CLAUDE.md` for available template tokens.
 
 ## Example pages
 
-- `index/`: Home, at `/` (`href` in its config): a tile per place with a
-  live line where one is cheap. The first Preact page, see below.
+- `index/`: Home, at `/` (`href` in its config): the agenda card over the
+  full dash. See `full-dash/CLAUDE.md`.
 - `home/`: the life dash. With `ops/` (the system dash) and `full-dash/`
   (both) it is built from the shared panels in
   `full-dash/panels/`; see `full-dash/CLAUDE.md`.
@@ -18,23 +18,26 @@ layout and `core/templates/CLAUDE.md` for available template tokens.
 ## Nav groups
 
 The left rail is the only navigation (g-design `skills/g-navigation`).
-Rail headings group by intent: Overview, Work, Knowledge, Publish, Setup.
+The rail's top (the first section, `Overview`, which carries no heading)
+is Home, Chat, Upload, then the Life and System groups; the other headings
+group by intent: Work, Knowledge, Publish, Setup.
 `"tabs": "<group>"` in `config.json` is the parent pointer: the member with
-`nav: true` is the parent, a hub page, and the rest set `nav: false` and
-nest one level under it in the rail, labelled by `tab_label`, ordered by
-`order`. The key keeps its name because the apps read the same manifest
-(their sidebar draws the same children). A hub shows a tile per child,
-from the same tree (`<!-- seed:hub-head -->` on a dash, `<!-- seed:hub-tiles -->`
-on any page), with `tile_note` and a live line from `tile_line`
-(`core/static/js/hub.js`: `services`, `todos`, `notes`, `refs`,
-`panel:<name>`). Groups: `life` (Life `/home`, Calendar, Chat), `system`
-(System `/ops`, Diagram, Services `/system`, Compute, Crons, Tickets,
-Projects, Levels), `brain` (Brain `/brain` with the Graph as a panel, Notes,
-Voice, Nerves, References, Lineage) and `setup` (Setup, Install, Passport).
-Pulse `/pulse`, Graph `/graph` and Full dash keep their routes off the rail
-and light their parent through `nav_current`. A page left out of the nav
-keeps its route: hide pages, never delete or rename them, since the Mac app
-and old links name them directly.
+`nav: true` is the group, drawn as a disclosure row (open by default, never
+a link), and the rest set `nav: false` and nest one level under it,
+labelled by `tab_label`, ordered by `order`, each with its own `nav_icon`.
+`web_page: false` on the group says its own page is gone from the web (its
+URL is in `MOVED` in `server.py`); otherwise that page leads its children
+(Setup, as Bootstrap, with `tab_icon`). `web_section` and `web_order` place
+an entry on the web rail apart from the apps (Upload is at the top here and
+under Publish there). The key keeps its name because the apps read the same
+manifest (their sidebar draws the same groups, and their Overview dash is
+still Life, System and Full dash). There are no hub or tile pages.
+Groups: `life` (Calendar, Pulse), `system` (Diagram, Services `/system`,
+Compute, Crons, Tickets, Projects, Levels), `brain` (Graph, Notes, Voice,
+Nerves, References, Lineage) and `setup` (Bootstrap `/setup`, Install,
+Passport). `/home`, `/ops` and `/brain` are 301s to Home, Home and Graph.
+A page left out of the nav keeps its route: hide pages, never delete or
+rename them, since the Mac app and old links name them directly.
 
 ## When to colocate an API
 

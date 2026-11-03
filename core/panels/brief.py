@@ -36,7 +36,8 @@ def build(ctx):
             bullets.append({"text": line})
     if not bullets and not asks:
         message = "Nothing in today's brief beyond the agenda." if agenda_lines else "No brief yet today."
-        return {"meta": meta, "state": "empty", "message": message}
+        # Only the agenda's lines: the card goes (`hide`), and its neighbours take the room.
+        return {"meta": meta, "state": "empty", "message": message, "hide": bool(agenda_lines)}
     if asks:
         count = "1 note" if asks == 1 else f"{asks} notes"
         bullets.append({"text": count + " waiting to go into the brain", "link": "/pulse"})

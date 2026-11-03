@@ -192,6 +192,9 @@ window.FD = (function () {
     }
     function render(d) {
       last = d;
+      // A panel with nothing to say beyond another card (the brief, when it only repeats the
+      // agenda) asks to be left out; the row's other panels take its room.
+      root.hidden = !!d.hide;
       header(d);
       if (d.state === 'error') { fail(body, d.message || 'Unavailable. The panel retries shortly.'); return; }
       if (d.state === 'empty') { setState(body, 'fd-empty', d.message || ''); return; }
@@ -469,6 +472,7 @@ details[open] > .fd-bullet { white-space: normal; color: var(--text-primary); }
 }
 .fd-col { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; }
 .fd-col > .fd-panel { flex: 1 1 0; }
+.fd-panel[hidden] { display: none; }
 .fd-row { display: grid; gap: var(--sp-3); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: 0; }
 /* A band (a layout row with a `head`): the heading links the hub the row
    belongs to, the row fills the rest. Home is a System band over a Life band. */
@@ -489,7 +493,9 @@ details[open] > .fd-bullet { white-space: normal; color: var(--text-primary); }
 .fd-band-head .fd-meta.is-ok { color: var(--ok-text); }
 @media (max-width: 900px), (max-height: 560px) {
   .fd-dash { height: auto; grid-template-columns: minmax(0, 1fr); }
-  .fd-col > .fd-panel, .fd-row, .fd-band { flex: none; max-height: none; }
+  /* .fd-band > .fd-row too: its flex: 1 1 0 above outranks a bare .fd-row, and on a phone
+     it squeezed a band's row to nothing so its cards drew over each other. */
+  .fd-col > .fd-panel, .fd-row, .fd-band, .fd-band > .fd-row { flex: none; max-height: none; }
   .fd-row { grid-auto-flow: row; }
   .fd-body { overflow: visible; }
 }

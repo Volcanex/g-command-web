@@ -124,7 +124,7 @@ def test_brief_leaves_the_calendar_to_the_live_agenda():
     lines are the agenda's, so they are left to the live agenda."""
     body = "Services: 33/36 up.\n\nToday: Team Standup 09:30.\nTomorrow: Team Standup 09:30.\nOverdue: Home bills.\nThis week: MSc dissertation Thursday."
     result = build("brief", FixtureContext({SOURCES["brief"]: {"date": "2026-10-19", "body": body}}))
-    assert result == expected("brief", meta="Mon 19 Oct", state="empty", message="Nothing in today's brief beyond the agenda.")
+    assert result == expected("brief", meta="Mon 19 Oct", state="empty", message="Nothing in today's brief beyond the agenda.", hide=True)
     kept = build("brief", FixtureContext({SOURCES["brief"]: {"body": "Today: standup\nMoney: rent due"}}))
     assert kept["blocks"] == [{"type": "bullets", "items": [{"label": "Money", "text": "rent due"}]}]
 
@@ -466,7 +466,7 @@ def test_crons_description_tooltip_and_missing_host_error_fallback():
 EMPTY = [
     ("calendar", [], {"title": "Today, Mon 19 Oct", "meta": "", "blocks": [
         {"type": "rows", "title": "Today", "empty": "Nothing on today.", "rows": []}, *next_days()]}),
-    ("brief", {}, {"state": "empty", "message": "No brief yet today."}),
+    ("brief", {}, {"state": "empty", "message": "No brief yet today.", "hide": False}),
     ("tasks", [], {"state": "empty", "message": "No undated tasks.", "meta": "0 undated"}),
     ("money", [], {"state": "empty", "message": "Nothing owed or to sort.", "meta": "0 open"}),
     ("health", {}, {"blocks": [{"type": "line", "items": [{"text": "All 0 services up", "tone": "ok", "badge": True}]}]}),

@@ -40,6 +40,10 @@ or writes its own copy for a panel is a bug: that logic drifts.
 - `state`: `ok`, `empty` (show `message` in place of the blocks) or
   `error` (show `message`, keep retrying every `refresh` seconds).
 - `refresh`: seconds between polls while the panel is visible.
+- `hide` (optional, with `state: empty`): the panel has nothing beyond
+  another card on the same dash (the brief when its lines are all the
+  agenda's), so a client leaves the card out and lets its neighbours take
+  the room, and keeps polling so it comes back when there is more.
 - Times in copy are computed at request time ("Checked 2 min ago",
   "Tue 21 Oct", "2 days late") in the instance timezone. Clients poll, so
   they stay current. Clients never format dates themselves. Feeds outside panels

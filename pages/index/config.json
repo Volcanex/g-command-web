@@ -21,7 +21,6 @@
           },
           {
             "row": [
-              "tasks",
               "money",
               "brief"
             ],
@@ -52,5 +51,5 @@
     ]
   },
   "body_class": "full-dash-page home-page",
-  "layout_note": "The full dash (pages/full-dash) under the agenda card: life on the left, system on the right."
+  "layout_note": "The full dash (pages/full-dash) under the agenda card, less Undated: every calendar item has a date now. Life on the left, system on the right; the brief hides when it has nothing beyond the agenda and money takes its room."
 }

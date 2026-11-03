@@ -1,9 +1,10 @@
 # full-dash
 
-Home of the dash panels. Four pages are built from them: Home `/`
-(`pages/index`: a System band over a Life band, each headed by a link to
-its hub), `/home` (the Life hub), `/ops` (the System hub) and `/full-dash`
-(both halves, off the web rail but kept for the apps, whose dash it is). Each panel is one file in `panels/`, and
+Home of the dash panels. Home `/` (`pages/index`) is the full dash, with
+Life's agenda card above it; `/full-dash` is the same layout without the
+card, off the web rail but kept for the apps, whose dash it is. `/home` (the
+Life dash) and `/ops` (the System dash) are still built for the apps'
+Overview, but on the web they are 301s to Home. Each panel is one file in `panels/`, and
 `compile.py` registers every `pages/*/panels/*.html` as a content token, so
 a page includes one with `<!-- seed:panel-{name} -->`. Edit the panel file
 and recompile; every dash that includes it picks it up. A dash's placement

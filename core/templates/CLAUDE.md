@@ -57,10 +57,13 @@ beside it is bundled into the Preact pages through `core/app/boot.js`, see
 `pages/CLAUDE.md` "Preact pages"). Never hand-edit either,
 re-vendor to update. Last comes `core/static/css/gsys/chrome.css`, which
 holds only what is Command's own (the Phosphor glyph in nav items, the
-side-foot toggles, the status line, the hub head and tiles, the page
-reveal). There is no tab strip: the rail nests one level (kit `.nav-group`)
-and the top bar is the kit's phone-only `.app-topbar` (g-design
-`skills/g-navigation`, R1 and R7).
+side-foot toggles, the status line, Home's agenda card, the page
+reveal). There is no tab strip: the rail nests one level (kit `.nav-group`, a
+disclosure row per group) and the top bar is the kit's slim bar (g-design
+`skills/g-navigation`, R1 and R7). The rail's collapse, hover peek and pin
+are the kit's `rail.js`, loaded as a module from the shell; `body` starts
+`data-rail="collapsed"` and an inline script sets `pinned` before first
+paint when the viewer pinned it.
 
 The shell markup is the kit's: `aside` with `.brand`, `.nav-list`
 (`.nav-head` and `.nav-item`, from `build_nav_html()`) and `.side-foot`;

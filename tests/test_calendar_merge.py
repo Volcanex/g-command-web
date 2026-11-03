@@ -98,7 +98,9 @@ def test_todos_page_is_gone_and_life_holds_calendar_first():
 def test_home_is_the_full_dash_under_the_agenda_card():
     index = json.loads((PAGES / "index" / "config.json").read_text())
     full = json.loads((PAGES / "full-dash" / "config.json").read_text())
-    assert index["layout"] == full["layout"]
+    # the full dash less Undated: every calendar item has a date, so it was always empty
+    assert "tasks" not in layout.panels(index["layout"])
+    assert set(layout.panels(index["layout"])) == set(layout.panels(full["layout"])) - {"tasks"}
     content = (PAGES / "index" / "content.html").read_text()
     assert content.index('data-lines="agenda"') < content.index("seed:dash-layout")
     assert "page-title" not in content and "seed:hub-" not in content  # the top bar already says Home
