@@ -238,12 +238,15 @@ button.nav-item { width: 100%; }
        <div class="page-actions">...</div>
      </div> */
 .page-head { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; min-width: 0; }
-.page-head-text { display: contents; }
-.page-head-text > .row-tight, .page-head-text > .page-title { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; min-height: var(--h-control); }
+.page-head-text { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1 1 240px; }
+/* The one-row head: its badge row and actions share a line and the description drops below. */
+.page-head-text:has(> .row-tight) { display: contents; }
+.page-head-text > .row-tight { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; min-height: var(--h-control); }
 .page-head-text > .row-tight > * { flex: none; }
 .page-head-text > .row-tight > .badge { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-head-text:has(> .row-tight) > .page-sub { order: 2; flex: 1 0 100%; }
 .page-head .page-title { font-size: 18px; line-height: var(--lh-3); font-weight: 500; display: flex; align-items: center; gap: var(--sp-2); margin: 0; }
-.page-sub { order: 2; flex: 1 0 100%; margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
+.page-sub { margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
 .page-actions { order: 1; display: flex; align-items: center; gap: var(--sp-2); flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .page-actions > * { flex: none; }
 /* A head with nothing visible left in it takes no room, so the page starts at its first block. */
