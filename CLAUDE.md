@@ -2,7 +2,7 @@
 
 Command center: the web UI for G-System. Ops dashboards, Brain
 visualisations, service health. Each instance serves it on its own host.
-Served at system.gabrielpenman.com since 2026-10-30; command.gabrielpenman.com answers too, for devices paired to it. Was `gcommand` until 2026-10-09. The systemd unit, manifest id, cookie
+Served at command.gabrielpenman.com (canonical again since 2026-11-03; it was system.gabrielpenman.com from 2026-10-30). system.gabrielpenman.com still answers: nginx 301s browser GET/HEAD page loads to the same path on command.*, and serves `/api/*`, `/auth/*`, `/mcp`, `/.well-known/`, every non-GET method, websocket upgrades and the apps (user agent `GCommandApp/` or `G-Command/`, which default to system.* until they move) directly, because clients break when they follow a redirect on POST. Sign-in cookies are host-only, so a browser signed in on system.* signs in once more on command.*. `PUBLIC_HOST` in `.env` is command.gabrielpenman.com; `/etc/nginx/snippets/command-origin.conf` is where the old tool subdomains point. Was `gcommand` until 2026-10-09. The systemd unit, manifest id, cookie
 name and the `gcommand` compat symlink on h keep the old name.
 
 **Owner:** Gabriel Penman
