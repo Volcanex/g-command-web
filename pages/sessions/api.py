@@ -372,7 +372,7 @@ async def _reap(pid: int):
 # and no input route for Voice, by design: Gabriel drives agents himself from
 # Workspaces. Keep it that way.
 #
-# Voice has no cookie. pages/voice/api.py mints a grant per chat turn (an expiry
+# Voice has no cookie. core/api/voice.py mints a grant per chat turn (an expiry
 # and an HMAC under a key derived from the admin secret), passes it to Voice,
 # and Voice sends it back here as X-Voice-Grant. It opens this route only.
 

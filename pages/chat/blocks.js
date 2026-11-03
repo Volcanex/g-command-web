@@ -11,7 +11,7 @@ const tone = (t) => (TONES.has(t) ? t : "plain");
 // Only command paths: a link that is not one is dropped, never followed.
 const path = (p) => (typeof p === "string" && p[0] === "/" && p[1] !== "/" ? p : "");
 const iconName = (n) => String(n).toLowerCase().replace(/[^a-z0-9-]/g, "");
-// Agent cards carry em dashes and middle dots ("15:00 · P2 · Teams"); g.tidy swaps them for display.
+// Agent cards can carry em dashes and middle dots between facts; g.tidy swaps them for display.
 const tidy = (s) => (window.g && window.g.tidy ? window.g.tidy(s) : s);
 const plain = (s) => tidy(window.g && window.g.plain ? window.g.plain(String(s ?? "")) : String(s ?? ""));
 

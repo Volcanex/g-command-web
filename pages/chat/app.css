@@ -101,3 +101,9 @@ a.cb-title:hover { text-decoration: underline; }
   .cb-detail { white-space: normal; }
 }
 @media (prefers-reduced-motion: reduce) { .chat-spin { animation: none; } }
+
+/* Mic and read-aloud sit either side of the box at its foot. */
+.chat-mic, .chat-aloud { flex: none; }
+.chat-mic .ph, .chat-aloud .ph { font-size: 18px; }
+.chat-aloud[aria-pressed="true"] { color: var(--accent); }
+.chat-empty p + p { max-width: var(--col-narrow); }

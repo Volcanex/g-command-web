@@ -2,7 +2,7 @@
 
 Browser -> /api/blog/proxy/{path} (this, admin-gated) -> g-site admin API
 (http://127.0.0.1:8096/api/admin/{path}), attaching X-Admin-Token. Same
-pattern as pages/voice/api.py. The page gate in server.py does not cover
+pattern as core/api/voice.py. The page gate in server.py does not cover
 /api/* routers, so the admin cookie is enforced here inline.
 
 g-site is not publicly exposed; we reach it over localhost. GSITE_ADMIN_TOKEN

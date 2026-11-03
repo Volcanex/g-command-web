@@ -1,4 +1,4 @@
-"""voice page API, mounted at /api/voice.
+"""Voice API, mounted at /api/voice: the routes Chat and the apps share.
 
 Browser or app → /api/voice/* (this, cookie-gated) → localhost Voice service.
 The page gate in server.py does not cover /api/* routers, so the cookie is

@@ -129,7 +129,7 @@ so no client knows todo semantics.
 
 ## Chat replies (Voice, app session)
 Voice's app replies carry these same blocks, so a reply looks like the dash.
-`pages/voice/api.py` is the route, `brain-tools/voice/blocks.py` checks what
+`core/api/voice.py` is the route, `brain-tools/voice/blocks.py` checks what
 the model emits against the shapes above and drops the rest (a new type is
 added here first, then there). A reply row may carry an `action` only when
 server code built it (brain-tools `voice/todos.py`, through

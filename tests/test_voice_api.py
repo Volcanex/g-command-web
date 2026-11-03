@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from pages.voice import api as voice_api
+from core.api import voice as voice_api
 
 
 @pytest.fixture
