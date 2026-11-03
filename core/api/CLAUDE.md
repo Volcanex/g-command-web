@@ -15,6 +15,7 @@ for the discovery code.
 | `runners.py` | `/api/runners` | Read-only, admin-gated proxy to g-runner (`GET /state`, `GET /jobs/{id}`) for `/runners`; adds the bearer token server-side |
 | `brain.py` | `/api/brain` | Admin-gated proxy to the g-brain REST API at `BRAIN_UPSTREAM`, so brain pages work without a public brain host |
 | `panels.py` | `/api/panels` | Admin-gated shared dash view-models from `core/panels`, with safe panel error states |
+| `diagram.py` | `/api/diagram` | Admin-gated G-System diagram data: gcore's graph (`gcore_graph`) with node health from the brain status and nerves, Studio's client projects and blocks (`/api/gadmin/blocks`, token server-side), and `live` on declared http/sse/websocket edges |
 | `push.py` | `/api/push` | The alert spine's APNs fan-out: g-brain posts each alert here (bearer `ALERT_PUSH_TOKEN`), sent to every paired app by `core/apns.py` |
 
 ## admin.py
@@ -141,3 +142,22 @@ Config, all in the root-only `/etc/g-secrets/gcommand-apns.env`, loaded by the
 Until the key, key id and team id are all set, sending is a no-op that logs
 `apns not configured` once per process. Restart `gcommand` after changing them.
 HTTP/2 is httpx with h2, the JWT is PyJWT (ES256), refreshed every 45 minutes.
+
+## diagram.py
+
+Backs the G-System diagram (the page itself is not built yet). `GET /api/diagram` imports
+`gcore_graph` from the gcore checkout (`core.instance.gcore_dir`) and fills its seams: `health`
+on every node from `${BRAIN_UPSTREAM}/api/status` (services, dependencies; projects, repos and
+hosts roll up their services, worst state wins) and `/api/nerves` (repo nerve pairing),
+`clients` on `project:g-studio` from Studio's `/api/gadmin/blocks`, and `live` on each declared
+http/sse/websocket connects edge (`down` if any target service is down, `up` if all are up).
+`sources` says which live source answered and why not; `summary` counts nodes, edges, drift,
+live-down edges and clients. Nothing 500s: a dead source leaves its seam null with a reason.
+gcore's assembly walks every checkout (33 s cold, under 1 s warm), so it is cached
+`GRAPH_TTL_S` (120 s) and refreshed in the background once stale; live sources `LIVE_TTL_S` (20 s).
+
+| Env var | Default | What |
+|---|---|---|
+| `GADMIN_TOKEN` | none | Sent as `X-Gadmin-Token` to Studio; must equal Studio's `GS_GADMIN_TOKEN` |
+| `STUDIO_GADMIN_URL` | `http://127.0.0.1:<manifest g-studio port>` | Studio's raw port (nginx 404s `/api/gadmin` on the studio host) |
+| `BRAIN_UPSTREAM` | `http://127.0.0.1:8766` | The brain, as for `brain.py` |
