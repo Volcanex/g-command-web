@@ -1,0 +1,12 @@
+{
+  "title": "Diagram",
+  "slug": "diagram",
+  "description": "The G-System as a flow diagram: what moves between hosts, services and projects, with live health and drift.",
+  "nav": true,
+  "order": 25,
+  "body_class": "diagram-page",
+  "nav_section": "Tools",
+  "nav_icon": "flow-arrow",
+  "nav_label": "Diagram",
+  "gsys": true
+}

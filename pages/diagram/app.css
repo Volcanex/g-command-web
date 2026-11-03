@@ -1,0 +1,83 @@
+/* Diagram: page styles. Alias and status tokens only. A diagram is a wide canvas,
+   so the page takes the whole width beside the rail. */
+body.diagram-page { --col-page: 100%; }
+.dg-filters { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.dg-q { width: 200px; }
+.dg-filters .select-wrap { display: inline-block; }
+.dg-filters .select { width: 168px; }
+.dg-chips { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); }
+.dg-fit { margin-left: auto; }
+.dg-stale { color: var(--warn-text); }
+.dg-pad { padding: var(--sp-4); }
+
+.dg-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.dg-legend > span { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.dg-dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; flex: none; }
+.dg-legend-line { stroke: var(--text-secondary); stroke-width: 1.5; fill: none; }
+
+.dg-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-4); align-items: start; }
+.dg-layout > .dg-flows { grid-column: 1 / -1; }
+.dg-side { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.dg-canvas { padding: 0; overflow: auto; max-width: none; min-height: 240px; }
+.dg-svg { display: block; font-family: var(--font-ui); }
+.dg-h3 { margin: var(--sp-4) 0 0; font-size: 12px; line-height: var(--lh-1); font-weight: 600; color: var(--text-primary); }
+.dg-flow-group:first-of-type .dg-h3 { margin-top: 0; }
+.dg-link { all: unset; cursor: pointer; color: var(--text-primary); }
+.dg-link:hover { text-decoration: underline; }
+.dg-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+.dg-flow .main .sub { overflow-wrap: anywhere; }
+
+/* Regions and nodes */
+.dg-lane rect { fill: var(--surface-1); stroke: var(--border-subtle); }
+.dg-lane-title { font-size: 13px; font-weight: 600; fill: var(--text-primary); }
+.dg-lane-sub { font-size: 11px; fill: var(--text-secondary); }
+.dg-group rect { fill: var(--surface-2); stroke: var(--border-strong); cursor: pointer; }
+.dg-group.is-focus rect { stroke: var(--focus-ring); stroke-width: 2; }
+.dg-node { cursor: pointer; outline: none; }
+.dg-node rect { fill: var(--bg-panel); stroke: var(--border); }
+.dg-node:hover rect { stroke: var(--border-hover); }
+.dg-node:focus-visible rect, .dg-node.is-focus rect { stroke: var(--focus-ring); stroke-width: 2; }
+.dg-node.is-down rect { stroke: var(--danger); }
+.dg-n-client rect { fill: var(--bg-panel-2); }
+.dg-label { font-size: 12px; font-weight: 500; fill: var(--text-primary); pointer-events: none; }
+.dg-sub { font-size: 11px; fill: var(--text-secondary); pointer-events: none; }
+.dg-node, .dg-edge, .dg-group { transition: opacity var(--dur-fast) var(--ease-out); }
+.dim { opacity: 0.18; }
+
+/* Edges: via is the dash, tone is the colour */
+.dg-line { fill: none; stroke: var(--text-placeholder); stroke-width: 1.25; }
+.dg-hit { fill: none; stroke: transparent; stroke-width: 10; }
+.dg-k-uses .dg-line { stroke: var(--border-strong); stroke-width: 1; }
+.dg-k-depends .dg-line, .dg-k-routes .dg-line { stroke: var(--border-strong); }
+.dg-drift .dg-line, .dg-legend-line.dg-drift { stroke: var(--warn); stroke-width: 1.75; }
+.dg-down .dg-line, .dg-legend-line.dg-down { stroke: var(--danger); stroke-width: 1.75; }
+.dg-edge.hot .dg-line { stroke: var(--text-primary); stroke-width: 1.75; }
+.dg-edge:hover .dg-line { stroke-width: 2.25; }
+.dg-arrow path { stroke: none; }
+.dg-arrow-plain path { fill: var(--text-placeholder); }
+.dg-arrow-drift path { fill: var(--warn); }
+.dg-arrow-down path { fill: var(--danger); }
+.dg-arrow-hot path { fill: var(--text-primary); }
+.dg-flag circle { fill: var(--bg-panel); stroke-width: 1.5; }
+.dg-drift .dg-flag circle { stroke: var(--warn); }
+.dg-down .dg-flag circle { stroke: var(--danger); }
+.dg-flag text { font-size: 10px; font-weight: 700; text-anchor: middle; pointer-events: none; }
+.dg-drift .dg-flag text { fill: var(--warn-text); }
+.dg-down .dg-flag text { fill: var(--danger-text); }
+
+/* The moving dash along request and stream edges: slow, faint, off under reduced motion. */
+.dg-move { fill: none; stroke: var(--text-secondary); stroke-width: 1.5; stroke-dasharray: 2 18; stroke-linecap: round; opacity: 0.7; pointer-events: none; animation: dg-flow 2.4s linear infinite; }
+.dg-down .dg-move { display: none; }
+.dg-edge.dim .dg-move { animation: none; opacity: 0; }
+@keyframes dg-flow { from { stroke-dashoffset: 20; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .dg-move { animation: none; opacity: 0; } }
+
+/* Phone: the lists come first and the diagram scrolls inside its card. */
+@media (max-width: 900px) {
+  .dg-layout { grid-template-columns: minmax(0, 1fr); }
+  .dg-side { order: 1; }
+  .dg-layout > .dg-flows { order: 2; }
+  .dg-canvas { order: 3; max-height: 70vh; }
+  .dg-q { width: 100%; }
+  .dg-fit { margin-left: 0; }
+}

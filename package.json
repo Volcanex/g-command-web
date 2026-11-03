@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Preact pages for g-command-web, bundled by esbuild from compile.py (pages/CLAUDE.md, Preact pages)",
   "dependencies": {
+    "elkjs": "0.9.3",
     "htm": "3.1.1",
     "preact": "10.29.8"
   },
