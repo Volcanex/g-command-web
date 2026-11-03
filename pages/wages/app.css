@@ -1,0 +1,60 @@
+.wg-client { max-width: 280px; }
+.wg-top { display: grid; grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.wg-hero, .wg-tape, .wg-inv { padding: var(--pad-card); }
+.wg-big { font-size: 48px; line-height: 56px; font-weight: 600; color: var(--accent-fill); margin-top: var(--sp-2); }
+.wg-muted { color: var(--text-secondary); font-size: 12px; line-height: var(--lh-16, 16px); margin: var(--sp-1) 0 0; }
+.wg-stats { display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6); margin-top: var(--sp-4); }
+.wg-stat { display: flex; flex-direction: column; gap: var(--sp-1); }
+.wg-stat-l { font-size: 12px; color: var(--text-secondary); }
+.wg-stat-v { font-size: 16px; line-height: var(--lh-24, 24px); color: var(--text-primary); font-weight: 500; }
+.wg-tape .card-title, .wg-inv .card-title { display: block; margin-bottom: var(--sp-2); }
+.wg-tape .kv-table td { padding-left: 0; font-size: 12px; }
+.wg-tape .kv-table td:first-child { color: var(--text-secondary); }
+.wg-tape .kv-table td:last-child { text-align: right; }
+.wg-tape .wg-sum td { color: var(--text-primary); font-weight: 600; border-top: 1px solid var(--border-strong); }
+.wg-inv .card-head { display: flex; justify-content: space-between; align-items: center; }
+.wg-inv-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-top: var(--sp-3); }
+.wg-inv-sum { display: flex; gap: var(--sp-6); margin-top: var(--sp-3); }
+.wg-days { width: 80px; }
+.wg-check { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: 12px; color: var(--text-secondary); }
+.wg-checkmsg { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--warn-text); border-radius: var(--radius-md, 8px); font-size: 12px; line-height: var(--lh-16, 16px); }
+.wg-checkmsg i { color: var(--warn-text); font-size: 16px; flex: none; }
+.wg-issued { padding: var(--pad-card); margin-top: var(--sp-6); max-width: none; }
+.wg-issued .card-title { display: block; margin-bottom: var(--sp-2); }
+.wg-issued td, .wg-issued th { white-space: nowrap; }
+.wg-issued .num { text-align: right; }
+.wg-issued td:nth-child(-n+2), .wg-issued th:nth-child(-n+2) { text-align: left; }
+.wg-weekbar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-6); margin-bottom: var(--sp-3); }
+.wg-range { min-width: 200px; text-align: center; font-weight: 500; }
+.wg-flex { flex: 1; }
+.wg-gridwrap { padding: 0; overflow-x: auto; max-width: none; }
+.wg-grid { min-width: 760px; }
+.wg-grid th, .wg-grid td { text-align: right; white-space: nowrap; }
+.wg-grid th:first-child, .wg-grid .wg-lab { text-align: left; color: var(--text-secondary); font-size: 12px; position: sticky; left: 0; background: var(--surface); }
+.wg-dow { display: block; color: var(--text-primary); }
+.wg-dnum { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 400; }
+.wg-today .wg-dow { color: var(--accent-fill); }
+.wg-tot { border-left: 1px solid var(--border-strong); color: var(--text-primary); font-weight: 600; }
+.wg-nil { color: var(--text-placeholder); }
+.wg-click { cursor: pointer; }
+.wg-click:hover { background: var(--surface-hover, var(--bg)); }
+.wg-in { padding-top: var(--sp-1); padding-bottom: var(--sp-1); }
+.wg-in input { width: 72px; text-align: right; }
+.wg-hint { margin-top: var(--sp-2); }
+.wg-pos { color: var(--ok-text); }
+.wg-neg, .wg-stat-v.wg-neg { color: var(--danger-text); }
+.wg-day { display: flex; flex-direction: column; gap: var(--sp-4); }
+.wg-work { list-style: none; margin: var(--sp-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-16, 16px); }
+.wg-work .badge { flex: none; max-width: none; }
+.wg-work li { display: flex; gap: var(--sp-2); align-items: flex-start; }
+.wg-notes { min-height: 80px; width: 100%; resize: vertical; }
+.wg-money td { font-size: 12px; }
+.wg-money .num { text-align: right; }
+.wg-x { width: 1%; }
+.wg-add { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: var(--sp-2); margin-top: var(--sp-3); }
+.wg-span { grid-column: 1 / 3; }
+@media (max-width: 1100px) { .wg-top { grid-template-columns: minmax(0, 1fr) 260px; } .wg-inv { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .wg-top { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  .wg-inv, .wg-issued, .wg-weekbar button, .wg-hint, .page-actions { display: none !important; }
+}

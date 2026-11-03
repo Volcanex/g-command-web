@@ -8,6 +8,7 @@
   </div>
   <div class="page-actions">
     <button class="btn btn-secondary btn-sm" id="br-full">Full screen</button>
+    <button class="btn btn-secondary btn-sm" id="br-pop">Open in a new tab</button>
     <button class="btn btn-secondary btn-sm" id="br-restart">Restart browser</button>
   </div>
 </div>
@@ -51,6 +52,23 @@
         <label><input type="radio" name="br-mode" value="direct">Direct</label>
       </div>
       <p class="br-note muted">Switching relaunches Chrome, since proxy and profile are fixed at launch. Identity acts as you from the residential IP.</p>
+      <table class="table kv-table br-gap"><tbody>
+        <tr><td>Acts as you</td><td id="br-ident">No</td></tr>
+        <tr><td>Profile</td><td id="br-profile">None</td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="card br-card">
+      <div class="card-title">Bandwidth this run</div>
+      <table class="table kv-table"><tbody id="br-bw"><tr><td>Nothing yet</td><td></td></tr></tbody></table>
+      <p class="br-note muted">Estimated from Content-Length. Residential egress is metered, datacenter is not.</p>
+    </section>
+
+    <section class="card br-card">
+      <div class="card-title">Profile</div>
+      <p class="br-note muted">Log in through the live view and the profile keeps it. Re-seeding replaces the active mode's profile with a Chrome profile export, and its log-ins are lost.</p>
+      <input type="file" id="br-tar" accept=".tar,.tar.gz,.tgz" hidden>
+      <div class="br-row"><button class="btn btn-secondary btn-sm" id="br-reseed">Re-seed from an export</button></div>
     </section>
 
     <section class="card br-card">
@@ -76,7 +94,8 @@
   .kv-table td:first-child { color: var(--text-secondary); white-space: nowrap; font-size: 12px; width: 1%; padding-right: var(--sp-3); }
   .kv-table td:last-child { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
   .br-row { margin-top: var(--sp-2); }
-  .br-note { font-size: 12px; margin: var(--sp-2) 0 0; }
+  .br-gap { margin-top: var(--sp-2); }
+  .br-note {font-size: 12px; margin: var(--sp-2) 0 0; }
   .br-feed { height: 240px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; line-height: var(--lh-16, 16px); }
   .br-feed > div { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--sp-2); padding: var(--sp-1) 0; border-bottom: 1px solid var(--border); }
   .br-feed .t { color: var(--text-placeholder); }
@@ -111,6 +130,18 @@
       $('br-http').textContent = s.last_http_status ?? 'None';
       $('br-lock').textContent = s.busy ? `Busy, held by ${s.holder || 'an agent'}` : 'Idle';
       $('br-proxy').textContent = s.proxy || 'None';
+      $('br-ident').textContent = s.identity ? 'Yes' : 'No';
+      $('br-profile').textContent = (s.profile || 'None').replace(/^.*\/(?=var\/)/, '');
+      const bw = s.bandwidth || {};
+      const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+      const rows = Object.keys(bw).map(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td></td><td class="num"></td>';
+        tr.children[0].textContent = m[0].toUpperCase() + m.slice(1);
+        tr.children[1].textContent = kb(bw[m].total || 0);
+        return tr;
+      });
+      if (rows.length) $('br-bw').replaceChildren(...rows);
       mode = s.mode || null;
       const mb = $('br-mode');
       mb.textContent = mode ? mode[0].toUpperCase() + mode.slice(1) : 'Mode unknown';
@@ -185,6 +216,27 @@
     const v = $('br-view');
     if (v.requestFullscreen) v.requestFullscreen().catch(() => window.open(NOVNC, '_blank'));
     else window.open(NOVNC, '_blank');
+  };
+
+  $('br-pop').onclick = () => window.open(NOVNC, '_blank');
+  $('br-reseed').onclick = () => {
+    if (!confirm('Replace the active mode\'s profile with a Chrome profile export? Its log-ins are lost.')) return;
+    $('br-tar').click();
+  };
+  $('br-tar').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    toast('Re-seeding the profile', `Uploading ${f.name}, then Chrome relaunches.`);
+    const fd = new FormData(); fd.append('profile', f);
+    try {
+      const j = await (await fetch(`${API}/reseed`, { method: 'POST', body: fd, credentials: 'same-origin' })).json();
+      if (!j.ok) throw new Error(j.error || 'failed');
+      toast('Profile re-seeded', 'Chrome relaunched on the new profile.', 'ok');
+      $('br-vnc').src = 'about:blank';
+    } catch (err) {
+      toast('Profile not re-seeded', 'The old profile is still in place. Check the export and try again.', 'danger');
+    }
+    e.target.value = '';
+    tick();
   };
 
   tick(); setInterval(tick, 3000); feed();
