@@ -1,0 +1,29 @@
+.nerves-q { width: 200px; }
+.nerves-filters { display: inline-flex; gap: 4px; }
+.nerves-legend { display: flex; gap: var(--sp-4); flex-wrap: wrap; font-size: 12px; }
+.nerves-legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.nerves-legend .swatch .n { color: var(--text-primary); }
+.nerves-legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; flex: none; }
+.nerves-graph { padding: 0; overflow: hidden; max-width: none; position: relative; }
+.nerves-graph svg { display: block; cursor: grab; }
+.nerves-graph svg:active { cursor: grabbing; }
+.nerves-graph .link { stroke: var(--text-placeholder); stroke-opacity: 0.22; stroke-width: 1; }
+.nerves-graph .node { cursor: pointer; }
+.nerves-graph .dim { opacity: 0.12; }
+.nerves-graph .label { font-family: var(--font-ui); font-size: 10px; fill: var(--text-secondary); pointer-events: none; user-select: none; }
+.nerves-graph .label-repo { fill: var(--text-primary); font-size: 11px; }
+/* At full extent the dir labels collide, so they wait for zoom or a filter. */
+.nerves-graph .label-dir { opacity: 0; transition: opacity 120ms ease; }
+.nerves-graph g.show-dirs .label-dir { opacity: 1; }
+.nerves-graph g.show-dirs .label-dir.dim { opacity: 0.12; }
+.nerves-detail {
+  position: absolute; top: var(--sp-3); right: var(--sp-3); width: 260px;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-3); padding: var(--sp-3); font-size: 12px;
+}
+.nerves-detail h3 { margin: 0 0 6px; font-size: 13px; color: var(--text-primary); }
+.nerves-detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px var(--sp-3); }
+.nerves-detail dt { color: var(--text-secondary); }
+.nerves-detail dd { margin: 0; color: var(--text-primary); word-break: break-all; }
+.nerves-detail .path { font-family: var(--font-mono); font-size: 11px; }
+.nerves-detail .btn { margin-top: var(--sp-3); width: 100%; }
