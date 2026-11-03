@@ -1,7 +1,7 @@
 {
   "title": "Diagram",
   "slug": "diagram",
-  "description": "The G-System as a flow diagram: what moves between hosts, services and projects, with live health and drift.",
+  "description": "The G-System as it runs: traffic in through Cloudflare to each host, flows out to the providers, with live health and drift. Levels is the same system by g-level.",
   "nav": true,
   "order": 25,
   "body_class": "diagram-page",

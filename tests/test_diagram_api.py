@@ -157,3 +157,14 @@ def test_studio_port_from_manifest(manifest_dir, monkeypatch):
     monkeypatch.delenv("STUDIO_GADMIN_URL", raising=False)
     (manifest_dir / "manifest.json").write_text(json.dumps({"services": [{"id": "g-studio", "port": 8240}]}))
     assert diagram._studio_base() == "http://127.0.0.1:8240"
+
+
+def test_studio_on_another_host_is_not_loopback(manifest_dir, monkeypatch):
+    monkeypatch.delenv("STUDIO_GADMIN_URL", raising=False)
+    (manifest_dir / "manifest.json").write_text(json.dumps({"services": [
+        {"id": "g-studio", "port": 8240, "host": "h2"}, {"id": "gcommand", "port": 8089, "host": "h"}]}))
+    base, why = diagram._studio_target()
+    assert base is None and "h2" in why and "STUDIO_GADMIN_URL" in why
+    (manifest_dir / "manifest.json").write_text(json.dumps({"services": [
+        {"id": "g-studio", "port": 8240, "host": "h"}, {"id": "gcommand", "port": 8089, "host": "h"}]}))
+    assert diagram._studio_base() == "http://127.0.0.1:8240"

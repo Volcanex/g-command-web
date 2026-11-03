@@ -143,11 +143,12 @@ export function Layers({ data, w, focus, setFocus, filters, collapsed, toggle })
     if (!root || !focus) { setLines([]); return; }
     const measure = () => {
       const o = root.getBoundingClientRect();
+      const k = o.width / (root.offsetWidth || o.width) || 1;   // the Viewport's zoom
       const at = (id) => {
         const el = root.querySelector(`[data-node="${CSS.escape(id)}"]`) || root.querySelector(`[data-holds~="${CSS.escape(id)}"]`);
         if (!el) return null;
         const r = el.getBoundingClientRect();
-        return { x: r.left - o.left + r.width / 2, y: r.top - o.top + r.height / 2 };
+        return { x: (r.left - o.left + r.width / 2) / k, y: (r.top - o.top + r.height / 2) / k };
       };
       const a = at(focus);
       if (!a) { setLines([]); return; }
@@ -201,7 +202,7 @@ export function Layers({ data, w, focus, setFocus, filters, collapsed, toggle })
 }
 
 /* The focused part, with every link it has, in words. */
-export function Links({ id, w, setFocus }) {
+export function Links({ id, w, setFocus, jump }) {
   const n = w.nodes.get(id);
   if (!n) return null;
   const links = w.edges.filter((e) => e.from === id || e.to === id);
@@ -220,7 +221,9 @@ export function Links({ id, w, setFocus }) {
   const flags = w.flagged.get(id) || [];
   return html`<section class="card dg-focus">
     <div class="card-head"><h2 class="card-title">${chipLabel(n)}</h2>
-      <${Button} size="sm" kind="tertiary" onClick=${() => setFocus(null)}>Clear focus<//></div>
+      <span class="row-tight">
+        ${jump && (n.kind === "project" || n.kind === "repo") && html`<${Button} size="sm" kind="secondary" onClick=${() => jump(id)}>Open in System<//>`}
+        <${Button} size="sm" kind="tertiary" onClick=${() => setFocus(null)}>Clear focus<//></span></div>
     <dl class="facts">${facts.map(([k, v]) => html`<dt key=${k}>${k}</dt><dd class="dg-wrap">${v}</dd>`)}</dl>
     ${flags.map((f, i) => html`<p class="small dg-stale" key=${i}>${f}</p>`)}
     ${n.principles && n.principles.length > 0 && html`<h3 class="dg-h3">Principles</h3>

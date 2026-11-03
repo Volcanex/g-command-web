@@ -54,18 +54,29 @@ def _brain_upstream() -> str:
     return os.environ.get("BRAIN_UPSTREAM", "http://127.0.0.1:8766").rstrip("/")
 
 
-def _studio_base() -> str | None:
-    """Studio's raw port (nginx 404s /api/gadmin on the studio host): STUDIO_GADMIN_URL, else the
-    manifest's g-studio service port."""
+def _studio_target() -> tuple[str | None, str | None]:
+    """(Studio's raw port, None) or (None, why). nginx 404s /api/gadmin on the studio host, so
+    this is STUDIO_GADMIN_URL, else 127.0.0.1 and the manifest's g-studio port, but only while
+    the manifest puts g-studio on the same host as this server (its `gcommand` service). Once
+    Studio moves host, loopback would reach nothing, so the reason says to set the URL."""
     if os.environ.get("STUDIO_GADMIN_URL"):
-        return os.environ["STUDIO_GADMIN_URL"].rstrip("/")
+        return os.environ["STUDIO_GADMIN_URL"].rstrip("/"), None
     try:
         manifest = json.loads((gcore_dir() / "manifest.json").read_text())
     except (OSError, ValueError):
-        return None
-    svcs = manifest.get("services") or []
-    port = next((s.get("port") for s in svcs if s.get("id") == "g-studio" and s.get("port")), None)
-    return f"http://127.0.0.1:{port}" if port else None
+        return None, "the gcore manifest did not read"
+    svcs = {s.get("id"): s for s in manifest.get("services") or []}
+    studio, me = svcs.get("g-studio") or {}, svcs.get("gcommand") or {}
+    if not studio.get("port"):
+        return None, "the manifest gives g-studio no port"
+    if studio.get("host") and me.get("host") and studio["host"] != me["host"]:
+        return None, (f"g-studio runs on {studio['host']} and this server on {me['host']}, "
+                      "so set STUDIO_GADMIN_URL to reach it")
+    return f"http://127.0.0.1:{studio['port']}", None
+
+
+def _studio_base() -> str | None:
+    return _studio_target()[0]
 
 
 def _get_json(url: str, headers: dict | None = None):
@@ -127,12 +138,13 @@ def _gcore_graph() -> tuple[dict | None, dict]:
 
 def _fetch_live() -> dict:
     token = os.environ.get("GADMIN_TOKEN") or ""
-    studio = _studio_base()
+    studio, studio_why = _studio_target()
+    why = "GADMIN_TOKEN is not set in this server's environment" if not token else studio_why
     jobs = {
         "status": lambda: _get_json(_brain_upstream() + "/api/status"),
         "nerves": lambda: _get_json(_brain_upstream() + "/api/nerves"),
         "clients": (lambda: _get_json(studio + "/api/gadmin/blocks", {"X-Gadmin-Token": token}))
-        if token and studio else (lambda: (None, "GADMIN_TOKEN or the g-studio port is not configured")),
+        if token and studio else (lambda: (None, why)),
     }
     with ThreadPoolExecutor(len(jobs)) as pool:
         futures = {k: pool.submit(f) for k, f in jobs.items()}

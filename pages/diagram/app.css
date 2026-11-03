@@ -18,7 +18,7 @@ body.diagram-page { --col-page: 100%; }
 .dg-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-4); align-items: start; }
 .dg-layout > .dg-flows { grid-column: 1 / -1; }
 .dg-side { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
-.dg-canvas { padding: 0; overflow: auto; max-width: none; min-height: 240px; }
+.dg-canvas { padding: 0; overflow: hidden; max-width: none; display: flex; flex-direction: column; min-width: 0; }
 .dg-svg { display: block; font-family: var(--font-ui); }
 .dg-h3 { margin: var(--sp-4) 0 0; font-size: 12px; line-height: var(--lh-1); font-weight: 600; color: var(--text-primary); }
 .dg-flow-group:first-of-type .dg-h3 { margin-top: 0; }
@@ -79,12 +79,12 @@ body.diagram-page { --col-page: 100%; }
 .dg-wire.in { stroke-dasharray: 4 3; }
 .dg-band { border-top: 1px solid var(--border-subtle); padding-top: var(--sp-2); }
 .dg-band:first-of-type { border-top: 0; padding-top: 0; }
-.dg-band-head { all: unset; display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; width: 100%; height: var(--h-1); }
+.dg-band-head { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; width: 100%; min-height: var(--h-1); padding: 0 var(--sp-2); }
 .dg-band-head:focus-visible, .dg-group-head:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
-.dg-band-title { font-size: 13px; line-height: var(--lh-1); font-weight: 600; color: var(--text-primary); }
+.dg-band-title { white-space: nowrap; font-size: 13px; line-height: var(--lh-1); font-weight: 600; color: var(--text-primary); }
 .dg-band-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .dg-groups { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-top: var(--sp-2); }
-.dg-group-box { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--sp-2); min-width: 0; max-width: 100%; }
+.dg-group-box { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--sp-3); min-width: 0; max-width: 100%; }
 .dg-group-head { all: unset; display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
 .dg-group-head .g-tree-caret, .dg-band-head .g-tree-caret { visibility: visible; }
 .dg-group-head[aria-expanded="true"] > .g-tree-caret::before, .dg-band-head[aria-expanded="true"] > .g-tree-caret::before { rotate: 45deg; margin-left: 0; margin-top: -2px; }
@@ -106,7 +106,34 @@ body.diagram-page { --col-page: 100%; }
   .dg-layout { grid-template-columns: minmax(0, 1fr); }
   .dg-side { order: 1; }
   .dg-layout > .dg-flows { order: 2; }
-  .dg-canvas { order: 3; max-height: 70vh; }
+  .dg-canvas { order: 0; }
+  .dg-port { height: 64vh; }
   .dg-q { width: 100%; }
   .dg-fit { margin-left: 0; }
 }
+
+/* System: hosts are containers, an empty host is drawn faintly, the way-in nodes read as edges. */
+.dg-lane.is-host rect { fill: var(--surface-2); stroke: var(--border); }
+.dg-lane.is-empty { opacity: 0.5; }
+.dg-lane.is-empty rect { stroke-dasharray: 4 4; }
+.dg-n-empty rect { fill: none; stroke-dasharray: 4 4; }
+.dg-n-net rect, .dg-n-provider rect { fill: var(--surface-1); }
+.dg-n-code rect { fill: var(--bg-panel-2); }
+.dg-k-ingress .dg-line, .dg-k-git .dg-line, .dg-k-part .dg-line { stroke: var(--border-strong); }
+.dg-layout > .dg-undeclared { grid-column: auto; }
+
+/* Viewport: the bar on top, then the pannable port. The bar carries the view switch, so it is
+   there in fullscreen too. */
+.dg-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border-subtle); }
+.dg-bar-zoom { display: inline-flex; align-items: center; gap: var(--sp-1); margin-left: auto; }
+.dg-zoom-pct { min-width: 40px; text-align: center; }
+.dg-port { position: relative; overflow: hidden; height: 72vh; min-height: 360px; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.dg-port.is-panning { cursor: grabbing; }
+.dg-inner { position: absolute; left: 0; top: 0; transform-origin: 0 0; width: max-content; }
+.dg-inner.is-fill { width: 100%; }
+.dg-canvas.is-full { border-radius: 0; border: 0; background: var(--bg); }
+.dg-canvas.is-full .dg-port { height: auto; flex: 1; min-height: 0; }
+.dg-canvas.is-overlay { position: fixed; inset: 0; z-index: 1000; height: 100dvh; }
+:root.dg-overlay-open, :root.dg-overlay-open body { overflow: hidden; }
+.dg-node.is-revealed rect, .dg-chip.is-revealed { outline: none; stroke: var(--focus-ring); stroke-width: 3; box-shadow: 0 0 0 3px var(--focus-ring); }
+@media (max-width: 900px) { .dg-bar-zoom { margin-left: 0; } }

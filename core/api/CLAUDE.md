@@ -145,7 +145,7 @@ HTTP/2 is httpx with h2, the JWT is PyJWT (ES256), refreshed every 45 minutes.
 
 ## diagram.py
 
-Backs the G-System diagram (the page itself is not built yet). `GET /api/diagram` imports
+Backs `/diagram` (`pages/diagram`: System, the runtime picture, and Levels). `GET /api/diagram` imports
 `gcore_graph` from the gcore checkout (`core.instance.gcore_dir`) and fills its seams: `health`
 on every node from `${BRAIN_UPSTREAM}/api/status` (services, dependencies; projects, repos and
 hosts roll up their services, worst state wins) and `/api/nerves` (repo nerve pairing),
@@ -159,5 +159,5 @@ gcore's assembly walks every checkout (33 s cold, under 1 s warm), so it is cach
 | Env var | Default | What |
 |---|---|---|
 | `GADMIN_TOKEN` | none | Sent as `X-Gadmin-Token` to Studio; must equal Studio's `GS_GADMIN_TOKEN` |
-| `STUDIO_GADMIN_URL` | `http://127.0.0.1:<manifest g-studio port>` | Studio's raw port (nginx 404s `/api/gadmin` on the studio host) |
+| `STUDIO_GADMIN_URL` | `http://127.0.0.1:<manifest g-studio port>` | Studio's raw port (nginx 404s `/api/gadmin` on the studio host). The loopback default holds only while the manifest puts `g-studio` on the same host as `gcommand`; once Studio moves (h2), clients go blank with that reason until this is set |
 | `BRAIN_UPSTREAM` | `http://127.0.0.1:8766` | The brain, as for `brain.py` |
