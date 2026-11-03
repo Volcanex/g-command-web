@@ -37,6 +37,9 @@ function drawGraph(svgEl, { nodes, links }) {
     .force("link", d3.forceLink(links).id((d) => d.id).distance(100).strength(0.8))
     .force("charge", d3.forceManyBody().strength(-200))
     .force("center", d3.forceCenter(width / 2, HEIGHT / 2))
+    // A light pull to the middle keeps the separate trees off the walls, where they would pile up.
+    .force("x", d3.forceX(width / 2).strength(0.06))
+    .force("y", d3.forceY(HEIGHT / 2).strength(0.1))
     .force("collide", d3.forceCollide().radius((d) => nodeR(d) + 8))
     // Walls at the card's edge, with room on the right for a label, so nothing drifts out of view.
     .force("bounds", () => nodes.forEach((d) => {
