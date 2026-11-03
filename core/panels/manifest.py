@@ -34,8 +34,9 @@ def build_manifest(pages_dir, native=None):
         slug = config.get("slug", "")
         label = (config.get("tab_label") if tab else None) or config.get("nav_label") or config.get("title", slug)
         result = {"slug": slug, "label": label}
-        if not tab:
-            result["icon"] = config.get("nav_icon", "circle")
+        # A child page carries its icon too, so an app drawing it on its own
+        # (a Home tile for Calendar) has the same glyph as the rail.
+        result["icon"] = config.get("nav_icon", "circle")
         if "layout" in config:
             result["panels"] = layout.panels(config["layout"])
             result["layout"] = layout.normalise(config["layout"])

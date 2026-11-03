@@ -5,13 +5,13 @@
       <span class="badge badge-plain num" data-count>Loading</span>
     </div>
   </div>
-  <div class="page-actions">
+  <div class="page-actions" data-to-topbar>
     <div class="g-segmented" role="radiogroup" aria-label="View">
       <label><input type="radio" name="view" value="list" checked>List</label>
       <label><input type="radio" name="view" value="month">Month</label>
     </div>
-    <button class="btn btn-primary btn-sm" type="button" data-toggle-add aria-expanded="false">
-      <i class="ph ph-plus"></i><span>Add item</span>
+    <button class="btn btn-primary btn-sm" type="button" data-toggle-add aria-expanded="false" aria-label="Add item">
+      <i class="ph ph-plus"></i><span class="hide-sm">Add item</span>
     </button>
   </div>
 </div>
@@ -128,6 +128,7 @@
     .row .move { grid-column: 3; grid-row: 1 / span 2; }
     .row .tick { grid-row: 1 / span 2; }
     .row .title { flex-wrap: wrap; column-gap: var(--sp-2); }
+    .row .title .dot { display: none; }
   }
 
   .month-nav { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
@@ -177,6 +178,10 @@
   const LATER_DAYS = 35;
 
   const $ = (s) => document.querySelector(s);
+  // The view toggle and Add item sit in the top bar's page-actions slot;
+  // on a shell without the slot they stay in the page head.
+  const slot = $('[data-topbar-actions]'), own = $('[data-to-topbar]');
+  if (slot && own) { slot.append(...own.children); own.remove(); }
   const listEl = $('[data-list]'), monthEl = $('[data-month]'), grid = $('[data-grid]');
   const monthDay = $('[data-month-day]'), monthLabel = $('[data-month-label]'), count = $('[data-count]');
 

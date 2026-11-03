@@ -131,9 +131,9 @@ def test_manifest_defaults_ties_tabs_panel_flags_and_bad_configs(tmp_path):
     assert [section["title"] for section in manifest["sections"]] == ["Together", "Alpha & tools"]
     entry = manifest["sections"][1]["entries"][0]
     assert entry == {"slug": "a", "label": "Alpha & tools", "icon": "circle", "panels": ["money"], "tabs": [
-        {"slug": "d", "label": "First & tab", "panels": []},
-        {"slug": "a", "label": "Alpha & tools", "panels": ["money"]},
-        {"slug": "e", "label": "Last"}]}
+        {"slug": "d", "label": "First & tab", "icon": "circle", "panels": []},
+        {"slug": "a", "label": "Alpha & tools", "icon": "circle", "panels": ["money"]},
+        {"slug": "e", "label": "Last", "icon": "circle"}]}
     assert "panels" not in manifest["sections"][0]["entries"][0]
 
 
