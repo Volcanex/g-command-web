@@ -1371,10 +1371,15 @@ dialog.dlg[open]::backdrop { opacity: 1; }
 .tabs {
   position: relative;
   display: flex; gap: 2px;
-  border-bottom: 1px solid var(--border-subtle);
+  /* The rule is an inset shadow, not a border, so the scroll clip below keeps the
+     indicator that sits on it. */
+  box-shadow: inset 0 -1px 0 var(--border-subtle);
+  /* More tabs than the width scroll sideways inside the strip, never the page. */
+  max-width: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
-  position: relative;
+  position: relative; flex: none; white-space: nowrap;
   height: var(--h-3); padding: 0 var(--sp-3);
   border: none; background: none;
   color: var(--text-secondary);
@@ -1390,7 +1395,7 @@ dialog.dlg[open]::backdrop { opacity: 1; }
 .tab[aria-selected="true"] { color: var(--text-primary); }
 .tab-indicator {
   position: absolute;
-  bottom: -1px; left: 0;
+  bottom: 0; left: 0;
   height: 2px; width: 0;
   background: var(--text-primary);
   transition: translate var(--dur-slow) var(--ease-out), width var(--dur-slow) var(--ease-out);

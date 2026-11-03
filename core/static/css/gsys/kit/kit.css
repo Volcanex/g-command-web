@@ -226,11 +226,42 @@ button.nav-item { width: 100%; }
 
 /* ---------------------------------------------------------------- page rhythm */
 
-.page-head { display: flex; align-items: flex-start; gap: var(--sp-3); flex-wrap: wrap; }
-.page-head-text { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1 1 240px; }
-.page-head .page-title { font-size: 18px; line-height: var(--lh-3); font-weight: 500; display: flex; align-items: center; gap: var(--sp-2); }
-.page-sub { font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
-.page-actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* The page head. The top bar already names the page, so the head never says it again: its h1
+   is .sr-only (PageHead does this; a hand-written head writes <h1 class="sr-only">). What is left
+   is one row, at every width: the page's badges on the left, its actions on the right, never
+   wrapping onto a line of their own. A description, when the page needs one, is a second line.
+     <div class="page-head">
+       <div class="page-head-text">
+         <div class="row-tight"><h1 class="sr-only">Tickets</h1><span class="badge">98</span></div>
+         <p class="page-sub">How to use it, or where its data comes from. Never a restatement.</p>
+       </div>
+       <div class="page-actions">...</div>
+     </div> */
+.page-head { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; min-width: 0; }
+.page-head-text { display: contents; }
+.page-head-text > .row-tight, .page-head-text > .page-title { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; min-height: var(--h-control); }
+.page-head-text > .row-tight > * { flex: none; }
+.page-head-text > .row-tight > .badge { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-head .page-title { font-size: 18px; line-height: var(--lh-3); font-weight: 500; display: flex; align-items: center; gap: var(--sp-2); margin: 0; }
+.page-sub { order: 2; flex: 1 0 100%; margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
+.page-actions { order: 1; display: flex; align-items: center; gap: var(--sp-2); flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.page-actions > * { flex: none; }
+/* A head with nothing visible left in it takes no room, so the page starts at its first block. */
+.page-head:not(:has(.page-actions, .page-sub, .badge, .btn, .legend, input, select)) { display: contents; }
+
+/* Sections: one rhythm for every page. A section head is 32px below what came before it (the
+   page stack's 16px plus its own 16px) and 16px above its body; a .section-sub under it sits
+   4px below the head. The head is one row: title, its badges, then actions pushed right.
+     <h2 class="section-head">Problems <span class="badge">1</span><span class="grow"></span>...</h2>
+     <p class="section-sub">One line on what the section shows.</p> */
+.section-head {
+  display: flex; align-items: center; gap: var(--sp-2); flex-wrap: nowrap; min-width: 0;
+  min-height: var(--h-control); margin: var(--sp-4) 0 0;
+  font-size: 15px; line-height: var(--lh-2); font-weight: 500; color: var(--text-primary);
+}
+.section-head:first-child { margin-top: 0; }
+.section-head > .grow { flex: 1 1 auto; }
+.section-sub { margin: calc(var(--sp-1) - var(--sp-4)) 0 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
 
 .row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; min-width: 0; }
 .row-tight { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; min-width: 0; }
@@ -340,6 +371,8 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
 @media (max-width: 720px) {
   .topbar { padding: var(--sp-2) var(--gutter); min-height: calc(var(--h-control) + 2 * var(--sp-2)); }
   .content-page { padding-top: var(--sp-4); }
+  /* .hide-sm drops a secondary table column on a phone: put it on that column's th and every td,
+     and keep two or three columns, so a table reflows instead of scrolling inside its card. */
   .hide-sm { display: none !important; }
 }
 @media (min-width: 721px) { .show-sm { display: none !important; } }

@@ -312,10 +312,15 @@ export function Loaded({ state, skeleton, children }) {
 
 /* ------------------------------------------------------------------ layout */
 
-export function PageHead({ title, count, children, sub }) {
+/* The top bar names the page, so the title is for screen readers only (kit.css "The page head").
+   showTitle keeps it visible for a screen whose bar does not name it. */
+export function PageHead({ title, count, children, sub, showTitle = false }) {
   return html`<div class="page-head">
     <div class="page-head-text">
-      <h1 class="page-title">${title}${count != null && html` <span class="badge badge-plain num">${count}</span>`}</h1>
+      <div class="row-tight">
+        <h1 class=${showTitle ? "page-title" : "sr-only"}>${title}</h1>
+        ${count != null && html`<span class="badge badge-plain num">${count}</span>`}
+      </div>
       ${sub && html`<p class="page-sub">${sub}</p>`}
     </div>
     ${children && html`<div class="page-actions">${children}</div>`}

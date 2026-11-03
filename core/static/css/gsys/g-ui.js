@@ -79,6 +79,20 @@
     .replace(/\s+/g, " ")
     .trim();
 
+  /* ---- tidy: brain and manifest text made fit for display ------------------
+     The two glyphs g-design bans in interface copy reach the screen inside
+     data (note titles, manifest descriptions, agent cards). tidy swaps them at
+     the boundary: an em dash or a spaced en dash becomes a comma, a middle dot
+     a comma. Display only, the source is never rewritten. Line breaks survive
+     (use g.plain first for markdown), and an unspaced en dash (12–18 Oct) is a
+     range and stays. */
+  g.tidy = (s) => String(s ?? "")
+    .replace(/[ \t]*\u2014[ \t]*/g, ", ")
+    .replace(/[ \t]+\u2013[ \t]+/g, ", ")
+    .replace(/[ \t]*\u00b7[ \t]*/g, ", ")
+    .replace(/,[ \t]*(,[ \t]*)+/g, ", ")
+    .replace(/^[ \t]*,[ \t]*|[ \t]*,[ \t]*$/gm, "");
+
   /* ---- tooltip with delay grouping -------------------------------------
      300ms warm-up before the first tooltip; once one is visible (or was
      within the last 300ms) neighbours show instantly. */
