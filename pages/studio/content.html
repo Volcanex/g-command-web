@@ -1,7 +1,7 @@
 <!-- The real g-studio app, run in this page: its mount.js comes from the studio's own origin
      (STUDIO_ORIGIN) and talks to the studio's API with the studio session cookie. Nothing of
-     the studio is bundled here. Embedded, the studio draws no sidebar or account menu: this
-     page's nav is the only one, and the studio's own sections are tabs in the content. Its
+     the studio is bundled here. Embedded, the studio keeps its own rail beside this page's
+     (g-navigation R8): each rests collapsed, opens on hover and pins on its own key. Its
      styles are scoped to the mount element and it uses this page's g-design, so it looks and
      behaves as part of Command. Deep links are this page plus the studio's hash route:
      /studio#/site/<pid>/pages. The studio must list this origin in GS_EMBED_ORIGINS. -->
