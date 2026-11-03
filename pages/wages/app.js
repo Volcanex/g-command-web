@@ -2,6 +2,12 @@
 // every sum; this page renders what /api/wages (pages/wages/api.py, a gated
 // proxy to g-wages' /api/ledger) returns and posts edits back. Money arrives
 // formatted by g-wages, so nothing here re-derives a balance.
+//
+// Each figure has one label, in one place:
+//   Owed to you now   the client's float, the closing balance of its latest week
+//   Amount due        the balance at the invoice period's end (g-wages compute_invoice)
+//   Week totals       hours, earned, paid in and expenses for the week shown
+//   Owed at start/end the balance brought into and carried out of the week shown
 import { html, useState, useEffect, useCallback, PageHead, Badge, Button, Dialog, Field, Menu, Empty, ErrorState, SkeletonRows, toast, toastOk, toastError, mount } from "../../core/app/boot.js";
 import "./app.css";
 
@@ -26,42 +32,87 @@ async function api(method, path, body) {
 const dateOf = (ws, dow) => { const d = new Date(ws + "T00:00:00"); d.setDate(d.getDate() + dow); return d; };
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fmtRange = (ws) => { const a = dateOf(ws, 0), b = dateOf(ws, 6); return `${a.getDate()} ${MON[a.getMonth()]} to ${b.getDate()} ${MON[b.getMonth()]} ${b.getFullYear()}`; };
+/* "2026-11-01" as "Sun 1 Nov", with the year only when it is not this one. */
+const fmtDay = (iso, withDow = true) => {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return iso;
+  const y = d.getFullYear() === new Date().getFullYear() ? "" : ` ${d.getFullYear()}`;
+  return `${withDow ? DOW[(d.getDay() + 6) % 7] + " " : ""}${d.getDate()} ${MON[d.getMonth()]}${y}`;
+};
 const pounds = (p) => (p < 0 ? "-" : "") + "£" + (Math.abs(p) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dsum = (day, kind) => day.entries.filter((e) => e.kind === kind).reduce((a, e) => a + e.amount_pence, 0);
 const icon = (n) => html`<i class=${`ph ph-${n}`} aria-hidden="true"></i>`;
 
-function Stat({ label, value, tone }) {
-  return html`<div class="wg-stat"><span class="wg-stat-l">${label}</span><span class=${`wg-stat-v num ${tone || ""}`}>${value}</span></div>`;
+function Figure({ label, value, sub, big }) {
+  return html`<div class=${`wg-fig ${big ? "wg-fig-big" : ""}`}>
+    <span class="wg-fig-l">${label}</span>
+    <span class="wg-fig-v num">${value}</span>
+    ${sub && html`<span class="wg-fig-s">${sub}</span>`}
+  </div>`;
 }
 
-/* The week as a grid: hours editable in place, everything else opens the day. */
+/* What a day holds besides hours, as quiet chips; nothing at all when it holds nothing. */
+function DayChips({ d }) {
+  const paid = dsum(d, "paid_in"), spent = dsum(d, "expense"), n = (d.worklog || []).length, note = d.notes && d.notes.trim();
+  return html`${paid ? html`<${Badge} kind="ok" class="num">Paid in ${pounds(paid)}<//>` : ""}
+    ${spent ? html`<${Badge} kind="plain" class="num">Expense ${pounds(spent)}<//>` : ""}
+    ${n ? html`<${Badge} kind="info" class="num">${n} ${n === 1 ? "commit" : "commits"}<//>` : ""}
+    ${!n && note ? html`<${Badge} kind="plain">Note<//>` : ""}`;
+}
+
+const hoursInput = (d, onHours, cls = "") => html`<input class=${`input num wg-hrs ${cls}`} type="number" step="0.25" min="0" inputmode="decimal"
+  aria-label=${`Hours on ${FULL[d.dow]}`} value=${d.centihours ? d.hours : ""}
+  onChange=${(e) => onHours(d.dow, e.target.value)} />`;
+
+/* The week as a grid on a wide screen: hours editable in place, every other
+   cell opens the day. An empty cell is empty. */
 function Grid({ week, onHours, onDay }) {
   const today = ymd(new Date());
   const t = week.totals;
-  const cell = (d, v) => html`<td class=${`num wg-click ${v ? "" : "wg-nil"}`} onClick=${() => onDay(d.dow)}>${v ? pounds(v) : "None"}</td>`;
-  return html`<div class="card wg-gridwrap"><table class="table wg-grid">
-    <thead><tr><th></th>
+  const money = (d, kind) => { const v = dsum(d, kind); return html`<td class="num wg-click" onClick=${() => onDay(d.dow)}>${v ? pounds(v) : ""}</td>`; };
+  return html`<div class="wg-gridwrap"><table class="table wg-grid">
+    <thead><tr><th class="wg-lab"><span class="sr-only">Row</span></th>
       ${week.days.map((d) => { const dt = dateOf(week.week_start, d.dow); return html`
         <th class=${`wg-click ${ymd(dt) === today ? "wg-today" : ""}`} onClick=${() => onDay(d.dow)}>
-          <span class="wg-dow">${DOW[d.dow]}</span><span class="wg-dnum">${dt.getDate()} ${MON[dt.getMonth()]}</span></th>`; })}
+          <span class="wg-dow">${DOW[d.dow]}</span> <span class="wg-dnum num">${dt.getDate()}</span></th>`; })}
       <th class="wg-tot">Total</th></tr></thead>
     <tbody>
       <tr><td class="wg-lab">Hours</td>
-        ${week.days.map((d) => html`<td class="wg-in"><input class="input input-sm num" type="number" step="0.25" min="0"
-            aria-label=${`Hours on ${FULL[d.dow]}`} value=${d.centihours ? d.hours : ""} placeholder="0"
-            onChange=${(e) => onHours(d.dow, e.target.value)} /></td>`)}
+        ${week.days.map((d) => html`<td class="wg-in">${hoursInput(d, onHours)}</td>`)}
         <td class="num wg-tot">${t.hours}</td></tr>
       <tr><td class="wg-lab">Earned</td>
-        ${week.days.map((d) => html`<td class=${`num ${d.centihours ? "" : "wg-nil"}`}>${d.centihours ? d.working_total : "None"}</td>`)}
+        ${week.days.map((d) => html`<td class="num wg-click" onClick=${() => onDay(d.dow)}>${d.centihours ? d.working_total : ""}</td>`)}
         <td class="num wg-tot">${t.wages}</td></tr>
-      <tr><td class="wg-lab">Paid in</td>${week.days.map((d) => cell(d, dsum(d, "paid_in")))}<td class="num wg-tot">${t.paid_in}</td></tr>
-      <tr><td class="wg-lab">Expenses</td>${week.days.map((d) => cell(d, dsum(d, "expense")))}<td class="num wg-tot">${t.expenses}</td></tr>
+      <tr><td class="wg-lab">Paid in</td>${week.days.map((d) => money(d, "paid_in"))}<td class="num wg-tot">${t.paid_in}</td></tr>
+      <tr><td class="wg-lab">Expenses</td>${week.days.map((d) => money(d, "expense"))}<td class="num wg-tot">${t.expenses}</td></tr>
       <tr><td class="wg-lab">Work</td>
         ${week.days.map((d) => { const n = (d.worklog || []).length, note = d.notes && d.notes.trim();
-          return html`<td class=${`wg-click ${n || note ? "" : "wg-nil"}`} onClick=${() => onDay(d.dow)}>
-            ${n ? html`<${Badge} kind="info" class="num">${n}<//>` : note ? html`<${Badge} kind="plain">Note<//>` : "None"}</td>`; })}
+          return html`<td class="wg-click" onClick=${() => onDay(d.dow)}>
+            ${n ? html`<${Badge} kind="info" class="num">${n}<//>` : note ? html`<${Badge} kind="plain">Note<//>` : ""}</td>`; })}
         <td class="wg-tot"></td></tr>
     </tbody></table></div>`;
+}
+
+/* The same week on a phone: a row per day, so nothing scrolls sideways. */
+function DayList({ week, onHours, onDay }) {
+  const today = ymd(new Date());
+  const t = week.totals;
+  return html`<div class="wg-days">
+    ${week.days.map((d) => { const dt = dateOf(week.week_start, d.dow); return html`
+      <div class=${`wg-dayrow ${ymd(dt) === today ? "wg-today" : ""}`}>
+        <button class="wg-dayname" type="button" onClick=${() => onDay(d.dow)} aria-label=${`Open ${FULL[d.dow]}`}>
+          <span class="wg-dow">${DOW[d.dow]}</span> <span class="wg-dnum num">${dt.getDate()} ${MON[dt.getMonth()]}</span></button>
+        ${hoursInput(d, onHours)}
+        <span class="num wg-earned">${d.centihours ? d.working_total : ""}</span>
+        <button class="btn btn-tertiary btn-sm btn-icon" type="button" aria-label=${`Open ${FULL[d.dow]}`} onClick=${() => onDay(d.dow)}>${icon("caret-right")}</button>
+        <div class="wg-chips"><${DayChips} d=${d} /></div>
+      </div>`; })}
+    <div class="wg-dayrow wg-daytot">
+      <span class="wg-dayname">Total</span><span class="num wg-hrs-tot">${t.hours} h</span><span class="num wg-earned">${t.wages}</span><span></span>
+      ${(t.paid_in !== "£0.00" || t.expenses !== "£0.00") && html`<div class="wg-chips"><span class="num">Paid in ${t.paid_in}</span><span class="num">Expenses ${t.expenses}</span></div>`}
+    </div>
+  </div>`;
 }
 
 /* One day: hours, the pulled work-log, free notes and the money entries. */
@@ -112,8 +163,8 @@ function DayDialog({ week, dow, onClose, onHours, onChanged }) {
             <td class="wg-x">${!locked && html`<button class="btn btn-tertiary btn-sm btn-icon" type="button" aria-label="Remove entry" data-tip="Remove entry" onClick=${() => del(e.id)}>${icon("x")}</button>`}</td>
           </tr>`)}</tbody></table>` : html`<p class="wg-muted">No payments or expenses.</p>`}
         ${!locked && html`<div class="wg-add">
-          <select class="select input" value=${kind} onChange=${(e) => setKind(e.target.value)} aria-label="Entry kind">
-            <option value="expense">Expense, you paid</option><option value="paid_in">Paid in</option></select>
+          <span class="select-wrap"><select class="select" value=${kind} onChange=${(e) => setKind(e.target.value)} aria-label="Entry kind">
+            <option value="expense">Expense, you paid</option><option value="paid_in">Paid in</option></select></span>
           <input class="input num" type="number" step="0.01" min="0" placeholder="£" value=${amt} onInput=${(e) => setAmt(e.target.value)} aria-label="Amount" />
           <input class="input wg-span" placeholder="Label, for example Cloudflare" value=${lbl} onInput=${(e) => setLbl(e.target.value)} aria-label="Label" />
           <${Button} kind="secondary" class="wg-span" busy=${busy} onClick=${add}>Add entry<//>
@@ -162,7 +213,7 @@ function ClientDialog({ open, onClose, onCreated }) {
 
 /* Invoice period, the open link, the issued mark, and the doubts behind it.
    The checks are ours, never the client's, so they live here and not on the invoice. */
-function Invoices({ slug, refreshKey, onMarked }) {
+function Invoice({ slug, refreshKey, onMarked }) {
   const [mode, setMode] = useState("last_invoice");
   const [days, setDays] = useState(30);
   const [current, setCurrent] = useState(false);
@@ -179,28 +230,31 @@ function Invoices({ slug, refreshKey, onMarked }) {
     const un = st && st.marked;
     try {
       const r = await api("POST", `${base}/invoice/${un ? "unmark" : "mark"}`, { mode, days: days || 30, current });
-      toastOk(un ? "Invoice unmarked" : "Invoice marked", `Through ${r.period_end}`);
+      toastOk(un ? "Invoice unmarked" : "Invoice marked", `Through ${fmtDay(r.period_end)}`);
       await load(); onMarked();
     } catch (e) { toastError(e, un ? "Invoice not unmarked" : "Invoice not marked"); } finally { setBusy(false); }
   };
+  const end = st && fmtDay(st.period_end);
   const checks = [];
-  if (st && st.empty) checks.push(html`<b>No new work in this period.</b> The amount is a brought-forward balance that was already invoiced, so sending it bills the same work twice. Include this week to see work in progress.`);
-  if (st && st.paid_after_pence) checks.push(html`<b>${pounds(st.paid_after_pence)} paid after ${st.period_end}.</b> The invoice shows ${pounds(st.due_pence)}, the balance at period end. Outstanding today is <b>${pounds(st.due_now_pence)}</b>.`);
-  if (current) checks.push(html`<b>Unsettled week included.</b> These figures can still move before Sunday, and the invoice does not say so.`);
-  return html`<section class="card wg-inv">
-    <div class="card-head"><div class="card-title">Invoice</div>
-      ${st && html`<${Badge} kind=${st.marked ? "ok" : "plain"}>${st.marked ? `Marked ${st.issued_on}` : "Not marked"}<//>`}</div>
-    <div class="wg-inv-row">
-      <select class="select input input-sm" value=${mode} onChange=${(e) => setMode(e.target.value)} aria-label="Invoice period">
-        ${INV_MODES.map(([v, l]) => html`<option value=${v}>${l}</option>`)}</select>
-      ${mode === "last_x" && html`<input class="input input-sm num wg-days" type="number" min="1" value=${days} onInput=${(e) => setDays(parseInt(e.target.value, 10) || 0)} aria-label="Days" />`}
+  if (st && st.empty && !st.due_pence) checks.push(`Nothing to invoice in this period.`);
+  else if (st && st.empty) checks.push(`No new work in this period. The amount is a balance already invoiced, so sending it bills the same work twice. Include this week to bill work in progress.`);
+  if (st && st.paid_after_pence) checks.push(`${pounds(st.paid_after_pence)} paid after ${end} is not taken off this invoice.`);
+  if (current) checks.push(`This week is still open, so its figures can change before Sunday. The invoice does not say so.`);
+  return html`<section class="wg-half wg-inv">
+    <div class="wg-half-head"><span class="card-title">Invoice</span>
+      ${st && html`<${Badge} kind=${st.marked ? "ok" : "plain"}>${st.marked ? `Marked ${fmtDay(st.issued_on, false)}` : "Not marked"}<//>`}</div>
+    <div class="wg-inv-opts">
+      <span class="select-wrap"><select class="select wg-ctl" value=${mode} onChange=${(e) => setMode(e.target.value)} aria-label="Invoice period">
+        ${INV_MODES.map(([v, l]) => html`<option value=${v}>${l}</option>`)}</select></span>
+      ${mode === "last_x" && html`<input class="input num wg-ctl wg-ndays" type="number" min="1" value=${days} onInput=${(e) => setDays(parseInt(e.target.value, 10) || 0)} aria-label="Days" />`}
       <label class="wg-check"><input type="checkbox" class="checkbox" checked=${current} onChange=${(e) => setCurrent(e.target.checked)} />Include this week</label>
     </div>
-    ${st && html`<div class="wg-inv-sum"><${Stat} label="Period ends" value=${st.period_end} /><${Stat} label="Due" value=${pounds(st.due_pence)} /></div>`}
-    ${checks.map((c) => html`<div class="wg-checkmsg">${icon("warning")}<div>${c}</div></div>`)}
-    <div class="wg-inv-row">
+    ${st ? html`<${Figure} label="Amount due" value=${pounds(st.due_pence)} sub=${`Balance owed at the end of ${end}`} />`
+      : html`<${SkeletonRows} rows=${1} height=${48} />`}
+    ${checks.length > 0 && html`<ul class="wg-checks">${checks.map((c) => html`<li>${icon("warning")}<span>${c}</span></li>`)}</ul>`}
+    <div class="wg-inv-acts">
       <a class="btn btn-primary btn-sm" href=${`${API}${base}/invoice?${q}`} target="_blank" rel="noopener">${icon("file-text")}<span>Open invoice</span></a>
-      <${Button} kind="secondary" size="sm" busy=${busy} onClick=${mark}>${st && st.marked ? "Unmark invoice" : "Mark invoiced"}<//>
+      <${Button} kind="secondary" size="sm" busy=${busy} disabled=${!st} onClick=${mark}>${st && st.marked ? "Unmark invoice" : "Mark invoiced"}<//>
     </div>
   </section>`;
 }
@@ -213,13 +267,15 @@ function Issued({ slug, refreshKey }) {
     api("GET", `/c/${encodeURIComponent(slug)}/invoices`).then((j) => live && setList(j.invoices), () => live && setList([]));
     return () => { live = false; };
   }, [slug, refreshKey]);
-  return html`<section class="card wg-issued"><div class="card-title">Invoices issued</div>
-    ${list == null ? html`<${SkeletonRows} rows=${2} height=${24} />` : list.length ? html`<table class="table"><thead><tr>
-        <th>Issued</th><th>Period</th><th class="num">Hours</th><th class="num">Earned</th><th class="num">Expenses</th><th class="num">Due</th></tr></thead><tbody>
-        ${list.map((i) => html`<tr><td class="num">${i.issued_on}</td><td class="num">${i.period_start || i.since_date} to ${i.period_end}</td>
-          <td class="num">${(i.centihours / 100).toFixed(2)}</td><td class="num">${pounds(i.earned_pence)}</td>
-          <td class="num">${pounds(i.expenses_pence)}</td><td class="num">${pounds(i.due_pence)}</td></tr>`)}</tbody></table>`
-      : html`<p class="wg-muted">No invoices marked yet.</p>`}
+  return html`<section class="card wg-issued"><div class="card-head"><span class="card-title">Invoices issued</span>
+      ${list && list.length > 0 && html`<span class="badge badge-plain num">${list.length}</span>`}</div>
+    ${list == null ? html`<${SkeletonRows} rows=${2} height=${24} />` : list.length ? html`<div class="table-wrap"><table class="table"><thead><tr>
+        <th>Issued</th><th>Period</th><th class="r wg-opt">Hours</th><th class="r wg-opt">Earned</th><th class="r wg-opt">Expenses</th><th class="r">Due</th></tr></thead><tbody>
+        ${list.map((i) => html`<tr><td class="num">${fmtDay(i.issued_on, false)}</td>
+          <td class="num">${fmtDay(i.period_start || i.since_date, false) || "Start"} to ${fmtDay(i.period_end, false)}</td>
+          <td class="r wg-opt">${(i.centihours / 100).toFixed(2)}</td><td class="r wg-opt">${pounds(i.earned_pence)}</td>
+          <td class="r wg-opt">${pounds(i.expenses_pence)}</td><td class="r">${pounds(i.due_pence)}</td></tr>`)}</tbody></table></div>`
+      : html`<p class="wg-muted">No invoices marked yet. Mark one above once it is sent.</p>`}
   </section>`;
 }
 
@@ -227,6 +283,7 @@ function Wages() {
   const [clients, setClients] = useState(null);
   const [slug, setSlug] = useState("");
   const [weeks, setWeeks] = useState([]);
+  const [weeksOf, setWeeksOf] = useState("");
   const [float, setFloat] = useState("");
   const [idx, setIdx] = useState(0);
   const [week, setWeek] = useState(null);
@@ -252,7 +309,7 @@ function Wages() {
   const loadWeeks = useCallback(async (keep) => {
     if (!slug) return [];
     const d = await api("GET", `/c/${encodeURIComponent(slug)}/weeks`);
-    setFloat(d.float); setWeeks(d.weeks);
+    setFloat(d.float); setWeeks(d.weeks); setWeeksOf(slug);
     if (!keep) setIdx(0);
     setRev((r) => r + 1);
     return d.weeks;
@@ -260,11 +317,13 @@ function Wages() {
   useEffect(() => {
     if (!slug) return;
     try { localStorage.setItem("wages-client", slug); } catch { /* storage off */ }
-    setWeek(null);
+    setWeek(null); setError(null);
     loadWeeks(false).catch(setError);
   }, [slug]);
 
-  const ws = weeks[idx] && weeks[idx].week_start;
+  // Only a week of this client: until its list arrives the last client's
+  // weeks are still in state, and asking for one of those is a 404.
+  const ws = weeksOf === slug && weeks[idx] ? weeks[idx].week_start : "";
   const loadWeek = useCallback(async () => {
     if (!ws) { setWeek(null); return; }
     try { setWeek({ ...(await lapi("GET", `/week/${ws}`)), slug }); setError(null); } catch (e) { setError(e); }
@@ -293,6 +352,14 @@ function Wages() {
     catch (e) { toastError(e, "Work-log not pulled"); } finally { setPulling(false); }
   };
 
+  const menu = (client, enc) => html`<${Menu} label="More" icon="dots-three" kind="secondary" items=${[
+    { label: "Add client", icon: "plus", onClick: () => setAddOpen(true) },
+    client && "-",
+    client && { label: "Open report", icon: "file-text", href: `${API}/c/${enc}/report`, target: "_blank" },
+    client && { label: "Open hours basis", icon: "clock", href: `${API}/c/${enc}/sessions/basis`, target: "_blank" },
+    client && { label: "Print this week", icon: "printer", onClick: () => window.print() },
+  ]} />`;
+
   if (error && !clients) return html`<${PageHead} title="Wages" /><${ErrorState} error=${error} retry=${() => { setError(null); loadClients(); }} />`;
   if (!clients) return html`<${PageHead} title="Wages" /><${SkeletonRows} rows=${6} />`;
   const client = clients.find((c) => c.slug === slug);
@@ -300,52 +367,48 @@ function Wages() {
   const t = week && week.totals;
 
   return html`
-    <${PageHead} title="Wages" sub="The ledger, invoices and reports from g-wages, one client at a time.">
-      ${clients.length > 0 && html`<select class="select input input-sm wg-client" value=${slug} onChange=${(e) => setSlug(e.target.value)} aria-label="Client">
-        ${clients.map((c) => html`<option value=${c.slug}>${c.name}, ${c.float} owed</option>`)}</select>`}
-      <button class="btn btn-secondary btn-sm" type="button" onClick=${() => setAddOpen(true)}>${icon("plus")}<span>Add client</span></button>
-      ${client && html`<${Menu} label="Reports" icon="dots-three" items=${[
-        { label: "Open report", href: `${API}/c/${enc}/report`, target: "_blank" },
-        { label: "Open hours basis", href: `${API}/c/${enc}/sessions/basis`, target: "_blank" },
-        { label: "Print this week", onClick: () => window.print() },
-      ]} />`}
+    <${PageHead} title="Wages">
+      ${clients.length > 0 && html`<span class="select-wrap wg-client"><select class="select wg-ctl" value=${slug} onChange=${(e) => setSlug(e.target.value)} aria-label="Client">
+        ${clients.map((c) => html`<option value=${c.slug}>${c.name}</option>`)}</select></span>`}
+      ${menu(client, enc)}
     <//>
     ${!clients.length ? html`<${Empty} title="No clients yet" desc="Add a client to start a ledger."><button class="btn btn-primary btn-sm" type="button" onClick=${() => setAddOpen(true)}>Add client</button><//>` : html`
-    <div class="wg-top">
-      <section class="card wg-hero">
-        <div class="label">Outstanding for ${client ? client.name : ""}</div>
-        <div class="wg-big num">${float || "None"}</div>
-        <p class="wg-muted">Owed to you, all time.</p>
-        ${t && html`<div class="wg-stats">
-          <${Stat} label="Hours" value=${`${t.hours} h`} /><${Stat} label="Earned" value=${t.wages} />
-          <${Stat} label="Paid in" value=${t.paid_in} /><${Stat} label="Expenses" value=${t.expenses} tone=${t.expenses !== "£0.00" ? "wg-neg" : ""} />
-        </div>`}
-      </section>
-      ${t && html`<section class="card wg-tape"><div class="card-title">Carried forward</div>
-        <table class="table kv-table"><tbody>
-          <tr><td>This week</td><td class="num">${t.hours} h</td></tr>
-          <tr><td>Earned</td><td class="num">${t.wages}</td></tr>
-          <tr><td>Net paid in</td><td class="num">${t.net_paid_in}</td></tr>
-          <tr><td>Previous</td><td class="num">${t.prev_overdue}</td></tr>
-          <tr class="wg-sum"><td>Carried</td><td class="num">${t.net_overdue}</td></tr>
-        </tbody></table></section>`}
-      ${slug && html`<${Invoices} slug=${slug} refreshKey=${rev} onMarked=${() => setRev((r) => r + 1)} />`}
-    </div>
+    <section class="card wg-summary">
+      <div class="wg-half wg-bal">
+        <div class="wg-half-head"><span class="card-title">Balance</span></div>
+        <${Figure} big label="Owed to you now" value=${float || "£0.00"}
+          sub="Every week to date, after payments received and expenses you paid." />
+        ${client && html`<dl class="facts wg-facts"><dt>Client rate</dt><dd class="num">${client.rate} an hour</dd>
+          <dt>Owed before week one</dt><dd class="num">${client.opening_balance}</dd></dl>`}
+      </div>
+      ${slug && html`<${Invoice} slug=${slug} refreshKey=${rev} onMarked=${() => setRev((r) => r + 1)} />`}
+    </section>
 
-    <div class="wg-weekbar">
-      <button class="btn btn-secondary btn-sm btn-icon" type="button" aria-label="Previous week" data-tip="Previous week" disabled=${idx >= weeks.length - 1} onClick=${() => setIdx(idx + 1)}>${icon("caret-left")}</button>
-      <span class="wg-range num">${ws ? fmtRange(ws) : "No weeks yet"}</span>
-      <button class="btn btn-secondary btn-sm btn-icon" type="button" aria-label="Next week" data-tip="Next week" disabled=${idx <= 0} onClick=${() => setIdx(idx - 1)}>${icon("caret-right")}</button>
-      ${week && html`<${Badge} kind=${week.locked ? "plain" : "info"}>${week.locked ? "Locked" : "Active"}<//>`}
-      <span class="wg-flex"></span>
-      <button class="btn btn-secondary btn-sm" type="button" onClick=${thisWeek}>Open this week</button>
-      <${Button} kind="secondary" size="sm" busy=${pulling} disabled=${!week} onClick=${pull}>Pull work-log<//>
-    </div>
-    ${error && html`<${ErrorState} error=${error} retry=${() => { setError(null); loadWeek(); }} />`}
-    ${!weeks.length ? html`<${Empty} title="No weeks yet" desc="Open this week to start the ledger for this client." />`
-      : week ? html`<${Grid} week=${week} onHours=${saveHours} onDay=${setDayOpen} />
-        <p class="wg-muted wg-hint">${week.locked ? "Locked week. Editing hours records an amendment, and money is frozen." : `Active week, edit freely. Rate ${week.rate} an hour.`}</p>`
-      : html`<${SkeletonRows} rows=${5} />`}
+    <section class="card flush wg-week">
+      <div class="card-head wg-weekhead">
+        <div class="wg-nav">
+          <button class="btn btn-tertiary btn-sm btn-icon" type="button" aria-label="Previous week" data-tip="Previous week" disabled=${idx >= weeks.length - 1} onClick=${() => setIdx(idx + 1)}>${icon("caret-left")}</button>
+          <span class="wg-range num">${ws ? fmtRange(ws) : "No weeks yet"}</span>
+          <button class="btn btn-tertiary btn-sm btn-icon" type="button" aria-label="Next week" data-tip="Next week" disabled=${idx <= 0} onClick=${() => setIdx(idx - 1)}>${icon("caret-right")}</button>
+          ${week && html`<${Badge} kind=${week.locked ? "plain" : "info"}>${week.locked ? "Locked" : "Active"}<//>`}
+        </div>
+        <div class="wg-weekacts">
+          <button class="btn btn-secondary btn-sm" type="button" onClick=${thisWeek}>Open this week</button>
+          <${Button} kind="secondary" size="sm" busy=${pulling} disabled=${!week} onClick=${pull}>Pull work-log<//>
+        </div>
+      </div>
+      ${error && html`<div class="wg-pad"><${ErrorState} error=${error} retry=${() => { setError(null); loadWeek(); }} /></div>`}
+      ${!weeks.length ? html`<${Empty} title="No weeks yet" desc="Open this week to start the ledger for this client." />`
+        : week ? html`
+          <p class="wg-note">${week.locked ? "Locked week. Changing hours records an amendment with a reason, and money is frozen." : `Active week, edit freely. Rate ${week.rate} an hour.`}</p>
+          <${Grid} week=${week} onHours=${saveHours} onDay=${setDayOpen} />
+          <${DayList} week=${week} onHours=${saveHours} onDay=${setDayOpen} />
+          <div class="wg-weekfoot">
+            <${Figure} label="Owed at start of week" value=${t.prev_overdue} />
+            <${Figure} label="Owed at end of week" value=${t.net_overdue} />
+          </div>`
+        : html`<div class="wg-pad"><${SkeletonRows} rows=${5} /></div>`}
+    </section>
     ${slug && html`<${Issued} slug=${slug} refreshKey=${rev} />`}`}
 
     <${DayDialog} week=${week} dow=${dayOpen} onClose=${() => setDayOpen(null)} onHours=${saveHours} onChanged=${refresh} />

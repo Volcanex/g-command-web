@@ -1,50 +1,88 @@
-.wg-client { max-width: 280px; }
-.wg-top { display: grid; grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
-.wg-hero, .wg-tape, .wg-inv { padding: var(--pad-card); }
-.wg-big { font-size: 48px; line-height: 56px; font-weight: 600; color: var(--accent-fill); margin-top: var(--sp-2); }
-.wg-muted { color: var(--text-secondary); font-size: 12px; line-height: var(--lh-16, 16px); margin: var(--sp-1) 0 0; }
-.wg-stats { display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6); margin-top: var(--sp-4); }
-.wg-stat { display: flex; flex-direction: column; gap: var(--sp-1); }
-.wg-stat-l { font-size: 12px; color: var(--text-secondary); }
-.wg-stat-v { font-size: 16px; line-height: var(--lh-24, 24px); color: var(--text-primary); font-weight: 500; }
-.wg-tape .card-title, .wg-inv .card-title { display: block; margin-bottom: var(--sp-2); }
-.wg-tape .kv-table td { padding-left: 0; font-size: 12px; }
-.wg-tape .kv-table td:first-child { color: var(--text-secondary); }
-.wg-tape .kv-table td:last-child { text-align: right; }
-.wg-tape .wg-sum td { color: var(--text-primary); font-weight: 600; border-top: 1px solid var(--border-strong); }
-.wg-inv .card-head { display: flex; justify-content: space-between; align-items: center; }
-.wg-inv-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-top: var(--sp-3); }
-.wg-inv-sum { display: flex; gap: var(--sp-6); margin-top: var(--sp-3); }
-.wg-days { width: 80px; }
-.wg-check { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: 12px; color: var(--text-secondary); }
-.wg-checkmsg { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--warn-text); border-radius: var(--radius-md, 8px); font-size: 12px; line-height: var(--lh-16, 16px); }
-.wg-checkmsg i { color: var(--warn-text); font-size: 16px; flex: none; }
-.wg-issued { padding: var(--pad-card); margin-top: var(--sp-6); max-width: none; }
-.wg-issued .card-title { display: block; margin-bottom: var(--sp-2); }
-.wg-issued td, .wg-issued th { white-space: nowrap; }
-.wg-issued .num { text-align: right; }
-.wg-issued td:nth-child(-n+2), .wg-issued th:nth-child(-n+2) { text-align: left; }
-.wg-weekbar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-6); margin-bottom: var(--sp-3); }
-.wg-range { min-width: 200px; text-align: center; font-weight: 500; }
-.wg-flex { flex: 1; }
-.wg-gridwrap { padding: 0; overflow-x: auto; max-width: none; }
-.wg-grid { min-width: 760px; }
-.wg-grid th, .wg-grid td { text-align: right; white-space: nowrap; }
-.wg-grid th:first-child, .wg-grid .wg-lab { text-align: left; color: var(--text-secondary); font-size: 12px; position: sticky; left: 0; background: var(--surface); }
-.wg-dow { display: block; color: var(--text-primary); }
-.wg-dnum { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 400; }
-.wg-today .wg-dow { color: var(--accent-fill); }
-.wg-tot { border-left: 1px solid var(--border-strong); color: var(--text-primary); font-weight: 600; }
-.wg-nil { color: var(--text-placeholder); }
+/* Wages. The page sits in the kit's page stack like /calendar: a page head,
+   then cards on the page gutter. Alias tokens only. g-design has no small
+   input, so the controls in a row of small buttons take --h-control-sm. */
+.wg-ctl { height: var(--h-control-sm); }
+.wg-client { flex: none; width: auto; }
+.wg-client .select { width: auto; min-width: 160px; max-width: 240px; }
+
+/* A figure: a small label over a tabular value, with an optional line under. */
+.wg-fig { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wg-fig-l { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.wg-fig-v { font-size: 15px; line-height: var(--lh-2); font-weight: 500; color: var(--text-primary); }
+.wg-fig-big .wg-fig-v { font-size: 28px; line-height: var(--lh-5); font-weight: 600; }
+.wg-fig-s { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.wg-muted { color: var(--text-secondary); font-size: 12px; line-height: var(--lh-1); margin: 0; }
+
+/* Summary: balance and invoice, two halves of one card so they share a height. */
+.wg-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 0; }
+.wg-half { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--pad-card); min-width: 0; }
+.wg-half + .wg-half { border-left: 1px solid var(--border-subtle); }
+.wg-half-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: var(--h-1); }
+.wg-facts { font-size: 12px; line-height: var(--lh-1); gap: var(--sp-1) var(--sp-4); margin-top: auto; }
+.wg-inv-opts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); }
+.wg-inv-opts .select-wrap { flex: 0 1 200px; min-width: 0; }
+.wg-ndays { width: 72px; }
+.wg-check { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); cursor: pointer; }
+.wg-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.wg-checks li { display: flex; gap: var(--sp-2); align-items: flex-start; font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.wg-checks i { color: var(--warn-text); font-size: 14px; line-height: var(--lh-1); flex: none; }
+.wg-inv-acts { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: auto; }
+
+/* The week: one card, the head carries the range between its arrows. */
+.wg-weekhead { justify-content: space-between; }
+.wg-nav { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+.wg-range { font-size: var(--font-size-ui); line-height: var(--lh-2); font-weight: 500; padding: 0 var(--sp-1); white-space: nowrap; }
+.wg-nav .badge { margin-left: var(--sp-2); }
+.wg-weekacts { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.wg-note { margin: 0; padding: 0 var(--pad-card) var(--sp-3); font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); }
+.wg-pad { padding: 0 var(--pad-card) var(--pad-card); }
+.wg-weekfoot { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-7); padding: var(--sp-3) var(--pad-card); border-top: 1px solid var(--border-subtle); }
+
+.wg-gridwrap { border-top: 1px solid var(--border-subtle); }
+.wg-grid { table-layout: fixed; }
+.wg-grid th, .wg-grid td { text-align: right; white-space: nowrap; padding: 0 var(--sp-2); }
+.wg-grid th:first-child, .wg-grid td:first-child { padding-left: var(--pad-card); }
+.wg-grid th:last-child, .wg-grid td:last-child { padding-right: var(--pad-card); }
+.wg-grid .wg-lab { width: 96px; text-align: left; color: var(--text-secondary); font-size: 12px; }
+.wg-grid .wg-tot { width: 96px; }
+.wg-dow { color: var(--text-primary); font-weight: 500; }
+.wg-dnum { color: var(--text-secondary); font-weight: 400; }
+.wg-today .wg-dow, .wg-today .wg-dnum { color: var(--accent-fill); }
+.wg-tot { border-left: 1px solid var(--border-subtle); color: var(--text-primary); font-weight: 500; }
 .wg-click { cursor: pointer; }
-.wg-click:hover { background: var(--surface-hover, var(--bg)); }
-.wg-in { padding-top: var(--sp-1); padding-bottom: var(--sp-1); }
-.wg-in input { width: 72px; text-align: right; }
-.wg-hint { margin-top: var(--sp-2); }
+.wg-grid td.wg-click:hover, .wg-grid th.wg-click:hover { background: var(--fill-hover); }
+.wg-hrs { height: var(--h-control-sm); width: 100%; max-width: 64px; padding: 0 var(--sp-2); text-align: right; -moz-appearance: textfield; }
+.wg-hrs::-webkit-outer-spin-button, .wg-hrs::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.wg-grid .wg-hrs { margin-left: auto; display: block; }
+
+/* Phone: a row per day in place of the grid. */
+.wg-days { display: none; border-top: 1px solid var(--border-subtle); }
+.wg-dayrow {
+  display: grid; grid-template-columns: minmax(0, 1fr) 64px 88px var(--h-control-sm);
+  align-items: center; column-gap: var(--sp-3);
+  min-height: var(--row-h); padding: var(--sp-1) var(--sp-2) var(--sp-1) var(--pad-card);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.wg-dayrow:last-child { border-bottom: 0; }
+.wg-dayname { all: unset; cursor: pointer; font-size: var(--font-size-ui); line-height: var(--lh-2); min-width: 0; }
+.wg-dayname:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+.wg-earned { text-align: right; font-size: var(--font-size-ui); color: var(--text-primary); }
+.wg-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); }
+.wg-chips:empty { display: none; }
+.wg-daytot .wg-dayname { cursor: default; color: var(--text-secondary); font-size: 12px; }
+.wg-daytot .wg-hrs-tot, .wg-daytot .wg-earned { text-align: right; font-weight: 500; }
+.wg-daytot .wg-chips { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); gap: var(--sp-4); }
+
+.wg-issued .card-head .card-title { flex: 0 1 auto; }
+.wg-issued .table td, .wg-issued .table th { white-space: nowrap; }
+.wg-issued .table th:first-child, .wg-issued .table td:first-child { padding-left: 0; }
+.wg-issued .table th:last-child, .wg-issued .table td:last-child { padding-right: 0; }
+
+/* Dialogs */
 .wg-pos { color: var(--ok-text); }
-.wg-neg, .wg-stat-v.wg-neg { color: var(--danger-text); }
+.wg-neg { color: var(--danger-text); }
 .wg-day { display: flex; flex-direction: column; gap: var(--sp-4); }
-.wg-work { list-style: none; margin: var(--sp-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-16, 16px); }
+.wg-work { list-style: none; margin: var(--sp-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); font-size: 12px; line-height: var(--lh-1); }
 .wg-work .badge { flex: none; max-width: none; }
 .wg-work li { display: flex; gap: var(--sp-2); align-items: flex-start; }
 .wg-notes { min-height: 80px; width: 100%; resize: vertical; }
@@ -53,8 +91,19 @@
 .wg-x { width: 1%; }
 .wg-add { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: var(--sp-2); margin-top: var(--sp-3); }
 .wg-span { grid-column: 1 / 3; }
-@media (max-width: 1100px) { .wg-top { grid-template-columns: minmax(0, 1fr) 260px; } .wg-inv { grid-column: 1 / -1; } }
-@media (max-width: 700px) { .wg-top { grid-template-columns: minmax(0, 1fr); } }
+
+@media (max-width: 900px) {
+  .wg-summary { grid-template-columns: minmax(0, 1fr); }
+  .wg-half + .wg-half { border-left: 0; border-top: 1px solid var(--border-subtle); }
+}
+@media (max-width: 720px) {
+  .wg-gridwrap { display: none; }
+  .wg-days { display: block; }
+  .wg-opt { display: none; }
+  .wg-bal .wg-half-head { display: none; }
+}
 @media print {
-  .wg-inv, .wg-issued, .wg-weekbar button, .wg-hint, .page-actions { display: none !important; }
+  .wg-inv, .wg-issued, .wg-weekhead button, .wg-weekacts, .page-actions { display: none !important; }
+  .wg-gridwrap { display: block !important; }
+  .wg-days { display: none !important; }
 }

@@ -27,3 +27,11 @@ app.js -> /api/wages/<path>       pages/wages/api.py, this site's gate
   `/api/` straight to g-wages behind its basic-auth, so scripts keep working.
 - **Rail.** A top-level Work entry beside Hours (order 27 to its 26). If Hours
   moves, move Wages with it.
+- **One label per figure.** "Owed to you now" is the client float (the latest
+  week's closing balance). "Amount due" is the balance at the invoice
+  period's end, so a payment after that end makes the two differ; the page
+  says so in one line under the invoice. The week card carries the week's own
+  totals and "Owed at start/end of week" (prev_overdue, net_overdue). Keep
+  each number in one place with one name.
+- **Phone.** Under 720px the week grid is replaced by a row per day
+  (`DayList`), so nothing scrolls sideways. Both read the same week payload.
