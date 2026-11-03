@@ -37,7 +37,12 @@ function drawGraph(svgEl, { nodes, links }) {
     .force("link", d3.forceLink(links).id((d) => d.id).distance(100).strength(0.8))
     .force("charge", d3.forceManyBody().strength(-200))
     .force("center", d3.forceCenter(width / 2, HEIGHT / 2))
-    .force("collide", d3.forceCollide().radius((d) => nodeR(d) + 8));
+    .force("collide", d3.forceCollide().radius((d) => nodeR(d) + 8))
+    // Walls at the card's edge, with room on the right for a label, so nothing drifts out of view.
+    .force("bounds", () => nodes.forEach((d) => {
+      d.x = Math.max(16, Math.min(width - 140, d.x));
+      d.y = Math.max(16, Math.min(HEIGHT - 16, d.y));
+    }));
 
   const link = g.append("g").selectAll("line").data(links).enter().append("line")
     .attr("class", (d) => `link-${d.rel}`);

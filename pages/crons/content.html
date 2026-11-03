@@ -23,7 +23,11 @@
   .job-kind { color: var(--text-placeholder); font-size: 12px; margin-left: var(--sp-2); }
   .job-cell { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
   .job-cell b { font-weight: normal; color: var(--text-placeholder); display: block; }
-  .job-desc { grid-column: 1 / -1; font-size: 12px; color: var(--text-placeholder); word-break: break-word; }
+  /* A job's command or summary is one line, cut with an ellipsis; the full text is its tooltip
+     and a click on the line opens it, so a host's jobs read as a list, not a wall of grey. */
+  .job-desc { grid-column: 1 / -1; font-size: 12px; line-height: var(--lh-1); color: var(--text-placeholder);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; cursor: pointer; }
+  .job-desc.open { white-space: normal; word-break: break-word; cursor: auto; }
   .job-off .job-name { color: var(--text-placeholder); }
   details.job > summary { display: contents; cursor: pointer; list-style: none; }
   details.job > summary::-webkit-details-marker { display: none; }
@@ -120,7 +124,7 @@
       + `<span class="job-cell"><b>Next</b>${esc(when(j.enabled === false ? null : j.next, 'Not scheduled'))}</span>`
       + `<span class="job-cell"><b>Last</b>${esc(when(j.last))}</span>`
       + `<span class="job-cell">${resultBadge(j)}${mdl ? `<br>${esc(mdl)}` : ''}</span>`
-      + (desc ? `<span class="job-desc">${esc(desc)}</span>` : '');
+      + (desc ? `<span class="job-desc" title="${esc(desc)}" onclick="this.classList.add('open')">${esc(desc)}</span>` : '');
     const cls = 'job' + (j.enabled === false ? ' job-off' : '');
     if (j.kind === 'pulse') {
       const body = runs.length ? runs.map(runHtml).join('') : '<span class="dim">No recorded runs.</span>';

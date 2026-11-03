@@ -69,7 +69,13 @@ function drawGraph(svgEl, { nodes, links }, onPick) {
     .force("charge", d3.forceManyBody().strength(-38).distanceMax(180))
     .force("x", d3.forceX((d) => cell.get(d.repo).x).strength(0.35))
     .force("y", d3.forceY((d) => cell.get(d.repo).y).strength(0.35))
-    .force("collide", d3.forceCollide().radius((d) => radius(d) + 4));
+    .force("collide", d3.forceCollide().radius((d) => radius(d) + 4))
+    // Walls at the card's edge: a node flung by the charge stops there instead of dragging the
+    // framing out until the web is a speck in the middle. Room on the right for a label.
+    .force("bounds", () => nodes.forEach((d) => {
+      d.x = Math.max(12, Math.min(width - 72, d.x));
+      d.y = Math.max(12, Math.min(HEIGHT - 12, d.y));
+    }));
 
   const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "link");
   const node = g.append("g").selectAll("circle").data(nodes).enter().append("circle")

@@ -7,7 +7,6 @@
       <h1 class="sr-only" data-head>Projects</h1>
       <span class="badge badge-plain num" data-stat-total>Loading&hellip;</span>
       <span class="badge badge-plain num" data-stat-compliant hidden></span>
-      <span class="head-spacer"></span>
       <span class="legend" data-legend></span>
     </div>
     <p class="page-sub">Derived from the instance manifest: add an entry and a card appears.</p>
@@ -19,9 +18,9 @@
 <style>
   body.projects-page .content-page { max-width: none; }
 
-  .head-spacer { flex: 1; }
 
-  .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  /* The legend sits beside the badges it explains, not across the page from them. */
+  .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: nowrap; margin-left: var(--sp-2); font-size: 12px; color: var(--text-secondary); }
   .legend .swatch { display: inline-flex; gap: 6px; align-items: center; }
   .legend .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 
