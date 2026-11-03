@@ -1,0 +1,10 @@
+.lineage-legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; }
+.lineage-legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.lineage-legend .dot { width: 10px; height: 10px; border-radius: var(--radius-full); display: inline-block; flex: none; }
+.lineage-graph { padding: 0; overflow: hidden; max-width: none; }
+.lineage-graph svg { display: block; cursor: grab; }
+.lineage-graph svg:active { cursor: grabbing; }
+.lineage-graph .link-starter { stroke: var(--chart-1); stroke-opacity: 0.6; stroke-width: 1.5; }
+.lineage-graph .link-design { stroke: var(--chart-4); stroke-opacity: 0.6; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.lineage-graph .node { cursor: pointer; stroke: var(--bg-panel); stroke-width: 1.5; }
+.lineage-graph .label { font-family: var(--font-ui); font-size: 10px; fill: var(--text-secondary); pointer-events: none; user-select: none; }
