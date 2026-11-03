@@ -1,10 +1,15 @@
 <div class="page-head">
-  <h1>Upload</h1>
-  <span class="badge badge-plain" data-count>Loading</span>
-  <span class="spacer"></span>
-  <span class="badge badge-plain" data-free hidden></span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Upload</h1>
+      <span class="badge badge-plain" data-count>Loading</span>
+    </div>
+    <p class="page-sub">Drop files straight onto the server. They land in <code data-dir>…</code>.</p>
+  </div>
+  <div class="page-actions">
+    <span class="badge badge-plain" data-free hidden></span>
+  </div>
 </div>
-<p class="page-sub">Drop files straight onto the server. They land in <code data-dir>…</code>.</p>
 
 <div class="g-dropzone" data-drop>
   <div class="g-dropzone-prompt">
@@ -48,11 +53,7 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-head .spacer { flex: 1; }
   .page-head .badge { font-variant-numeric: tabular-nums; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
 
   .g-dropzone { margin-bottom: var(--sp-4); }
 

@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1 data-title>Loading</h1>
-  <span class="badge badge-plain" data-kind hidden></span>
-  <span class="badge" data-status hidden></span>
-  <span class="badge badge-plain mono" data-lineage-chip hidden></span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title" data-title>Loading</h1>
+      <span class="badge badge-plain" data-kind hidden></span>
+      <span class="badge" data-status hidden></span>
+      <span class="badge badge-plain mono" data-lineage-chip hidden></span>
+    </div>
+  </div>
 </div>
 
 <div data-broken-banner></div>
@@ -45,8 +49,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
 
   .facts {
     display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5);

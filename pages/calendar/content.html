@@ -1,19 +1,24 @@
 <div class="page-head">
-  <h1>Calendar</h1>
-  <span class="badge badge-plain num" data-count>Loading</span>
-  <span class="spacer"></span>
-  <div class="month-nav">
-    <button class="btn btn-tertiary btn-sm" type="button" data-step="-1" aria-label="Previous month">
-      <i class="ph ph-caret-left"></i>
-    </button>
-    <span class="month-label num" data-month>Loading</span>
-    <button class="btn btn-tertiary btn-sm" type="button" data-step="1" aria-label="Next month">
-      <i class="ph ph-caret-right"></i>
-    </button>
-    <button class="btn btn-secondary btn-sm" type="button" data-today>Today</button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Calendar</h1>
+      <span class="badge badge-plain num" data-count>Loading</span>
+    </div>
+    <p class="page-sub">Dated todos from the brain, laid out by day. Undated work lives on the todos page.</p>
+  </div>
+  <div class="page-actions">
+    <div class="month-nav">
+      <button class="btn btn-tertiary btn-sm" type="button" data-step="-1" aria-label="Previous month">
+        <i class="ph ph-caret-left"></i>
+      </button>
+      <span class="month-label num" data-month>Loading</span>
+      <button class="btn btn-tertiary btn-sm" type="button" data-step="1" aria-label="Next month">
+        <i class="ph ph-caret-right"></i>
+      </button>
+      <button class="btn btn-secondary btn-sm" type="button" data-today>Today</button>
+    </div>
   </div>
 </div>
-<p class="page-sub">Dated todos from the brain, laid out by day. Undated work lives on the todos page.</p>
 
 <div class="cal-layout">
   <div class="card cal-card">
@@ -40,13 +45,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .spacer { flex: 1; }
-  .page-sub {
-    margin: var(--sp-1) 0 var(--sp-5);
-    color: var(--text-secondary); font-size: var(--font-size-ui);
-  }
 
   .month-nav { display: flex; align-items: center; gap: var(--sp-2); }
   /* The label holds its width so stepping through months never shifts the

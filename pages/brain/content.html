@@ -1,6 +1,10 @@
 <div class="page-head">
-  <h1>Brain</h1>
-  <span class="badge badge-plain">Personal MCP knowledge base</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Brain</h1>
+      <span class="badge badge-plain">Personal MCP knowledge base</span>
+    </div>
+  </div>
 </div>
 
 <div class="home-grid">
@@ -32,8 +36,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-4); }
-  .page-head h1 { font-size: 18px; margin: 0; }
   .home-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: var(--sp-4); align-items: start; }
   .home-grid > .card { min-width: 0; }
   @media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }

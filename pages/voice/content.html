@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Voice</h1>
-  <span class="badge badge-plain">Call or text</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Voice</h1>
+      <span class="badge badge-plain">Call or text</span>
+    </div>
+    <p class="page-sub">Call the brain or text it. The same agent that answers on WhatsApp.</p>
+  </div>
 </div>
-<p class="page-sub">Call the brain or text it. The same agent that answers on WhatsApp.</p>
 
 <div class="card call" data-call data-state="idle">
   <button type="button" class="call-orb" data-orb aria-label="Voice" disabled>
@@ -40,9 +44,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: 10px; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   .chat { display: flex; flex-direction: column; gap: var(--sp-3); max-width: 720px; }
   .chat-log {
     display: flex; flex-direction: column; gap: var(--sp-2);

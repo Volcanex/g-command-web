@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Blog</h1>
-  <span class="badge badge-plain" data-gsite-badge>g-site</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Blog</h1>
+      <span class="badge badge-plain" data-gsite-badge>g-site</span>
+    </div>
+    <p class="page-sub">g-site editor: posts, copy, projects, generation and editions.</p>
+  </div>
 </div>
-<p class="page-sub">g-site editor: posts, copy, projects, generation and editions.</p>
 
 <div class="tabs blog-tabs" role="tablist">
   <button class="tab" type="button" role="tab" id="tab-posts" aria-controls="panel-posts" aria-selected="true" data-tab="posts">Posts</button>
@@ -190,9 +194,6 @@
 </section>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-sub { margin: var(--sp-1) 0 var(--sp-4); color: var(--text-secondary); font-size: var(--font-size-ui); }
 
   .blog-tabs { margin-bottom: var(--sp-4); }
   .panel { display: flex; flex-direction: column; gap: var(--sp-4); }

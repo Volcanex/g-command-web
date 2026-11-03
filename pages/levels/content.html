@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Levels</h1>
-  <span class="badge badge-plain" data-lv-stamp>Loading</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Levels</h1>
+      <span class="badge badge-plain" data-lv-stamp>Loading</span>
+    </div>
+    <p class="page-sub">Gates check agent work, charters pin them, and every run leaves a result. This page shows the registry, what the gates caught, the gates still to write, and how much of your own time still goes on fixing work by hand.</p>
+  </div>
 </div>
-<p class="page-sub">Gates check agent work, charters pin them, and every run leaves a result. This page shows the registry, what the gates caught, the gates still to write, and how much of your own time still goes on fixing work by hand.</p>
 
 <script>
 /* One fetch per page view. Panels register with LV.on(fn) and render from the same
@@ -49,9 +53,6 @@ window.LV = (function () {
 <script>LV.reload();</script>
 
 <style>
-  .levels-page .page-head { display: flex; align-items: center; gap: var(--sp-3); }
-  .levels-page .page-head h1 { margin: 0; }
-  .levels-page .page-sub { margin: var(--sp-2) 0 var(--sp-5); color: var(--text-secondary); max-width: var(--col-text); }
   .levels-page .lv-section { margin: 0 0 var(--sp-8); }
   .levels-page .lv-dim { color: var(--text-secondary); }
 </style>

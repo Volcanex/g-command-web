@@ -1,20 +1,21 @@
 <div class="page-head">
-  <h1>Graph</h1>
-  <span data-stats class="badge badge-plain">Loading</span>
-  <span class="spacer"></span>
-  <span class="legend" data-legend></span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Graph</h1>
+      <span data-stats class="badge badge-plain">Loading</span>
+    </div>
+    <p class="page-sub">Wikilinks between notes. Drag to orbit, scroll to zoom, hover for titles, click to open.</p>
+  </div>
+  <div class="page-actions">
+    <span class="legend" data-legend></span>
+  </div>
 </div>
-<p class="page-sub">Wikilinks between notes. Drag to orbit, scroll to zoom, hover for titles, click to open.</p>
 
 <div class="card graph-wrap">
   <div data-graph class="graph-canvas" role="img" aria-label="Wikilink graph"></div>
 </div>
 
 <style>
-  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-head .spacer { flex: 1; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   [data-stats] { font-variant-numeric: tabular-nums; }
   .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; }
   .legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }

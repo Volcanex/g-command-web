@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Crons</h1>
-  <span class="badge badge-plain" data-overall>Loading</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Crons</h1>
+      <span class="badge badge-plain" data-overall>Loading</span>
+    </div>
+    <p class="page-sub">Every scheduled job across the hosts: systemd timers, crontabs and pulse model jobs. Read from the g-cron cache, refreshed every 15 minutes; times are London.</p>
+  </div>
 </div>
-<p class="page-sub">Every scheduled job across the hosts: systemd timers, crontabs and pulse model jobs. Read from the g-cron cache, refreshed every 15 minutes; times are London.</p>
 
 <div data-problems></div>
 <div data-hosts></div>
@@ -10,9 +14,6 @@
 <p class="api-note" data-note hidden></p>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: 10px; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   .section-head { font-size: 16px; margin: var(--sp-5, 24px) 0 var(--sp-2); display: flex; align-items: center; gap: var(--sp-2); }
   .dim { color: var(--text-placeholder); font-size: var(--font-size-ui); }
   .cron-list { display: flex; flex-direction: column; }

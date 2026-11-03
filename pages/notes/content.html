@@ -1,9 +1,12 @@
 <div class="page-head">
-  <h1>Notes</h1>
-  <span class="badge badge-plain num" data-count>Loading</span>
-  <span class="spacer"></span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Notes</h1>
+      <span class="badge badge-plain num" data-count>Loading</span>
+    </div>
+    <p class="page-sub">Everything in the brain, filterable.</p>
+  </div>
 </div>
-<p class="page-sub">Everything in the brain, filterable.</p>
 
 <!-- Rewrite review queue. Hidden entirely when nothing is outstanding, so it
      reads as a signal rather than furniture. Fed by brain_verify's daily sweep. -->
@@ -46,13 +49,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .spacer { flex: 1; }
-  .page-sub {
-    margin: var(--sp-1) 0 var(--sp-5);
-    color: var(--text-secondary); font-size: var(--font-size-ui);
-  }
 
   .notes-card { padding: var(--pad-card); }
   .toolbar {

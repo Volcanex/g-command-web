@@ -1,19 +1,24 @@
 <div class="page-head">
-  <h1>Nerves</h1>
-  <span class="badge badge-plain">Layer 3</span>
-  <span data-stats class="badge badge-plain num">Loading</span>
-  <span class="spacer"></span>
-  <input class="input" data-q type="search" placeholder="Filter repo or path" aria-label="Filter repo or path">
-  <span class="filters" role="group" aria-label="Pair filter">
-    <button class="btn btn-sm btn-primary" data-filter="all">All</button>
-    <button class="btn btn-sm" data-filter="unpaired">Unpaired</button>
-    <button class="btn btn-sm" data-filter="drift">Drifted</button>
-  </span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Nerves</h1>
+      <span class="badge badge-plain">Layer 3</span>
+      <span data-stats class="badge badge-plain num">Loading</span>
+    </div>
+    <p class="page-sub">
+    Every directory carrying a CLAUDE.md or an AGENTS.md, nested at full depth.
+    Node colour is how the pair sits.
+    </p>
+  </div>
+  <div class="page-actions">
+    <input class="input" data-q type="search" placeholder="Filter repo or path" aria-label="Filter repo or path">
+    <span class="filters" role="group" aria-label="Pair filter">
+      <button class="btn btn-sm btn-primary" data-filter="all">All</button>
+      <button class="btn btn-sm" data-filter="unpaired">Unpaired</button>
+      <button class="btn btn-sm" data-filter="drift">Drifted</button>
+    </span>
+  </div>
 </div>
-<p class="page-sub">
-  Every directory carrying a CLAUDE.md or an AGENTS.md, nested at full depth.
-  Node colour is how the pair sits.
-</p>
 
 <div class="legend" data-legend></div>
 
@@ -23,12 +28,8 @@
 </div>
 
 <style>
-  .page-head { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-head .spacer { flex: 1; }
   .page-head .input { width: 200px; }
   .filters { display: inline-flex; gap: 4px; }
-  .page-sub { margin: 6px 0 var(--sp-3); font-size: var(--font-size-ui); color: var(--text-secondary); }
   .legend { display: flex; gap: var(--sp-4); flex-wrap: wrap; font-size: 12px; margin-bottom: var(--sp-3); }
   .legend .swatch { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
   .legend .swatch .n { color: var(--text-primary); font-variant-numeric: tabular-nums; }

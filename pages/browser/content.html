@@ -1,10 +1,15 @@
 <div class="page-head">
-  <h1>Browser</h1>
-  <span class="badge badge-plain" id="br-mode">Mode unknown</span>
-  <span class="badge badge-plain" id="br-state">Connecting</span>
-  <span class="spacer"></span>
-  <button class="btn btn-secondary btn-sm" id="br-full">Full screen</button>
-  <button class="btn btn-secondary btn-sm" id="br-restart">Restart browser</button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Browser</h1>
+      <span class="badge badge-plain" id="br-mode">Mode unknown</span>
+      <span class="badge badge-plain" id="br-state">Connecting</span>
+    </div>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-secondary btn-sm" id="br-full">Full screen</button>
+    <button class="btn btn-secondary btn-sm" id="br-restart">Restart browser</button>
+  </div>
 </div>
 
 <div id="br-error" class="card br-error" hidden>
@@ -56,9 +61,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-4); }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .spacer { flex: 1; }
   .muted { color: var(--text-secondary); }
   .num { font-variant-numeric: tabular-nums; }
 

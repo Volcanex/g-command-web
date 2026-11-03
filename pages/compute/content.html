@@ -1,10 +1,14 @@
 <div class="page-head">
-  <h1>Compute</h1>
-  <span class="badge badge-plain" data-overall>Loading</span>
-  <span class="head-actions">
-    <button class="btn btn-sm" data-preset="meeting" data-tip="Both providers on Burn and Fast until midnight London time">Go all out today</button>
-    <button class="btn btn-sm btn-ghost" data-preset="clear">Clear overrides</button>
-  </span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Compute</h1>
+      <span class="badge badge-plain" data-overall>Loading</span>
+      <span class="head-actions">
+        <button class="btn btn-sm" data-preset="meeting" data-tip="Both providers on Burn and Fast until midnight London time">Go all out today</button>
+        <button class="btn btn-sm btn-ghost" data-preset="clear">Clear overrides</button>
+      </span>
+    </div>
+  </div>
 </div>
 <div class="glance" data-glance></div>
 
@@ -88,10 +92,7 @@
 <p class="api-note" data-note hidden></p>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
   .head-actions { margin-left: auto; display: flex; gap: var(--sp-2); }
-  .page-sub { margin: var(--sp-2) 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); max-width: var(--col-prose, 720px); }
   .compute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--sp-4); }
   .compute-grid.wide { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
   .compute-card { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
@@ -123,7 +124,7 @@
   .controls .label { margin: 0; color: var(--text-secondary); font-size: 12px; }
   .ctl-note { color: var(--text-placeholder); font-size: 12px; line-height: 16px; }
   .efforts { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-  .row { display: flex; flex-direction: column; gap: var(--sp-1); }
+  .cp-row { display: flex; flex-direction: column; gap: var(--sp-1); }
   .row-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-3); }
   .row-name { color: var(--text-secondary); font-size: var(--font-size-ui); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row-val { font-variant-numeric: tabular-nums; font-size: var(--font-size-ui); }
@@ -227,7 +228,7 @@
     const over = t.temp_override || (t.speed && t.speed !== 'NORMAL');
     const meaning = [MEANING[p][t.temp], SPEED[t.speed || 'NORMAL']].filter(Boolean).join('. ');
     const efforts = p === 'codex' && state.roles && state.roles.effective_codex_effort
-      ? `<div class="row"><span class="fact-k">Sol effort per role now</span><div class="efforts">${Object.entries(state.roles.effective_codex_effort).map(([r, e]) => {
+      ? `<div class="cp-row"><span class="fact-k">Sol effort per role now</span><div class="efforts">${Object.entries(state.roles.effective_codex_effort).map(([r, e]) => {
           const base = state.roles.base_effort[r];
           return `<span class="badge ${e !== base ? 'badge-info' : 'badge-plain'}" data-tip="${esc(`${r}: base ${base}, acting ${e}`)}">${esc(r)} ${esc(e)}</span>`; }).join('')}</div></div>`
       : '';
@@ -345,7 +346,7 @@
     const rows = workers.slice(0, 8).map(([name, v]) => {
       const top = sorted(Object.fromEntries(Object.entries(v.models || {}).map(([m, u]) => [m, { units: u }])), 'units').map(([m]) => m)[0] || '';
       const pct = total ? (v.units / total * 100) : 0;
-      return `<div class="row"><div class="row-top"><span class="row-name" data-tip="${esc(`${v.turns || 0} turns, ${units(v.output)} output tokens${top ? `, mostly ${top}` : ''}`)}">${esc(name)}</span><span class="row-val num">${units(v.units)}, ${pct.toFixed(0)}%</span></div><div class="g-meter" data-value="${pct.toFixed(1)}" data-max="100" aria-label="${esc(name)} share"></div></div>`;
+      return `<div class="cp-row"><div class="row-top"><span class="row-name" data-tip="${esc(`${v.turns || 0} turns, ${units(v.output)} output tokens${top ? `, mostly ${top}` : ''}`)}">${esc(name)}</span><span class="row-val num">${units(v.units)}, ${pct.toFixed(0)}%</span></div><div class="g-meter" data-value="${pct.toFixed(1)}" data-max="100" aria-label="${esc(name)} share"></div></div>`;
     }).join('');
     return `<div class="card compute-card">
       <div class="compute-head"><span class="card-title">${NAMES[p]}</span><span class="row-val num">${units(total)} units</span></div>
@@ -688,7 +689,7 @@
   function rowHtml(r) {
     if (r.status !== 'ok') {
       const text = r.status === 'unsupported' ? (r.note || 'No usage API') : `Unavailable${r.note ? ', ' + r.note : ''}`;
-      return `<div class="row"><span class="dim">${esc(text.charAt(0).toUpperCase() + text.slice(1))}</span></div>`;
+      return `<div class="cp-row"><span class="dim">${esc(text.charAt(0).toUpperCase() + text.slice(1))}</span></div>`;
     }
     let val, meter = '', sub = [];
     if (r.unit === 'percent') {
@@ -719,7 +720,7 @@
     }
     if (r.resets_at) sub.push(`Resets ${london(r.resets_at)}`);
     if (r.stale) sub.push(`Stale, ${age(r.age_seconds)} old`);
-    return `<div class="row"><div class="row-top"><span class="row-name">${esc(label(r))}</span><span class="row-val num">${esc(val)}</span></div>${meter}${sub.length ? `<span class="row-sub">${esc(sub.join('. '))}</span>` : ''}</div>`;
+    return `<div class="cp-row"><div class="row-top"><span class="row-name">${esc(label(r))}</span><span class="row-val num">${esc(val)}</span></div>${meter}${sub.length ? `<span class="row-sub">${esc(sub.join('. '))}</span>` : ''}</div>`;
   }
   const hrs = (n) => n == null ? 'n/a' : `${n.toFixed(1)}h`;
   (async () => {

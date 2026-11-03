@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Setup</h1>
-  <span class="badge badge-plain" data-no-tokens>Machine bootstrap</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Setup</h1>
+      <span class="badge badge-plain" data-no-tokens>Machine bootstrap</span>
+    </div>
+    <p class="page-sub">Bootstrap any machine into G-System. One command on Mac, one command on Linux. An agent can read and execute this page directly.</p>
+  </div>
 </div>
-<p class="page-sub">Bootstrap any machine into G-System. One command on Mac, one command on Linux. An agent can read and execute this page directly.</p>
 
 <section class="setup-block" id="apps">
   <h2>iPhone and Mac apps <span class="setup-tag" data-no-tokens>g-command-apple</span></h2>
@@ -150,9 +154,6 @@ ls ~/.claude/agents            # g-executor, g-explore</code><button class="btn 
 </section>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: 10px; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   .setup-block {
     margin: 0 0 var(--sp-4);
     border: 1px solid var(--card-border); border-radius: var(--radius-card);

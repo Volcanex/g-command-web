@@ -1,30 +1,25 @@
 <div class="page-head">
-  <h1>Workspaces</h1>
-  <span class="badge badge-plain" data-live>Loading</span>
-  <span class="grow"></span>
-  <a class="btn btn-secondary btn-sm" href="/sessions" data-all>View all sessions</a>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Workspaces</h1>
+      <span class="badge badge-plain" data-live>Loading</span>
+    </div>
+    <p class="page-sub">
+    Pick a session. Live sessions (attached) and anything created in the last two
+    days show here. Older ones stay on the sessions page.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-secondary btn-sm" href="/sessions" data-all>View all sessions</a>
+  </div>
 </div>
-
-<p class="page-sub">
-  Pick a session. Live sessions (attached) and anything created in the last two
-  days show here. Older ones stay on the sessions page.
-</p>
 
 <div id="drive-root">
   <p class="drive-loading">Loading sessions…</p>
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: 6px; }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .grow { flex: 1; }
-  .page-head a.btn { text-decoration: none; }
 
-  .page-sub {
-    margin: 0 0 var(--sp-4);
-    max-width: 60ch;
-    font-size: var(--font-size-ui); color: var(--text-secondary); line-height: 1.55;
-  }
 
   .drive-loading { font-size: var(--font-size-ui); color: var(--text-placeholder); }
 

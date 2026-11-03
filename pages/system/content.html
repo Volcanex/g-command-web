@@ -1,19 +1,21 @@
 <div class="page-head">
-  <h1>System</h1>
-  <span class="badge badge-plain" id="sys-overall">Checking</span>
-  <span class="spacer"></span>
-  <span class="sys-checked" id="sys-checked">Fetching status</span>
-  <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="sys-refresh"
-          aria-label="Refresh status" data-tip="Refresh status"></button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">System</h1>
+      <span class="badge badge-plain" id="sys-overall">Checking</span>
+    </div>
+  </div>
+  <div class="page-actions">
+    <span class="sys-checked" id="sys-checked">Fetching status</span>
+    <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="sys-refresh"
+            aria-label="Refresh status" data-tip="Refresh status"></button>
+  </div>
 </div>
 <p class="sys-sub">Live topology and service health. Topology from the instance manifest, state from the brain status index.</p>
 
 <div id="sys-root"><p class="sys-meta">Loading…</p></div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
-  .page-head h1 { font-size: 18px; }
-  .page-head .spacer { flex: 1; }
   .sys-checked {
     font-size: 12px; color: var(--text-placeholder);
     font-variant-numeric: tabular-nums; white-space: nowrap;

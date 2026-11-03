@@ -2,27 +2,24 @@
   <ol><li><a href="/projects">Projects</a></li><li><span aria-current="page" data-crumb-here></span></li></ol>
 </nav>
 <div class="page-head">
-  <h1 data-head>Projects</h1>
-  <span class="badge badge-plain num" data-stat-total>Loading&hellip;</span>
-  <span class="badge badge-plain num" data-stat-compliant hidden></span>
-  <span class="head-spacer"></span>
-  <span class="legend" data-legend></span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title" data-head>Projects</h1>
+      <span class="badge badge-plain num" data-stat-total>Loading&hellip;</span>
+      <span class="badge badge-plain num" data-stat-compliant hidden></span>
+      <span class="head-spacer"></span>
+      <span class="legend" data-legend></span>
+    </div>
+    <p class="page-sub">Every project at a glance, derived from the instance manifest: thumbnail, live health, g-core compliance and gate state. Add a manifest entry, a card appears.</p>
+  </div>
 </div>
-
-<p class="page-sub">Every project at a glance, derived from the instance manifest: thumbnail, live health, g-core compliance and gate state. Add a manifest entry, a card appears.</p>
 
 <div id="proj-root"><p class="proj-loading">Loading&hellip;</p></div>
 
 <style>
-  body.projects-page .site-main > * { max-width: none; }
+  body.projects-page .content-page { max-width: none; }
 
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
   .head-spacer { flex: 1; }
-  .page-sub {
-    margin: var(--sp-2) 0 var(--sp-4);
-    color: var(--text-secondary); font-size: 12px; line-height: 1.55; max-width: 640px;
-  }
 
   .legend { display: inline-flex; gap: var(--sp-3); flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
   .legend .swatch { display: inline-flex; gap: 6px; align-items: center; }

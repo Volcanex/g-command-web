@@ -1,12 +1,17 @@
 <div class="page-head">
-  <h1>Runners</h1>
-  <span class="badge badge-plain num" id="run-count">Loading</span>
-  <span class="spacer"></span>
-  <span class="run-checked num" id="run-checked"></span>
-  <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="run-refresh"
-          aria-label="Refresh runners" data-tip="Refresh runners"></button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Runners</h1>
+      <span class="badge badge-plain num" id="run-count">Loading</span>
+    </div>
+    <p class="page-sub">Real browsers that run test pages for agents, with the jobs they have queued and what came back. This page only reads the fleet, and agents queue jobs with <code>g-run</code>.</p>
+  </div>
+  <div class="page-actions">
+    <span class="run-checked num" id="run-checked"></span>
+    <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="run-refresh"
+            aria-label="Refresh runners" data-tip="Refresh runners"></button>
+  </div>
 </div>
-<p class="page-sub">Real browsers that run test pages for agents, with the jobs they have queued and what came back. This page only reads the fleet, and agents queue jobs with <code>g-run</code>.</p>
 
 <div id="run-error" class="card run-error" hidden>
   <i class="ph ph-warning-circle" aria-hidden="true"></i>
@@ -54,12 +59,7 @@
 </section>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .spacer { flex: 1; }
   .run-checked { font-size: 12px; color: var(--text-placeholder); white-space: nowrap; }
-  .page-sub { margin: var(--sp-1) 0 var(--sp-5); color: var(--text-secondary); font-size: var(--font-size-ui); }
-  .muted { color: var(--text-secondary); }
   .num { font-variant-numeric: tabular-nums; }
 
   .run-section { margin-bottom: var(--sp-6); }

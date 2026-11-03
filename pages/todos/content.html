@@ -1,12 +1,17 @@
 <div class="page-head">
-  <h1>Todos</h1>
-  <span class="badge badge-plain num" data-count>Loading</span>
-  <span class="spacer"></span>
-  <button class="btn btn-secondary btn-sm" type="button" data-toggle-add aria-expanded="true">
-    <i class="ph ph-plus"></i><span>New todo</span>
-  </button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Todos</h1>
+      <span class="badge badge-plain num" data-count>Loading</span>
+    </div>
+    <p class="page-sub">Work tracked in the brain, sorted by priority then due date.</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-secondary btn-sm" type="button" data-toggle-add aria-expanded="true">
+      <i class="ph ph-plus"></i><span>New todo</span>
+    </button>
+  </div>
 </div>
-<p class="page-sub">Work tracked in the brain, sorted by priority then due date.</p>
 
 <section class="card add-card" data-add-card>
   <form class="todo-form" data-add-form>
@@ -70,13 +75,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .spacer { flex: 1; }
-  .page-sub {
-    margin: var(--sp-1) 0 var(--sp-5);
-    color: var(--text-secondary); font-size: var(--font-size-ui);
-  }
 
   .add-card { margin-bottom: var(--sp-4); }
   .add-card[hidden] { display: none; }

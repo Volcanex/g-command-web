@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Design</h1>
-  <span data-stats class="badge badge-plain">Loading</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Design</h1>
+      <span data-stats class="badge badge-plain">Loading</span>
+    </div>
+    <p class="page-sub">g-design, the house design language. Each card is the reference as it ships: use the component before modifying it, modify before creating.</p>
+  </div>
 </div>
-<p class="page-sub">g-design, the house design language. Each card is the reference as it ships: use the component before modifying it, modify before creating.</p>
 
 <div class="design-layout">
   <nav class="card design-index" data-index aria-label="Design cards"></nav>
@@ -18,9 +22,6 @@
 </div>
 
 <style>
-  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   .design-layout { display: grid; grid-template-columns: 220px 1fr; gap: var(--sp-4); align-items: start; }
   .design-index { padding: var(--sp-3); display: flex; flex-direction: column; gap: 2px; max-width: none; position: sticky; top: var(--sp-4); }
   .design-index h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); margin: var(--sp-3) 0 var(--sp-1); }

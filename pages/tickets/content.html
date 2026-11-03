@@ -1,12 +1,17 @@
 <div class="page-head">
-  <h1>Tickets</h1>
-  <span class="badge badge-plain num" id="tix-count">Loading</span>
-  <span class="spacer"></span>
-  <span class="tix-checked" id="tix-checked"></span>
-  <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="tix-refresh"
-          aria-label="Refresh tickets" data-tip="Refresh tickets"></button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Tickets</h1>
+      <span class="badge badge-plain num" id="tix-count">Loading</span>
+    </div>
+    <p class="page-sub">Every g-admin ticket across every project that speaks the contract. Pull a brief, hand it to an agent, mark it baked once the change lands.</p>
+  </div>
+  <div class="page-actions">
+    <span class="tix-checked" id="tix-checked"></span>
+    <button class="btn btn-secondary btn-sm btn-icon spin-btn" id="tix-refresh"
+            aria-label="Refresh tickets" data-tip="Refresh tickets"></button>
+  </div>
 </div>
-<p class="page-sub">Every g-admin ticket across every project that speaks the contract. Pull a brief, hand it to an agent, mark it baked once the change lands.</p>
 
 <div id="tix-projects" class="tix-projects" hidden></div>
 
@@ -79,16 +84,9 @@
 </dialog>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: var(--sp-2); }
-  .page-head h1 { font-size: 18px; font-weight: 500; margin: 0; }
-  .page-head .spacer { flex: 1; }
   .tix-checked {
     font-size: 12px; color: var(--text-placeholder);
     font-variant-numeric: tabular-nums; white-space: nowrap;
-  }
-  .page-sub {
-    margin: var(--sp-1) 0 var(--sp-5);
-    color: var(--text-secondary); font-size: var(--font-size-ui);
   }
 
   .tix-projects {

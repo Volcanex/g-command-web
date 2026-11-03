@@ -1,23 +1,24 @@
 <div class="page-head">
-  <h1>Photos</h1>
-  <span data-stats class="badge badge-plain">Loading</span>
-  <span class="spacer"></span>
-  <div class="tabs" role="tablist" data-tabs>
-    <button class="tab" role="tab" aria-selected="true" data-cat="compressed">Compressed</button>
-    <button class="tab" role="tab" data-cat="masters">Masters</button>
-    <button class="tab" role="tab" data-cat="raw">Raw</button>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Photos</h1>
+      <span data-stats class="badge badge-plain">Loading</span>
+    </div>
+    <p class="page-sub">The R2 photo store, browsable, newest first. Deleting removes the object from R2; there is no undo.</p>
+  </div>
+  <div class="page-actions">
+    <div class="tabs" role="tablist" data-tabs>
+      <button class="tab" role="tab" aria-selected="true" data-cat="compressed">Compressed</button>
+      <button class="tab" role="tab" data-cat="masters">Masters</button>
+      <button class="tab" role="tab" data-cat="raw">Raw</button>
+    </div>
   </div>
 </div>
-<p class="page-sub">The R2 photo store, browsable, newest first. Deleting removes the object from R2; there is no undo.</p>
 
 <div id="ph-root"><p class="dim">Loading</p></div>
 <div class="ph-more-wrap"><button id="ph-more" class="btn btn-secondary" hidden>Load more</button></div>
 
 <style>
-  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-head .spacer { flex: 1; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   [data-stats] { font-variant-numeric: tabular-nums; }
   @media (max-width: 600px) {
     /* Three counts and sizes do not fit one badge line on a phone. */

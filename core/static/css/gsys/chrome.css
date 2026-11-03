@@ -83,3 +83,9 @@ body.full-dash-page .content-page { max-width: none; padding: 0; gap: 0; }
 @media (max-width: 720px) {
   .g-subnav { margin-left: 0; }
 }
+
+/* On a wide screen a page with its own .page-head carries its title there,
+   as Studio does; the bar keeps the title only for pages without one. */
+@media (min-width: 721px) {
+  body:has(.site-main .page-head) .topbar-title { display: none; }
+}

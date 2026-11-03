@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>References</h1>
-  <span data-summary class="badge badge-plain">Loading</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">References</h1>
+      <span data-summary class="badge badge-plain">Loading</span>
+    </div>
+    <p class="page-sub">URLs cited across the brain, ranked by note count.</p>
+  </div>
 </div>
-<p class="page-sub">URLs cited across the brain, ranked by note count.</p>
 
 <div class="card refs-card">
   <div class="table-wrap">
@@ -30,12 +34,8 @@
 </div>
 
 <style>
-  .page-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .page-head h1 { font-size: 18px; margin: 0; }
   .page-head h2 { font-size: 15px; margin: 0; }
-  .page-head .spacer { flex: 1; }
   .graph-head { margin-top: var(--sp-5); }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   [data-summary], [data-ref-stats] { font-variant-numeric: tabular-nums; }
   .dim { color: var(--text-placeholder); }
   .refs-card { padding-top: 4px; padding-bottom: 4px; }

@@ -1,8 +1,12 @@
 <div class="page-head">
-  <h1>Pulse</h1>
-  <span class="badge badge-plain">The live layer</span>
+  <div class="page-head-text">
+    <div class="row-tight">
+      <h1 class="page-title">Pulse</h1>
+      <span class="badge badge-plain">The live layer</span>
+    </div>
+    <p class="page-sub">Money, messages, deadlines. Ephemeral and auto-ingested, kept out of the brain; its only durable output is L6 todos.</p>
+  </div>
 </div>
-<p class="page-sub">Money, messages, deadlines. Ephemeral and auto-ingested, kept out of the brain; its only durable output is L6 todos.</p>
 
 <div class="card pulse-block">
   <span class="card-title">Page</span>
@@ -32,9 +36,6 @@
 <p class="api-note" data-api-note hidden></p>
 
 <style>
-  .page-head { display: flex; align-items: center; gap: 10px; }
-  .page-head h1 { font-size: 18px; margin: 0; }
-  .page-sub { margin: 6px 0 var(--sp-4); font-size: var(--font-size-ui); color: var(--text-secondary); }
   .pulse-block { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-4); }
   .dim { color: var(--text-placeholder); }
   .brief-date { margin: 0; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
