@@ -2,12 +2,41 @@
   "title": "Home",
   "slug": "index",
   "href": "/",
-  "description": "Every place in Command as a tile, with a live line where one is cheap.",
+  "description": "System across the top, Life below: the two hubs at a glance.",
   "nav": true,
   "app_nav": false,
   "order": 0,
-  "nav_section": "Dash",
+  "nav_section": "Overview",
   "nav_icon": "house",
   "nav_label": "Home",
-  "gsys": true
+  "gsys": true,
+  "layout": {
+    "columns": [
+      {
+        "width": 1,
+        "items": [
+          {
+            "row": [
+              "health",
+              "compute",
+              "tickets",
+              "crons"
+            ],
+            "head": "ops",
+            "grow": 2
+          },
+          {
+            "row": [
+              "calendar",
+              "tasks",
+              "money"
+            ],
+            "head": "home",
+            "grow": 3
+          }
+        ]
+      }
+    ]
+  },
+  "body_class": "full-dash-page home-page"
 }

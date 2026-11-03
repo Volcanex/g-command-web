@@ -58,6 +58,36 @@
 .nav-list { display: flex; flex-direction: column; gap: var(--sp-1); }
 .nav-head { padding: var(--sp-4) var(--sp-2) var(--sp-1); font-size: 11px; line-height: var(--lh-1); font-weight: 500; color: var(--text-placeholder); }
 
+/* Nesting, one level (g-navigation R3). A parent is itself a page: its link fills the row and a
+   twist button beside it opens the children. The app sets data-open on the group when the parent
+   or a child is current, so the children show then; the twist opens them by hand otherwise.
+     <div class="nav-group" data-open>
+       <div class="nav-group-row"><a class="nav-item">Parent</a><button class="nav-twist"></button></div>
+       <div class="nav-children"><a class="nav-item nav-child" aria-current="page">Child</a></div>
+     </div> */
+.nav-group { display: flex; flex-direction: column; gap: var(--sp-1); }
+.nav-group-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.nav-group-row > .nav-item { flex: 1 1 auto; min-width: 0; }
+.nav-twist {
+  flex: none; display: grid; place-items: center;
+  width: var(--h-1); height: var(--h-3); padding: 0;
+  border: none; border-radius: var(--radius-sm); background: none; color: var(--text-placeholder); cursor: pointer;
+}
+.nav-twist:hover { background: var(--fill-hover); color: var(--text-primary); }
+.nav-twist::before {
+  content: ""; width: 5px; height: 5px; margin-top: -2px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  rotate: -45deg; transition: rotate var(--dur-fast) var(--ease-out);
+}
+.nav-group[data-open] > .nav-group-row > .nav-twist::before { rotate: 45deg; margin-top: -4px; }
+.nav-children {
+  display: none; flex-direction: column; gap: 2px;
+  margin-left: calc(var(--sp-2) + 7px); padding-left: var(--sp-2);
+  border-left: 1px solid var(--border-subtle);
+}
+.nav-group[data-open] > .nav-children { display: flex; }
+.nav-item.nav-child { height: var(--h-2); }
+
 .side-foot {
   margin-top: auto;
   display: flex; align-items: center; gap: var(--sp-2);
@@ -73,8 +103,8 @@
 
 .topbar {
   display: flex; align-items: center; gap: var(--sp-2);
-  min-height: calc(var(--h-control) + 2 * var(--sp-3));
-  padding: var(--sp-3) var(--gutter);
+  min-height: var(--h-5);  /* 48px with its rule, on the grid (g-navigation R7) */
+  padding: 0 var(--gutter);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--surface-1);
   flex: none;
@@ -146,6 +176,9 @@
 
 .empty-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: center; }
 .state-error svg { color: var(--danger-text); }
+.state-error-more { font-size: 13px; color: var(--text-muted); }
+.state-error-more summary { cursor: pointer; }
+.state-error-more .e-desc { margin-top: var(--sp-1); }
 .skel-rows { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-2) 0; }
 
 .field-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
@@ -206,11 +239,14 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
 /* ---------------------------------------------------------------- mobile */
 
 @media (max-width: 720px) {
-  .topbar { padding: var(--sp-2) var(--gutter); min-height: calc(var(--h-control) + 2 * var(--sp-2)); }
   .content-page { padding-top: var(--sp-4); }
   .hide-sm { display: none !important; }
 }
 @media (min-width: 721px) { .show-sm { display: none !important; } }
+/* R7: a top bar carries the state and verbs of the thing on the page. The shell bar with
+   nothing of that kind (the menu button and a title) is for the phone only, where the rail is a
+   sheet; beside the rail the page head carries the title. */
+@media (min-width: 721px) { .app-topbar:not(.has-actions) { display: none; } }
 
 /* Rail skeleton row, while the nav loads. */
 .nav-skel { height: var(--h-3); border-radius: var(--radius-sm); }
@@ -227,6 +263,10 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
 .tile-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); min-width: 0; }
 .tile-title { font-weight: 600; color: inherit; text-decoration: none; min-width: 0; }
 .tile-title:hover { text-decoration: underline; }
+/* A tile that is itself the link (a hub tile for a child page): the whole card goes there. */
+a.tile { color: inherit; text-decoration: none; transition: border-color var(--dur-fast) var(--ease-out); }
+a.tile:hover { border-color: var(--border); }
+a.tile:hover .tile-title { text-decoration: underline; }
 .tile-tools { display: flex; gap: 2px; flex: none; }
 .tile-body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
 .tile-num { font-size: var(--h-3); font-weight: 600; margin: 0; line-height: 1.1; }

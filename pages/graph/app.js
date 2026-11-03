@@ -85,7 +85,7 @@ function ForceGraph({ data, slot }) {
   return html`<div ref=${ref} class="graph-canvas" role="img" aria-label="Wikilink graph"></div>`;
 }
 
-function Graph() {
+function Graph({ embedded = false }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
@@ -113,6 +113,21 @@ function Graph() {
   else if (data) body = html`<${ForceGraph} data=${data} slot=${slot} />`;
   else body = html`<div class="graph-canvas"></div>`;
 
+  const legend = html`<span class="graph-legend">
+    ${kinds.map((k) => html`<span class="swatch" key=${k}><span class="dot" style=${{ background: `var(--chart-${slot(k) + 1})` }}></span>${cap(k)}</span>`)}
+  </span>`;
+  if (embedded) {
+    return html`<section class="card graph-wrap graph-panel" aria-label="Graph">
+      <div class="graph-panel-head">
+        <a class="card-title" href="/graph">Graph</a>
+        <${Badge} kind="plain" class="num">${stats}<//>
+        <span class="grow"></span>
+        ${legend}
+      </div>
+      ${body}
+    </section>`;
+  }
+
   return html`
     <div class="page-head">
       <div class="page-head-text">
@@ -131,4 +146,6 @@ function Graph() {
     <div class="card graph-wrap">${body}</div>`;
 }
 
-mount(Graph);
+// On /graph it is the page; on Brain it is a panel in the slot Brain leaves.
+if (document.querySelector("[data-graph-panel]")) mount(Graph, { embedded: true }, "[data-graph-panel]");
+else mount(Graph);

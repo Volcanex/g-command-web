@@ -2,11 +2,14 @@
   "title": "Diagram",
   "slug": "diagram",
   "description": "The G-System as it runs: traffic in through Cloudflare to each host, flows out to the providers, with live health and drift. Levels is the same system by g-level.",
-  "nav": true,
-  "order": 25,
+  "nav": false,
+  "order": 29,
   "body_class": "diagram-page",
-  "nav_section": "Tools",
   "nav_icon": "flow-arrow",
   "nav_label": "Diagram",
-  "gsys": true
+  "gsys": true,
+  "tabs": "system",
+  "tab_label": "Diagram",
+  "tile_note": "The whole system drawn, live",
+  "tile_line": "services"
 }

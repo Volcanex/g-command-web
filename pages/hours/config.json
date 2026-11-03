@@ -2,13 +2,11 @@
   "title": "Hours",
   "slug": "hours",
   "description": "Where the week actually went: hours per project, your time against agent time, and token spend.",
-  "nav": false,
-  "order": 35,
+  "nav": true,
+  "order": 26,
   "body_class": "hours-page",
-  "nav_section": "g-core",
+  "nav_section": "Work",
   "nav_icon": "clock-counter-clockwise",
   "nav_label": "Hours",
-  "gsys": true,
-  "tabs": "system",
-  "tab_label": "Hours"
+  "gsys": true
 }

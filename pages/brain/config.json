@@ -1,10 +1,10 @@
 {
   "title": "Brain",
   "slug": "brain",
-  "description": "A personal MCP knowledge base.",
+  "description": "The knowledge base: its parts, the wikilink graph, counts and recent activity.",
   "nav": true,
-  "order": 20,
-  "nav_section": "Tools",
+  "order": 40,
+  "nav_section": "Knowledge",
   "nav_icon": "brain",
   "nav_label": "Brain",
   "gsys": true,

@@ -13,8 +13,10 @@ export * from "../static/css/gsys/kit/index.js";
 setIcons(iconPaths);
 configure({ offlineTitle: "Command is offline" });
 
-export function mount(Page, props = {}) {
-  const slot = document.querySelector("[data-page-app]");
+/* `slot` is the page's own [data-page-app] by default; a page embedded in
+   another as a panel mounts into the slot that page leaves for it. */
+export function mount(Page, props = {}, slot = "[data-page-app]") {
+  slot = document.querySelector(slot);
   if (!slot) return;
   slot.textContent = "";
   render(html`<${Page} ...${props} />`, slot);

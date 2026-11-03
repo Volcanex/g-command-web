@@ -5,10 +5,10 @@
   "nav": false,
   "order": 36,
   "body_class": "levels-page",
-  "nav_section": "g-core",
   "nav_icon": "stairs",
   "nav_label": "Levels",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Levels"
+  "tab_label": "Levels",
+  "tile_note": "Gates, charters and the backlog"
 }

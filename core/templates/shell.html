@@ -33,8 +33,9 @@
   <script>if(/ GCommandApp\//.test(navigator.userAgent))document.documentElement.setAttribute('data-app','');</script>
   <script defer src="/css/gsys/g-ui.js"></script>
   <script defer src="/js/chrome.js"></script>
+  <script defer src="/js/hub.js"></script>
 </head>
-<body class="g-shell {{ body_class }}">
+<body class="g-shell {{ body_class }}" data-nav-current="{{ nav_current }}">
 
   <aside aria-label="Main">
     <a href="/" class="brand">
@@ -45,7 +46,6 @@
 {{! nav_pages }}
 
     <div class="side-foot">
-      <a class="btn btn-tertiary btn-sm btn-icon" href="/setup" data-tabs="setup" data-tip="Setup, install and passport" aria-label="Setup"><i class="ph ph-wrench" aria-hidden="true"></i></a>
       <a class="btn btn-tertiary btn-sm btn-icon" href="/logout" data-tip="Log out" aria-label="Log out"><i class="ph ph-sign-out" aria-hidden="true"></i></a>
       <span class="grow"></span>
       <button class="btn btn-tertiary btn-sm btn-icon" id="t-density" data-tip="Comfortable and compact" aria-label="Density"><i class="ph ph-rows" aria-hidden="true"></i></button>
@@ -54,12 +54,11 @@
   </aside>
 
   <main class="g-main">
-    <header class="topbar">
+    <!-- The kit's phone bar (g-navigation R7): the menu button and the title.
+         Beside the rail it is hidden; the page head carries the title. -->
+    <header class="topbar app-topbar">
       <button class="btn btn-tertiary btn-sm btn-icon g-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" onclick="toggleNav()"><i class="ph ph-list" aria-hidden="true"></i></button>
       <span class="topbar-title">{{ title }}</span>
-      {{! subnav }}
-      <span class="grow"></span>
-      <a href="{{ owner_site_url }}" class="topbar-link hide-sm" rel="noopener"{{ owner_site_hidden }}>{{ owner_site_label }}</a>
     </header>
 
     <div class="content" id="main-content">
@@ -71,6 +70,7 @@
     <footer class="g-status">
       <span>{{ site_name }}</span>
       <span class="host">{{ public_host }}</span>
+      <a href="{{ owner_site_url }}" class="host hide-sm" rel="noopener"{{ owner_site_hidden }}>{{ owner_site_label }}</a>
       <span data-clock></span>
     </footer>
   </main>

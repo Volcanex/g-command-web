@@ -5,10 +5,10 @@
   "nav": false,
   "order": 62,
   "body_class": "gcore-page",
-  "nav_section": "g-core",
   "nav_icon": "cube",
   "nav_label": "Passport",
   "gsys": true,
   "tabs": "setup",
-  "tab_label": "Passport"
+  "tab_label": "Passport",
+  "tile_note": "Manifest, conventions, passport"
 }

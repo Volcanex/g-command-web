@@ -167,9 +167,12 @@ todo row's action and offer the web Day view's changes on it. Contract:
   "panels": {"calendar": {"title": "Calendar", "icon": "calendar-blank"}}
 }
 ```
-Sections and entries follow the web sidebar exactly (`build_nav_html` and
-`build_subnavs` in `compile.py`: `nav: true` pages grouped by `nav_section`,
-tabs from `tabs` groups). An entry or tab with `panels` is a panel page:
+Sections and entries follow the web rail exactly (`page_tree` and
+`build_nav_html` in `compile.py`: `nav: true` pages grouped by `nav_section`,
+tabs from `tabs` groups, which the web nests under their parent in the rail).
+The apps take the first section (Overview) as their dash. `app_nav: false`
+keeps a web-only entry (Home, Chat) out of the manifest and `web_nav: false`
+keeps an app entry (Full dash) off the web rail. An entry or tab with `panels` is a panel page:
 native clients render those panels in that order. Without `panels` it is a
 web page. A page opts in with a `layout` in its `config.json`: the manifest
 gives its reading order as `panels` and the layout itself, normalised, as

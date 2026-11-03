@@ -5,10 +5,11 @@
   "nav": false,
   "order": 32,
   "body_class": "crons-page",
-  "nav_section": "g-core",
   "nav_icon": "clock",
   "nav_label": "Crons",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Crons"
+  "tab_label": "Crons",
+  "tile_note": "Scheduled jobs across the hosts",
+  "tile_line": "panel:crons"
 }

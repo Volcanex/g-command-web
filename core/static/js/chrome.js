@@ -1,7 +1,8 @@
 /* g-command-web chrome interactions on g-design:
    off-canvas nav (data-nav-open, .g-nav-toggle, .g-scrim), theme and
-   density toggles via g.theme/g.density, active nav link (direct or by tab
-   group), footer clock. */
+   density toggles via g.theme/g.density, the current rail link (the page's
+   own, or the one its config names in data-nav-current) and its open group,
+   the rail's twist buttons, footer clock. */
 (() => {
   /* reveal the page: this script is deferred, so every body <style> has been
      parsed by now and the content can enter without a restyle jump */
@@ -26,15 +27,27 @@
     g.density(document.documentElement.hasAttribute("data-density") ? "comfortable" : "compact");
   });
 
-  /* a page reached through a tab strip lights its group's entry */
+  /* the current rail link: this URL's own, else the one the page's config
+     names (a detail route lights its view). A child lights itself, not its
+     parent, and its group opens; a parent's group opens too. */
   const here = location.pathname.replace(/\/$/, "") || "/";
-  const links = [...document.querySelectorAll(".nav-item, .side-foot a")];
+  const links = [...document.querySelectorAll(".nav-list .nav-item")];
   const path = (a) => a.getAttribute("href").split("?")[0].replace(/\/$/, "") || "/";
   let current = links.filter((a) => path(a) === here);
-  const group = document.querySelector(".g-subnav")?.dataset.tabs;
-  if (!current.length && group) current = links.filter((a) => a.dataset.tabs === group);
-  current.forEach((a) => a.setAttribute("aria-current", "page"));
-  document.querySelector('.g-subnav [aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  if (!current.length) current = links.filter((a) => path(a) === (document.body.dataset.navCurrent || ""));
+  current.forEach((a) => {
+    a.setAttribute("aria-current", "page");
+    const group = a.closest(".nav-group");
+    if (group) setOpen(group, true);
+  });
+  current[0]?.scrollIntoView({ block: "nearest" });
+
+  function setOpen(group, open) {
+    group.toggleAttribute("data-open", open);
+    group.querySelector(".nav-twist")?.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  document.querySelectorAll(".nav-twist").forEach((b) =>
+    b.addEventListener("click", () => { const g = b.closest(".nav-group"); setOpen(g, !g.hasAttribute("data-open")); }));
 
   const clock = document.querySelector("[data-clock]");
   if (clock) {

@@ -3,12 +3,10 @@
   "slug": "blog",
   "description": "g-site editor: posts, copy, projects, generation and editions.",
   "gsys": true,
-  "nav": false,
-  "order": 52,
+  "nav": true,
+  "order": 51,
   "body_class": "blog-page",
-  "nav_section": "Content",
+  "nav_section": "Publish",
   "nav_icon": "newspaper",
-  "nav_label": "Blog",
-  "tabs": "files",
-  "tab_label": "Blog"
+  "nav_label": "Blog"
 }

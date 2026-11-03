@@ -2,13 +2,14 @@
   "title": "Setup",
   "slug": "setup",
   "description": "Bootstrap a new Mac or Linux machine into G-System.",
-  "nav": false,
+  "nav": true,
   "order": 60,
   "body_class": "setup-page",
-  "nav_section": "g-core",
+  "nav_section": "Setup",
   "nav_icon": "wrench",
   "nav_label": "Setup",
   "gsys": true,
   "tabs": "setup",
-  "tab_label": "Setup"
+  "tab_label": "Setup",
+  "tile_note": "Bootstrap a machine"
 }

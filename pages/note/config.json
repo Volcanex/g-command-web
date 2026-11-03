@@ -3,5 +3,6 @@
   "slug": "note",
   "description": "A single note.",
   "nav": false,
-  "gsys": true
+  "gsys": true,
+  "nav_current": "/notes"
 }

@@ -5,10 +5,8 @@
   "nav": false,
   "order": 42,
   "body_class": "graph-page",
-  "nav_section": "Brain",
   "nav_icon": "graph",
   "nav_label": "Graph",
   "gsys": true,
-  "tabs": "brain",
-  "tab_label": "Graph"
+  "nav_current": "/brain"
 }

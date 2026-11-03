@@ -3,11 +3,11 @@
   "slug": "voice",
   "description": "Chat with the brain through the Voice agent, in the browser.",
   "nav": false,
-  "order": 41,
-  "nav_section": "Brain",
+  "order": 42,
   "nav_icon": "chat-circle",
   "nav_label": "Voice",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Voice"
+  "tab_label": "Voice",
+  "tile_note": "Talk to the brain"
 }

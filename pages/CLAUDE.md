@@ -17,17 +17,24 @@ layout and `core/templates/CLAUDE.md` for available template tokens.
 
 ## Nav groups
 
-The sidebar holds about ten daily entries. Related pages share one entry
-through `"tabs": "<group>"` in `config.json`: the member with `nav: true`
-is the sidebar entry, the rest set `nav: false`, and every member gets the
-group's tab strip in the top bar, labelled by `tab_label` and ordered by
-`order`. Groups: `system` (Overview `/ops`, Services `/system`, Compute,
-Crons, Tickets, Projects, Hours, Levels), `brain` (Overview `/brain`, Pulse,
-Voice, Writing voice, Graph, Nerves, References, Lineage), `files` (Workspaces `/drive`,
-Upload, Photos, Blog) and `setup` (Setup, Install, Passport, reached from
-the wrench in the sidebar foot). A page left out of the nav keeps its
-route: hide pages, never delete or rename them, since the Mac app and old
-links name them directly.
+The left rail is the only navigation (g-design `skills/g-navigation`).
+Rail headings group by intent: Overview, Work, Knowledge, Publish, Setup.
+`"tabs": "<group>"` in `config.json` is the parent pointer: the member with
+`nav: true` is the parent, a hub page, and the rest set `nav: false` and
+nest one level under it in the rail, labelled by `tab_label`, ordered by
+`order`. The key keeps its name because the apps read the same manifest
+(their sidebar draws the same children). A hub shows a tile per child,
+from the same tree (`<!-- seed:hub-head -->` on a dash, `<!-- seed:hub-tiles -->`
+on any page), with `tile_note` and a live line from `tile_line`
+(`core/static/js/hub.js`: `services`, `todos`, `notes`, `refs`,
+`panel:<name>`). Groups: `life` (Life `/home`, Calendar, Todos), `system`
+(System `/ops`, Diagram, Services `/system`, Compute, Crons, Tickets,
+Projects, Levels), `brain` (Brain `/brain` with the Graph as a panel, Notes,
+Voice, Nerves, References, Lineage) and `setup` (Setup, Install, Passport).
+Pulse `/pulse`, Graph `/graph` and Full dash keep their routes off the rail
+and light their parent through `nav_current`. A page left out of the nav
+keeps its route: hide pages, never delete or rename them, since the Mac app
+and old links name them directly.
 
 ## When to colocate an API
 

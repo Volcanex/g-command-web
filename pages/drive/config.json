@@ -3,12 +3,10 @@
   "slug": "drive",
   "description": "Pick a workspace and jump into a session.",
   "nav": true,
-  "order": 22,
+  "order": 21,
   "body_class": "drive-page",
-  "nav_section": "Tools",
+  "nav_section": "Work",
   "nav_icon": "squares-four",
-  "nav_label": "Files",
-  "gsys": true,
-  "tabs": "files",
-  "tab_label": "Workspaces"
+  "nav_label": "Workspaces",
+  "gsys": true
 }

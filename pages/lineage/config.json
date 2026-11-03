@@ -5,10 +5,10 @@
   "nav": false,
   "order": 45,
   "body_class": "lineage-page",
-  "nav_section": "Brain",
   "nav_icon": "tree-structure",
   "nav_label": "Lineage",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Lineage"
+  "tab_label": "Lineage",
+  "tile_note": "Starter and design provenance"
 }

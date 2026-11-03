@@ -2,10 +2,13 @@
   "title": "Notes",
   "slug": "notes",
   "description": "All notes in the brain.",
-  "nav": true,
-  "order": 12,
-  "nav_section": "Daily",
+  "nav": false,
+  "order": 41,
   "nav_icon": "list-bullets",
   "nav_label": "Notes",
-  "gsys": true
+  "gsys": true,
+  "tabs": "brain",
+  "tab_label": "Notes",
+  "tile_note": "Every note in the brain",
+  "tile_line": "notes"
 }

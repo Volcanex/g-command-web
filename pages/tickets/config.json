@@ -5,10 +5,11 @@
   "nav": false,
   "order": 33,
   "body_class": "tickets-page",
-  "nav_section": "g-core",
   "nav_icon": "ticket",
   "nav_label": "Tickets",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Tickets"
+  "tab_label": "Tickets",
+  "tile_note": "g-admin tickets, every project",
+  "tile_line": "panel:tickets"
 }

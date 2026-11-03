@@ -470,9 +470,22 @@ details[open] > .fd-bullet { white-space: normal; color: var(--text-primary); }
 .fd-col { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; }
 .fd-col > .fd-panel { flex: 1 1 0; }
 .fd-row { display: grid; gap: var(--sp-3); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: 0; }
+/* A band (a layout row with a `head`): the heading links the hub the row
+   belongs to, the row fills the rest. Home is a System band over a Life band. */
+.fd-band { display: flex; flex-direction: column; gap: var(--sp-2); min-height: 0; flex: 1 1 0; }
+.fd-band > .fd-row { flex: 1 1 0; }
+.fd-band-head {
+  display: flex; align-items: center; gap: var(--sp-2); align-self: flex-start;
+  min-height: var(--h-2); padding: 0 var(--sp-1);
+  color: var(--text-primary); text-decoration: none; border-radius: var(--radius-sm);
+}
+.fd-band-head:hover { background: var(--fill-hover); }
+.fd-band-head .ph { color: var(--text-placeholder); }
+.fd-band-head .fd-meta.is-danger { color: var(--danger-text); }
+.fd-band-head .fd-meta.is-ok { color: var(--ok-text); }
 @media (max-width: 900px), (max-height: 560px) {
   .fd-dash { height: auto; grid-template-columns: minmax(0, 1fr); }
-  .fd-col > .fd-panel, .fd-row { flex: none; max-height: none; }
+  .fd-col > .fd-panel, .fd-row, .fd-band { flex: none; max-height: none; }
   .fd-row { grid-auto-flow: row; }
   .fd-body { overflow: visible; }
 }

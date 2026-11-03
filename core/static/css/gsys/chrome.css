@@ -1,8 +1,9 @@
 /* g-command-web chrome on top of the app kit (gsys/kit/kit.css, Studio's
    shell look). The kit draws the sidebar, brand, nav items, side foot, top
    bar and content page; this file holds only what is Command's own: the
-   glyph font in nav items, the side-foot toggles, the tab strip, the owner
-   link, the status line, the page reveal and the per-body overrides. */
+   glyph font in nav items, the side-foot toggles, the status line, the hub
+   head and tiles, the page reveal and the per-body overrides. The rail's
+   nesting and the top bar's R7 rule (no bar beside the rail) are the kit's. */
 
 /* The g mark. Studio defines .g-mark in its own CSS rather than the kit, so
    Command draws it from the vendored brand/mark.svg until the kit carries it. */
@@ -23,31 +24,8 @@
 .side-foot .btn .ph { font-size: 16px; }
 .side-foot a[aria-current="page"] { background: var(--fill-active); color: var(--text-primary); }
 
-/* top bar: the title shows when the page has no tab strip */
 .g-nav-toggle .ph { font-size: 16px; }
-
-/* tab strip for pages that share one nav entry (compile.py build_subnavs):
-   it replaces the title, sits on the bar's bottom rule and scrolls sideways
-   when the bar is narrower than the tabs */
-.topbar:has(.g-subnav) { padding-block: 0; }
-.topbar:has(.g-subnav) .topbar-title { display: none; }
-.g-subnav {
-  display: flex; gap: 2px; min-width: 0; align-self: stretch;
-  margin-left: calc(-1 * var(--sp-3));
-  overflow-x: auto; scrollbar-width: none;
-}
-.g-subnav::-webkit-scrollbar { display: none; }
-.g-subnav .tab {
-  display: inline-flex; align-items: center; flex: none;
-  height: auto; padding: 0 var(--sp-3);
-  border-radius: 0; text-decoration: none; white-space: nowrap;
-  box-shadow: inset 0 -2px 0 transparent;
-}
-.g-subnav .tab:hover { background: none; }
-.g-subnav .tab[aria-current="page"] { color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--text-primary); }
-.g-subnav .tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
-.topbar-link { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); text-decoration: none; }
-.topbar-link:hover { color: var(--text-primary); }
+.nav-children .nav-item { padding-left: var(--sp-2); }
 
 /* chrome.js adds g-ready once the document is fully parsed (every body
    style block applied), then the g.css .enter stagger sweeps content in */
@@ -67,6 +45,23 @@
    bans: it is a glyph doing a layout job. A gap off the spacing scale does
    the same job without the glyph. */
 .g-status .host { margin-left: var(--sp-3); }
+.g-status a { color: inherit; text-decoration: none; }
+.g-status a:hover { color: var(--text-primary); }
+
+/* Hubs (compile.py hub_head, hub_tiles): the page head, the pulse tagline
+   where a hub asks for one, and a tile per child page with its live line
+   (js/hub.js). Tiles here are compact: a title, one live line, one note. */
+.hub-top { display: flex; flex-direction: column; gap: var(--sp-3); }
+.hub-tagline { display: block; max-width: var(--col-text); font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); text-decoration: none; }
+.hub-tagline:hover { color: var(--text-primary); }
+.hub-tiles { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); grid-auto-rows: auto; }
+.hub-tiles > li { display: flex; min-width: 0; }
+.hub-tiles .tile { flex: 1; gap: var(--sp-1); }
+.hub-tiles .tile-body { justify-content: flex-start; gap: 2px; }
+.hub-line:empty { display: none; }
+.hub-line.is-danger { color: var(--danger-text); }
+.hub-line.is-ok { color: var(--ok-text); }
+.hub-tiles .tile-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* login: no chrome, just the card */
 body.login-page { display: grid; grid-template-columns: 1fr; place-items: center; }
@@ -80,15 +75,12 @@ html[data-app] body.g-shell > aside, html[data-app] .topbar, html[data-app] .g-s
 
 /* full-dash, home and ops: full-bleed */
 body.full-dash-page .content-page { max-width: none; height: 100%; padding: 0; gap: 0; }  /* .fd-dash fills it */
-@media (max-width: 720px) {
-  .g-subnav { margin-left: 0; }
+/* a hub dash: its head and tiles on top, the dash fills what is left */
+body.full-dash-page .hub-top { padding: var(--sp-5) var(--sp-3) 0; flex: none; }
+@media (min-width: 901px) and (min-height: 561px) {
+  body.full-dash-page .hub-top + .fd-dash { flex: 1 1 0; min-height: 0; height: auto; }
 }
-
-/* On a wide screen a page with its own .page-head carries its title there,
-   as Studio does; the bar keeps the title only for pages without one. */
-@media (min-width: 721px) {
-  body:has(.site-main .page-head) .topbar-title { display: none; }
-}
+@media (max-width: 720px) { body.full-dash-page .hub-top { padding-top: var(--sp-4); } }
 
 /* A Preact page mounts into this slot (pages/CLAUDE.md, Preact pages). It
    takes no box, so its blocks sit in the page stack like any other page. */

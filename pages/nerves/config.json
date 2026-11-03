@@ -5,10 +5,10 @@
   "nav": false,
   "order": 43,
   "body_class": "nerves-page",
-  "nav_section": "Brain",
   "nav_icon": "git-branch",
   "nav_label": "Nerves",
   "gsys": true,
   "tabs": "brain",
-  "tab_label": "Nerves"
+  "tab_label": "Nerves",
+  "tile_note": "The CLAUDE.md and AGENTS.md web"
 }

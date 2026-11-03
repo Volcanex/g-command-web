@@ -3,12 +3,10 @@
   "slug": "upload",
   "description": "Drop files onto the server, a plain dropbox in the upload directory.",
   "gsys": true,
-  "nav": false,
-  "order": 50,
+  "nav": true,
+  "order": 53,
   "body_class": "upload-page",
-  "nav_section": "Drive",
+  "nav_section": "Publish",
   "nav_icon": "upload-simple",
-  "nav_label": "Upload",
-  "tabs": "files",
-  "tab_label": "Upload"
+  "nav_label": "Upload"
 }

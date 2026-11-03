@@ -3,9 +3,9 @@
   "slug": "full-dash",
   "description": "The whole G-System at a glance.",
   "nav": true,
-  "order": 1,
+  "order": 4,
   "body_class": "full-dash-page",
-  "nav_section": "Dash",
+  "nav_section": "Overview",
   "nav_icon": "gauge",
   "nav_label": "Full dash",
   "gsys": true,
@@ -50,5 +50,6 @@
         ]
       }
     ]
-  }
+  },
+  "web_nav": false
 }

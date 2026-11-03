@@ -19,7 +19,7 @@ DASHES = sorted(slug for slug, config in CONFIGS.items() if "layout" in config)
 
 
 def test_dashes_exist():
-    assert DASHES == ["full-dash", "home", "ops"]
+    assert DASHES == ["full-dash", "home", "index", "ops"]
 
 
 @pytest.mark.parametrize("slug", sorted(CONFIGS))
@@ -28,7 +28,9 @@ def test_no_hand_placed_dash(slug):
     assert not re.search(r'class="[^"]*\bfd-(dash|col|row)\b', content), "dash placement belongs in config.json layout"
     assert "panels" not in CONFIGS[slug], "panel order comes from layout"
     if slug in DASHES:
-        assert content == "<!-- seed:panel-kit -->\n<!-- seed:dash-layout -->\n"
+        # a hub dash puts its head and tiles (compile.py hub_head) above the dash
+        assert content in ("<!-- seed:panel-kit -->\n<!-- seed:dash-layout -->\n",
+                           "<!-- seed:panel-kit -->\n<!-- seed:hub-head -->\n<!-- seed:dash-layout -->\n")
 
 
 @pytest.mark.parametrize("slug", DASHES)
@@ -43,7 +45,8 @@ def test_layout_shape(slug):
         assert set(column) <= {"width", "min", "items"}
         for item in column["items"]:
             item = {"panel": item} if isinstance(item, str) else item
-            assert set(item) <= {"panel", "row", "grow", "fit", "shrink", "max"}
+            assert set(item) <= {"panel", "row", "grow", "fit", "shrink", "max", "head"}
+            assert "head" not in item or ("row" in item and item["head"] in CONFIGS)
             assert ("panel" in item) != ("row" in item)
             assert not (item.get("fit") and "grow" in item)
             assert "shrink" not in item or item.get("fit")
@@ -61,7 +64,8 @@ def test_manifest_serves_every_dash_layout():
     entries = [entry for section in build_manifest(PAGES)["sections"] for entry in section["entries"]]
     entries += [tab for entry in entries for tab in entry.get("tabs", [])]
     served = {entry["slug"]: entry for entry in entries if "layout" in entry}
-    assert set(served) == set(DASHES)
+    # Home (index) is web only (app_nav false): the apps keep Full dash instead
+    assert set(served) == set(DASHES) - {"index"}
     for slug, entry in served.items():
         assert entry["layout"] == layout.normalise(CONFIGS[slug]["layout"])
         for column in entry["layout"]["columns"]:

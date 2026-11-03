@@ -2,13 +2,11 @@
   "title": "Photos",
   "slug": "photos",
   "description": "Browse and manage the R2 photo store: thumbnails, storage stats, and delete with confirm.",
-  "nav": false,
-  "order": 51,
+  "nav": true,
+  "order": 52,
   "body_class": "photos-page",
-  "nav_section": "Content",
+  "nav_section": "Publish",
   "nav_icon": "images",
   "nav_label": "Photos",
-  "gsys": true,
-  "tabs": "files",
-  "tab_label": "Photos"
+  "gsys": true
 }

@@ -14,10 +14,12 @@ PAGES = Path(__file__).resolve().parent.parent / "pages"
 
 
 class Navigation(HTMLParser):
+    """The rail as data: sections of top-level entries, each nav-child link
+    nested under the entry before it."""
     def __init__(self):
         super().__init__()
         self.sections = []
-        self.links = []
+        self.link = None
         self.capture = None
         self.text = ""
 
@@ -29,9 +31,9 @@ class Navigation(HTMLParser):
         if tag == "a":
             self.capture = "link"
             self.text = ""
-            self.links.append({"slug": attrs["href"].lstrip("/")})
-        if tag == "i" and self.links:
-            self.links[-1]["icon"] = attrs["class"].split("ph-")[-1]
+            self.link = {"slug": attrs["href"].lstrip("/"), "child": "nav-child" in attrs["class"].split()}
+        if tag == "i" and self.link:
+            self.link["icon"] = attrs["class"].split("ph-")[-1]
 
     def handle_data(self, data):
         if self.capture:
@@ -41,11 +43,15 @@ class Navigation(HTMLParser):
         if tag == "div" and self.capture == "section":
             self.sections.append({"title": self.text, "entries": []})
             self.capture = None
-        if tag == "a":
-            self.links[-1]["label"] = self.text
-            if self.sections:
-                self.sections[-1]["entries"].append(self.links[-1])
+        if tag == "a" and self.link:
+            link, self.link = self.link, None
+            link["label"] = self.text
             self.capture = None
+            entries = self.sections[-1]["entries"]
+            if link.pop("child"):
+                entries[-1].setdefault("children", []).append({"slug": link["slug"], "label": link["label"]})
+            else:
+                entries.append(link)
 
 
 def configs(pages):
@@ -62,24 +68,26 @@ def configs(pages):
 
 
 def check_navigation(pages):
+    """The apps' manifest and the web rail come from one tree: the same
+    sections and entries, and an entry's tabs (less itself) are its nested
+    children in the rail. The rail's own extras (web_nav, app_nav) aside."""
     manifest = build_manifest(pages)
     source = configs(pages)
     parser = Navigation()
-    # app_nav false is a web-only sidebar entry (Home): the apps leave it out.
-    parser.feed(compiler.build_nav_html([c for c in source if c.get("app_nav", True)]))
-    actual = [{"title": section["title"], "entries": [
-        {key: entry[key] for key in ("slug", "label", "icon")} for entry in section["entries"]]}
-        for section in manifest["sections"]]
-    assert actual == parser.sections
-    subnavs = compiler.build_subnavs(source)
+    # app_nav false is a web-only entry (Home, Chat): the apps leave it out;
+    # web_nav false (Full dash) is the reverse, so compare the tree without both.
+    parser.feed(compiler.build_nav_html([dict(c, web_nav=True) for c in source if c.get("app_nav", True)]))
+    actual = []
     for section in manifest["sections"]:
+        entries = []
         for entry in section["entries"]:
-            if entry["slug"] in subnavs:
-                parser = Navigation()
-                parser.feed(subnavs[entry["slug"]])
-                assert [{"slug": tab["slug"], "label": tab["label"]} for tab in entry["tabs"]] == parser.links
-            else:
-                assert "tabs" not in entry
+            row = {key: entry[key] for key in ("slug", "label", "icon")}
+            kids = [{"slug": tab["slug"], "label": tab["label"]} for tab in entry.get("tabs", []) if tab["slug"] != entry["slug"]]
+            if kids:
+                row["children"] = kids
+            entries.append(row)
+        actual.append({"title": section["title"], "entries": entries})
+    assert actual == parser.sections
     return manifest
 
 
@@ -97,7 +105,9 @@ def test_manifest_matches_real_sidebar_and_tabs():
         "tickets": {"title": "Tickets", "icon": "ticket"},
         "crons": {"title": "Crons", "icon": "clock"},
     }
-    assert [section["title"] for section in manifest["sections"]] == ["Dash", "Daily", "Tools"]
+    # Overview first: the apps take the first section as their dash (Life, System, Full dash)
+    assert [section["title"] for section in manifest["sections"]] == ["Overview", "Work", "Knowledge", "Publish", "Setup"]
+    assert [entry["slug"] for entry in manifest["sections"][0]["entries"]] == ["home", "ops", "full-dash"]
 
 
 def test_manifest_defaults_ties_tabs_panel_flags_and_bad_configs(tmp_path):

@@ -4,10 +4,8 @@
   "description": "The live layer: money, messages and deadlines. Ephemeral, and it feeds the brain's todos.",
   "nav": false,
   "order": 40,
-  "nav_section": "Brain",
   "nav_icon": "pulse",
   "nav_label": "Pulse",
   "gsys": true,
-  "tabs": "brain",
-  "tab_label": "Pulse"
+  "nav_current": "/home"
 }

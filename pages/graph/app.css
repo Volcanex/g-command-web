@@ -9,3 +9,11 @@
   background: var(--overlay-bg); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 3px 8px;
 }
+
+/* As a panel on Brain: a head row, then a shorter canvas. */
+.graph-panel { display: flex; flex-direction: column; gap: 0; }
+.graph-panel-head { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-subtle); }
+.graph-panel-head .card-title { color: inherit; text-decoration: none; }
+.graph-panel-head .card-title:hover { text-decoration: underline; }
+.graph-panel-head .grow { flex: 1 1 auto; }
+.graph-panel .graph-canvas { height: 420px; min-height: 0; }

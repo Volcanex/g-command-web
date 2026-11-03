@@ -10,12 +10,17 @@ import { Icon } from "./icon.js";
 
 /* report(err) files an error with whoever looks after the app and resolves true when it was
    sent; without it, errors carry no report button. offlineTitle heads an ErrorState whose
-   error.code is "offline". */
+   error.code is "offline". errorCopy maps an error code to [title, sentence] for ErrorState:
+   the sentence says what happened and what to do next, and the server's terse message for that
+   code ("No such collection.") moves under Details. Codes it leaves out keep the server's
+   message as the body, and errorFallback is the body when there is no message at all. */
 const config = {
   report: null,
   reportLabel: "Report this",
   reportedLabel: "Reported",
   offlineTitle: "Cannot reach the server",
+  errorCopy: {},
+  errorFallback: "Something went wrong while loading this.",
 };
 export function configure(opts) { Object.assign(config, opts); }
 
@@ -196,8 +201,11 @@ export function fallbackCopy(text) {
 /* ------------------------------------------------------------------ menus */
 
 /* A popover menu anchored to its trigger.
-   items: [{label, icon, onClick, danger, href, target, disabled} | {heading} | "-"] */
-export function Menu({ label, icon = "dots-three", items, trigger, align = "end", size = "sm", kind = "tertiary" }) {
+   items: [{label, icon, onClick, danger, href, target, disabled} | {heading} | "-"]
+   side="right" opens it beside its button, bottoms level, for a button at the foot of a rail:
+   opening upward there covers the rail's last links. Where there is no room beside it (a
+   phone's sheet) it opens above or below as usual. */
+export function Menu({ label, icon = "dots-three", items, trigger, align = "end", side, size = "sm", kind = "tertiary" }) {
   const id = useId("menu");
   const menuRef = useRef(null);
   const btnRef = useRef(null);
@@ -206,6 +214,12 @@ export function Menu({ label, icon = "dots-three", items, trigger, align = "end"
     if (!m || !b) return;
     m.style.maxHeight = "";
     const r = b.getBoundingClientRect();
+    if (side === "right" && r.right + 8 + m.offsetWidth <= innerWidth - 8) {
+      m.style.setProperty("--_origin", "left bottom");
+      m.style.left = r.right + 8 + "px";
+      m.style.top = Math.max(8, r.bottom - m.offsetHeight) + "px";
+      return;
+    }
     const fitsBelow = r.bottom + 4 + m.offsetHeight < innerHeight;
     const fitsAbove = r.top - 4 - m.offsetHeight > 0;
     const below = fitsBelow || !fitsAbove;
@@ -257,21 +271,27 @@ export function Empty({ icon = "info", title, desc, children }) {
   </div>`;
 }
 
-/* A designed error in the slot the data would have filled. */
+/* A designed error in the slot the data would have filled. The redacted raw error stays
+   visible in small type; configure's errorCopy supplies the plain sentence per code. */
 export function ErrorState({ error, retry, title }) {
-  const msg = (error && error.message) || "Something went wrong while loading this.";
-  const t = title || (error && error.code === "not_found" ? "Not found" :
-    error && error.code === "denied" ? "You do not have access to this" :
-    error && error.code === "offline" ? config.offlineTitle : "This did not load");
+  const code = error && error.code;
+  const [t0, sentence] = config.errorCopy[code] || [];
+  const msg = (error && error.message) || "";
+  const t = title || t0 || (code === "not_found" ? "Not found" :
+    code === "denied" ? "You do not have access to this" :
+    code === "offline" ? config.offlineTitle : "This did not load");
+  const body = sentence || msg || config.errorFallback;
+  const detail = sentence && msg && msg !== sentence ? msg : "";
   const raw = rawOf(error);
   return html`<div class="empty state-error" role="alert">
     <${Icon} name="warning-circle" />
     <div class="e-title">${t}</div>
-    <div class="e-desc">${msg}</div>
+    <div class="e-desc">${body}</div>
     ${raw && html`<div class="e-desc mono faint wrap-any">${raw}</div>`}
+    ${detail && html`<details class="state-error-more"><summary>Details</summary><div class="e-desc faint">${detail}</div></details>`}
     <div class="empty-actions">
       ${retry && html`<button class="btn btn-secondary btn-sm" type="button" onClick=${retry}>Try again</button>`}
-      <${ReportButton} error=${error || { message: msg }} />
+      <${ReportButton} error=${error || { message: body }} />
     </div>
   </div>`;
 }

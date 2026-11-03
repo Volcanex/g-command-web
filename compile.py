@@ -7,9 +7,14 @@ Each page is a directory under `pages/` with:
   `slug`, `body_class`, `nav`, `nav_section`, `nav_icon`, `nav_label`,
   `order`, `tabs`, `tab_label`, anything else your shell.html wants to
   interpolate. Pages with `nav: true` are grouped by `nav_section` and
-  sorted by `order` to build the nav drawer automatically. Pages sharing a
-  `tabs` group get a tab strip in the top bar (`{{! subnav }}`), so one nav
-  entry can stand for several pages.
+  sorted by `order` to build the rail automatically (`web_nav: false`
+  keeps an entry the apps show off the web rail). `tabs` is the parent
+  pointer: the group member with `nav: true` is the parent page (a hub),
+  the others are its children, nested one level under it in the rail and
+  shown as tiles on it (`<!-- seed:hub-head -->`, `<!-- seed:hub-tiles -->`,
+  `tile_note`, `tile_line`). The name stays `tabs` because the apps read the
+  same manifest. `nav_current` is the rail link a page lights when it has
+  none of its own (a detail route, a page reached by URL).
 - `content.html`: HTML fragment for the page body. May include a
   `<style>` block.
 - `app.js` (optional): a Preact page. Bundled by esbuild into
@@ -149,7 +154,7 @@ DEFAULTS = {
     # The setup page's agent prompt tells an agent where to read it from.
     "public_origin": f"https://{PUBLIC_HOST}" if PUBLIC_HOST else "https://command.example.com",
     "studio_origin": STUDIO_ORIGIN,
-    "subnav": "",
+    "nav_current": "",
 }
 
 # `{{ key }}` substitutes context[key] HTML-escaped; `{{! key }}` keeps
@@ -354,7 +359,7 @@ def render(template: str, context: dict) -> str:
     return TOKEN_RE.sub(sub, template)
 
 
-def compile_page(page_dir: Path, shell: str, subnavs: dict | None = None) -> tuple[Path | None, dict | None, bool]:
+def compile_page(page_dir: Path, shell: str) -> tuple[Path | None, dict | None, bool]:
     """Returns (output_path, config, error). `error=True` means the page
     was malformed (not just missing): main() exits non-zero so CI catches it."""
     config_file = page_dir / "config.json"
@@ -382,12 +387,13 @@ def compile_page(page_dir: Path, shell: str, subnavs: dict | None = None) -> tup
 
     context = {**DEFAULTS, **{k: v for k, v in config.items() if isinstance(v, (str, int, float))}}
     context["slug"] = slug
-    context["subnav"] = (subnavs or {}).get(slug, "")
+    context["nav_current"] = config.get("nav_current") or config.get("href") or f"/{slug}"
 
     # A panel page's `layout` (core/panels/CLAUDE.md, Layout) becomes its dash
     # markup and placement CSS here, before the panel tokens it holds expand.
     if "layout" in config:
-        content = content.replace("<!-- seed:dash-layout -->", dash_layout.render(slug, config["layout"]))
+        content = content.replace("<!-- seed:dash-layout -->",
+                                  dash_layout.render(slug, config["layout"], heads=_band_heads()))
 
     # Expand seed:* tokens before splicing into the shell so registered
     # renderers can produce HTML the shell template doesn't know about.
@@ -560,71 +566,137 @@ def emit_manifest_stubs(shell: str, handled_slugs: set[str]) -> tuple[int, int]:
     return built, errors
 
 
-def build_nav_html(configs: list[dict]) -> str:
-    """Build the sidebar nav (kit .nav-list) from page configs with nav:true.
-    Groups pages by nav_section, orders sections by the lowest order value
-    of any page in that section, orders pages within sections by order."""
+# ---------- The page tree: the rail and the hub tiles ---------------------
+#
+# One tree, from the configs, drives both the rail and every hub's tiles, so
+# they cannot drift. A rail entry is a page with `nav: true` (and not
+# `web_nav: false`); its children are the other members of its `tabs` group.
+_PAGES: list[dict] = []
+
+
+def page_href(config: dict) -> str:
+    return config.get("href") or f"/{config.get('slug', '')}"
+
+
+def children_of(config: dict, configs: list[dict]) -> list[dict]:
+    """The pages nested under a parent: its `tabs` group less itself, in order."""
+    group = config.get("tabs")
+    if not group:
+        return []
+    return sorted((c for c in configs if c is not config and str(c.get("tabs")) == str(group)),
+                  key=lambda c: c.get("order", 999))
+
+
+def page_tree(configs: list[dict]) -> list[tuple[str, list[tuple[dict, list[dict]]]]]:
+    """[(section, [(entry, children)])] in rail order."""
     from collections import defaultdict
 
-    nav_pages = [c for c in configs if c.get("nav")]
     sections: dict[str, list[dict]] = defaultdict(list)
-    for c in nav_pages:
-        section = c.get("nav_section") or c.get("title", "Other")
-        sections[section].append(c)
+    for c in configs:
+        if c.get("nav") and c.get("web_nav", True):
+            sections[c.get("nav_section") or c.get("title", "Other")].append(c)
+    first = {sec: min(c.get("order", 999) for c in pages) for sec, pages in sections.items()}
+    return [(sec, [(c, children_of(c, configs)) for c in sorted(sections[sec], key=lambda c: c.get("order", 999))])
+            for sec in sorted(sections, key=lambda s: first[s])]
 
-    section_min_order = {
-        sec: min(c.get("order", 999) for c in pages)
-        for sec, pages in sections.items()
-    }
 
-    # The kit's rail (g-ui-preact kit.css): one .nav-list, a .nav-head per
-    # section, a .nav-item per page. chrome.js marks the current item.
+def _child_label(config: dict) -> str:
+    return config.get("tab_label") or config.get("nav_label") or config.get("title", config.get("slug", ""))
+
+
+def build_nav_html(configs: list[dict]) -> str:
+    """The rail (kit .nav-list): a .nav-head per section, a .nav-item per
+    entry, and a parent's children nested in a kit .nav-group. chrome.js marks
+    the current item and opens its group."""
+    def item(c: dict, label: str, cls: str = "nav-item", icon: bool = True) -> str:
+        glyph = f'<i class="ph ph-{html.escape(str(c.get("nav_icon", "circle")))}" aria-hidden="true"></i>' if icon else ""
+        return (f'<a class="{cls}" href="{html.escape(page_href(c))}">{glyph}'
+                f'<span class="ellipsis">{html.escape(str(label))}</span></a>')
+
     parts = []
-    for sec in sorted(sections, key=lambda s: section_min_order[s]):
-        pages = sorted(sections[sec], key=lambda c: c.get("order", 999))
+    for sec, entries in page_tree(configs):
         parts.append(f'      <div class="nav-head">{html.escape(str(sec))}</div>')
-        for c in pages:
-            slug = c.get("slug", "")
-            icon = c.get("nav_icon", "circle")
-            label = c.get("nav_label") or c.get("title", slug)
-            tabs = f' data-tabs="{html.escape(str(c["tabs"]))}"' if c.get("tabs") else ""
-            href = c.get("href") or f"/{slug}"
-            parts.append(
-                f'      <a class="nav-item" href="{html.escape(str(href))}"{tabs}>'
-                f'<i class="ph ph-{icon}" aria-hidden="true"></i>'
-                f'<span class="ellipsis">{html.escape(str(label))}</span></a>'
-            )
+        for c, kids in entries:
+            label = c.get("nav_label") or c.get("title", c.get("slug", ""))
+            if not kids:
+                parts.append("      " + item(c, label))
+                continue
+            parts.append(f'      <div class="nav-group" data-group="{html.escape(str(c["tabs"]))}">')
+            parts.append('        <div class="nav-group-row">' + item(c, label)
+                         + f'<button class="nav-twist" type="button" aria-label="{html.escape(str(label))} pages"'
+                           ' aria-expanded="false"></button></div>')
+            parts.append('        <div class="nav-children">'
+                         + "".join(item(k, _child_label(k), "nav-item nav-child", icon=False) for k in kids)
+                         + "</div>")
+            parts.append("      </div>")
     return '    <nav class="nav-list" aria-label="Pages">\n' + "\n".join(parts) + "\n    </nav>"
 
 
-def build_subnavs(configs: list[dict]) -> dict[str, str]:
-    """Tab strip HTML per slug, for every page in a `tabs` group. A group
-    holds its pages in `order`; its label is the nav entry's (the member
-    with `nav: true`)."""
-    from collections import defaultdict
+def _tile(c: dict) -> str:
+    line = c.get("tile_line")
+    line_attr = f' data-line="{html.escape(str(line))}"' if line else ""
+    note = c.get("tile_note") or c.get("description", "")
+    return (f'<li><a class="card tile hub-tile" href="{html.escape(page_href(c))}">'
+            '<div class="tile-head">'
+            f'<span class="tile-title ellipsis">{html.escape(_child_label(c))}</span>'
+            f'<i class="ph ph-{html.escape(str(c.get("nav_icon", "circle")))} muted" aria-hidden="true"></i></div>'
+            '<div class="tile-body">'
+            f'<p class="tile-strong num hub-line"{line_attr}></p>'
+            f'<p class="muted tile-note">{html.escape(str(note))}</p>'
+            "</div></a></li>")
 
-    groups: dict[str, list[dict]] = defaultdict(list)
-    for c in configs:
-        if c.get("tabs"):
-            groups[str(c["tabs"])].append(c)
 
-    out = {}
-    for group, pages in groups.items():
-        pages.sort(key=lambda c: c.get("order", 999))
-        head = next((c for c in pages if c.get("nav")), pages[0])
-        label = head.get("nav_label") or head.get("title", group)
-        for page in pages:
-            links = []
-            for c in pages:
-                slug = c.get("slug", "")
-                text = c.get("tab_label") or c.get("nav_label") or c.get("title", slug)
-                current = ' aria-current="page"' if c is page else ""
-                links.append(f'<a class="tab" href="/{slug}"{current}>{html.escape(str(text))}</a>')
-            out[page.get("slug", "")] = (
-                f'<nav class="g-subnav" data-tabs="{html.escape(group)}" aria-label="{html.escape(str(label))}">'
-                + "".join(links) + "</nav>"
-            )
-    return out
+def hub_tiles(slug: str) -> str:
+    """A hub's tiles: one per child page, each with its live line slot
+    (core/static/js/hub.js fills `data-line`)."""
+    page = next((c for c in _PAGES if c.get("slug") == slug), None)
+    kids = children_of(page, _PAGES) if page else []
+    if not kids:
+        return ""
+    return ('<ul class="tile-grid hub-tiles" aria-label="Pages here">'
+            + "".join(_tile(k) for k in kids) + "</ul>")
+
+
+def hub_head(context: dict) -> str:
+    """A hub's page head (title, one line, the pulse tagline where the page
+    asks for it) and its tiles."""
+    page = next((c for c in _PAGES if c.get("slug") == context["slug"]), {})
+    tagline = page.get("tagline")
+    tag = (f'<a class="hub-tagline ellipsis" href="/pulse" data-line="tagline:{html.escape(str(tagline))}" hidden></a>'
+           if tagline else "")
+    return ('<div class="hub-top">'
+            '<div class="page-head"><div class="page-head-text">'
+            f'<h1 class="page-title">{html.escape(str(context.get("title", "")))}</h1>'
+            f'<p class="page-sub">{html.escape(str(context.get("description", "")))}</p>{tag}'
+            "</div></div>" + hub_tiles(context["slug"]) + "</div>")
+
+
+def _band_heads() -> dict:
+    """slug -> (label, href, live line) for a layout row's `head`."""
+    return {c.get("slug"): (c.get("nav_label") or c.get("title", ""), page_href(c), c.get("tile_line"))
+            for c in _PAGES}
+
+
+register_token("hub-head", hub_head)
+register_token("hub-tiles", lambda context: hub_tiles(context["slug"]))
+
+
+def _embed_bundle(slug: str) -> str:
+    """Another Preact page's bundle, run inside this page (Brain carries
+    Graph as a panel). The bundle decides where it mounts."""
+    status = bundle_page(PAGES_DIR / slug, slug)
+    if status["state"] == "failed":
+        return ""
+    name = _bundle_name(slug)
+    parts = []
+    if "css" in status:
+        parts.append(f'<link rel="stylesheet" href="{BUNDLE_URL}/{name}.css?v={status["css"]}">')
+    parts.append(f'<script type="module" src="{BUNDLE_URL}/{name}.js?v={status["js"]}"></script>')
+    return "\n".join(parts)
+
+
+for _app in sorted(PAGES_DIR.glob("*/app.js")):
+    register_token(f"embed-{_app.parent.name}", lambda context, slug=_app.parent.name: _embed_bundle(slug))
 
 
 def stamp_shell_assets(shell: str) -> str:
@@ -667,8 +739,8 @@ def main() -> None:
             except json.JSONDecodeError:
                 pass
 
+    _PAGES[:] = all_configs
     nav_html = build_nav_html(all_configs)
-    subnavs = build_subnavs(all_configs)
     # Pre-inject nav into the shell so {{! nav_pages }} resolves without
     # per-page context pollution. Use a literal string replace so the
     # TOKEN_RE substitution loop never sees it.
@@ -682,7 +754,7 @@ def main() -> None:
     for page_dir in sorted(PAGES_DIR.iterdir()):
         if not page_dir.is_dir() or page_dir.name.startswith("_"):
             continue
-        out, config, err = compile_page(page_dir, shell, subnavs)
+        out, config, err = compile_page(page_dir, shell)
         if out:
             built += 1
         if config:

@@ -42,9 +42,13 @@ def normalise(layout):
     }
 
 
-def render(slug, layout):
+def render(slug, layout, heads=None):
     """The web dash: `.fd-dash` of `.fd-col` columns, `.fd-row` for panels
-    side by side, then the page's placement CSS for wide windows."""
+    side by side, then the page's placement CSS for wide windows. A row with
+    a `head` (a page slug) is a band: a heading linking that page above the
+    row, so Home's System and Life rows lead to their hubs. `heads` maps a
+    slug to (label, href, live line key)."""
+    heads = heads or {}
     cls = f"fd-{slug}"
 
     def panel(name, depth):
@@ -55,7 +59,17 @@ def render(slug, layout):
     for column in layout.get("columns", []):
         lines.append('  <div class="fd-col">')
         for item in map(_item, column.get("items", [])):
-            if "row" in item:
+            if "row" in item and item.get("head"):
+                label, href, line = heads.get(item["head"], (item["head"], "/" + item["head"], None))
+                live = f' data-line="{html.escape(line)}"' if line else ""
+                lines.append('    <section class="fd-band">')
+                lines.append(f'      <a class="fd-band-head" href="{html.escape(href)}"><h2 class="card-title">{html.escape(label)}</h2>'
+                             f'<span class="fd-meta hub-line"{live}></span><i class="ph ph-arrow-right" aria-hidden="true"></i></a>')
+                lines.append('      <div class="fd-row">')
+                lines += [panel(name, 4) for name in item["row"]]
+                lines.append("      </div>")
+                lines.append("    </section>")
+            elif "row" in item:
                 lines.append('    <div class="fd-row">')
                 lines += [panel(name, 3) for name in item["row"]]
                 lines.append("    </div>")
@@ -71,7 +85,12 @@ def render(slug, layout):
     rules += [f".{cls} > #fd-{name} {{ grid-column: 1 / -1; }}" for name in layout.get("top", [])]
     for column in layout.get("columns", []):
         for item in map(_item, column.get("items", [])):
-            target = f".{cls} " + (f"#fd-{item['panel']}" if "panel" in item else ".fd-row:has(> #fd-" + item["row"][0] + ")")
+            if "panel" in item:
+                target = f".{cls} #fd-{item['panel']}"
+            elif item.get("head"):
+                target = f".{cls} .fd-band:has(#fd-{item['row'][0]})"
+            else:
+                target = f".{cls} .fd-row:has(> #fd-{item['row'][0]})"
             if item.get("fit"):
                 rules.append(f"{target} {{ flex: 0 {1 if item.get('shrink') else 0} auto; }}")
             elif item.get("grow", 1) != 1:

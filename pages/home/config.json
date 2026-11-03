@@ -1,15 +1,15 @@
 {
   "title": "Life",
   "slug": "home",
-  "description": "Today's calendar, open todos, money and the daily brief.",
+  "description": "Deadlines first: dated todos for today and the week, open todos and money.",
   "nav": true,
   "order": 2,
-  "nav_section": "Dash",
+  "nav_section": "Overview",
   "nav_icon": "sun-horizon",
   "nav_label": "Life",
   "gsys": true,
   "body_class": "full-dash-page life-page",
-  "layout_note": "The day first: the calendar has two thirds of the width and the full height. The brief is a short list beside it, not a header over it.",
+  "layout_note": "Deadlines first: the calendar of dated todos has two thirds of the width and the full height. Pulse is one tagline line in the head, not a panel.",
   "layout": {
     "columns": [
       {
@@ -22,15 +22,15 @@
         "width": 1,
         "min": 300,
         "items": [
-          {
-            "panel": "brief",
-            "fit": true,
-            "max": 34
-          },
           "tasks",
           "money"
         ]
       }
     ]
-  }
+  },
+  "tabs": "life",
+  "tab_label": "Overview",
+  "tagline": "brief",
+  "tile_note": "Deadlines, todos and money",
+  "tile_line": "todos"
 }

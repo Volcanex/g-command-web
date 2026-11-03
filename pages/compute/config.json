@@ -5,10 +5,11 @@
   "nav": false,
   "order": 31,
   "body_class": "compute-page",
-  "nav_section": "g-core",
   "nav_icon": "gauge",
   "nav_label": "Compute",
   "gsys": true,
   "tabs": "system",
-  "tab_label": "Compute"
+  "tab_label": "Compute",
+  "tile_note": "Quotas, balances and resets",
+  "tile_line": "panel:compute"
 }
