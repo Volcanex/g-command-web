@@ -11,7 +11,7 @@
          <div class="side-foot"><span class="avatar"></span><span class="who"><span>Name</span><span>email</span></span></div>
        </aside>
        <main>
-         <header class="topbar"><button class="g-nav-toggle"></button><span class="topbar-title show-sm"></span><span class="grow"></span></header>
+         <header class="topbar"><button class="g-nav-toggle"></button><span class="topbar-title"></span><span class="grow"></span></header>
          <div class="content"><div class="content-page"><div class="page-head">...</div> cards, lists, tiles </div></div>
        </main>
        <div class="g-scrim"></div>

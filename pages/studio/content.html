@@ -20,6 +20,12 @@
   body.studio-page .site-main { flex: 1 1 auto; min-height: 0; max-width: none; padding: 0; gap: 0; overflow: hidden; display: flex; flex-direction: column; }
   body.studio-page .site-main > * { max-width: none; }
   .studio-host { flex: 1; min-height: 0; position: relative; }
+  /* One bar, not two (g-navigation R7). Once the studio draws its own bar, that bar says where
+     you are (the site and section, or Your sites) and holds the studio's verbs, so Command's
+     "Studio" bar above it goes. On a phone Command's bar stays: it carries Command's menu. */
+  @media (min-width: 721px) {
+    body.studio-page .g-main:has(.studio-host .topbar) > .topbar { display: none; }
+  }
   .studio-msg { display: grid; place-items: center; height: 100%; padding: var(--sp-5); }
   .studio-msg[hidden] { display: none; }
   .studio-msg-card { max-width: 480px; }

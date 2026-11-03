@@ -119,7 +119,8 @@ export function UserFoot({ name, email, initials, items, menuLabel = "Account", 
 /* ------------------------------------------------------------------ shell */
 
 /* brand, nav and foot fill the sidebar (railKey: the same key as the Brand's toggle); title
-   shows in the top bar on a phone; actions sit
+   shows in the top bar at every width (g-navigation R7: the bar says where you are, and the
+   page head never repeats it; PageHead's h1 is .sr-only); actions sit
    at the top bar's end. topbar=false drops the top bar (an app that draws its own). The bar is
    .app-topbar, plus .has-actions when it carries actions, so an app can drop a bar that is only
    the menu button wherever the rail sits beside the content. */
@@ -136,7 +137,7 @@ export function AppShell({ brand, nav, foot, title, actions, topbar = true, clos
     <main>
       ${topbar && html`<header class=${`topbar app-topbar${actions ? " has-actions" : ""}`}>
         <${NavToggle} open=${open} setOpen=${setOpen} />
-        <span class="topbar-title show-sm">${title}</span>
+        <span class="topbar-title">${title}</span>
         <span class="grow"></span>
         ${actions}
       </header>`}
