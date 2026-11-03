@@ -45,12 +45,14 @@ function fromServer(body) {
 }
 
 /* The server's turns, plus what only this page holds: the turn in flight and a
-   message that failed. A streamed reply keeps its tools once the server has it. */
+   message that failed. A streamed reply keeps its tools and its live blocks
+   once the server has it: history draws a panel as a link (an old message must
+   not show today's data), but the reply just given was about now. */
 function merge(server, local) {
   const out = server.map((t) => {
     if (t.role !== "assistant") return t;
-    const mine = local.find((l) => l.role === "assistant" && l.tools.length && l.text.trim() === t.text.trim());
-    return mine ? { ...t, tools: mine.tools } : t;
+    const mine = local.find((l) => l.role === "assistant" && (l.tools.length || l.blocks.length) && l.text.trim() === t.text.trim());
+    return mine ? { ...t, tools: mine.tools, blocks: mine.blocks.length ? mine.blocks : t.blocks } : t;
   });
   const held = local.filter((l) => l.local && !server.some((s) => s.role === l.role && s.text.trim() === l.text.trim()));
   return out.concat(held);
