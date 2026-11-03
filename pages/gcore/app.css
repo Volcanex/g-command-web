@@ -1,0 +1,14 @@
+.gcore-block { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gcore-block .block-head { display: flex; align-items: center; gap: 10px; }
+.gcore-block .block-head .spacer { flex: 1; }
+.gcore-block .block-head .hint { font-size: 12px; color: var(--text-placeholder); }
+.kv-table td:first-child { color: var(--text-secondary); white-space: nowrap; font-family: var(--font-mono); font-size: 12px; }
+.kv-table td:last-child { word-break: break-all; font-family: var(--font-mono); font-size: 12px; }
+.kv-table .secret { cursor: pointer; }
+.kv-table .masked { letter-spacing: 1px; color: var(--text-placeholder); white-space: nowrap; }
+.gcore-pre {
+  margin: 0; padding: var(--sp-3);
+  background: var(--well-bg); border: 1px solid var(--well-border); border-radius: var(--radius-sm);
+  overflow: auto; max-height: 480px;
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.55; white-space: pre-wrap;
+}
