@@ -35,6 +35,9 @@
   <script defer src="/js/chrome.js"></script>
   <script defer src="/js/hub.js"></script>
   <script type="module">import { wireRails } from "/css/gsys/kit/rail.js"; wireRails();</script>
+  <!-- Studio's default cursor (kit cursor.js), so the pointer is the same here and over the
+       embedded Studio at /studio. Only the cursor: no coworking. -->
+  <script type="module">import { wireOwnCursor } from "/css/gsys/kit/cursor.js"; wireOwnCursor();</script>
 </head>
 <body class="g-shell {{ body_class }}" data-nav-current="{{ nav_current }}">
   <!-- The rail's remembered state before first paint (kit rail.js, same key), so a

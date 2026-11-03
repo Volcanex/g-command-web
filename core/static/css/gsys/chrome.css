@@ -76,7 +76,10 @@ html[data-app] body.g-shell > aside, html[data-app] .topbar, html[data-app] .g-s
 /* full-dash, home and ops: full-bleed */
 body.full-dash-page .content-page { max-width: none; height: 100%; padding: 0; gap: 0; }  /* .fd-dash fills it */
 /* a hub dash: its head and tiles on top, the dash fills what is left */
-body.full-dash-page .hub-top { padding: var(--sp-5) var(--sp-3) 0; flex: none; }
+body.full-dash-page .hub-top { padding: var(--sp-5) 0 0; flex: none; }
+/* Every hub (Home, Life, System) sits on the page gutter like any other view (g-admin
+   ticket 2): the one inline inset for both its head and its dash. */
+body.full-dash-page :is(.hub-top, .fd-dash) { padding-inline: var(--gutter); }
 @media (min-width: 901px) and (min-height: 561px) {
   body.full-dash-page .hub-top + .fd-dash { flex: 1 1 0; min-height: 0; height: auto; }
 }

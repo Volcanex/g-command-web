@@ -40,7 +40,8 @@
   color: var(--text-primary); text-decoration: none;
 }
 .brand .g-mark { width: 24px; height: 24px; }
-.brand b { font-size: 13px; line-height: var(--lh-2); font-weight: 500; }
+/* The wordmark is the rail's one large label (g-admin ticket 3): the same size in every app. */
+.brand b { font-size: 16px; line-height: var(--lh-3); font-weight: 600; }
 
 .nav-item {
   display: flex; align-items: center; gap: var(--sp-2);
@@ -312,4 +313,62 @@ a.tile:hover .tile-title { text-decoration: underline; }
 @media (max-width: 420px) {
   .tile-grid { grid-template-columns: minmax(0, 1fr); }
   .tile-2x1, .tile-2x2 { grid-column: span 1; }
+}
+
+/* ---------------------------------------------------------------- your own cursor */
+
+/* The coworking palette (Studio contracts.md, Coworking), which your own cursor is tinted
+   from. Studio draws presence in these ten; every g app uses them for the pointer, so the
+   cursor never changes between apps or at an embedded Studio's edge. */
+/* Dark is the default theme. One lightness for all ten, so no colour shouts over another; the
+   ink is a deep shade of the same hue, readable on its colour. */
+:root, [data-theme="dark"] {
+  --cowork-red: oklch(0.72 0.17 25);     --cowork-red-ink: oklch(0.24 0.07 25);
+  --cowork-orange: oklch(0.75 0.15 52);  --cowork-orange-ink: oklch(0.25 0.06 52);
+  --cowork-amber: oklch(0.81 0.14 82);   --cowork-amber-ink: oklch(0.27 0.06 82);
+  --cowork-lime: oklch(0.82 0.16 128);   --cowork-lime-ink: oklch(0.27 0.07 128);
+  --cowork-green: oklch(0.74 0.15 152);  --cowork-green-ink: oklch(0.24 0.06 152);
+  --cowork-teal: oklch(0.76 0.11 188);   --cowork-teal-ink: oklch(0.25 0.05 188);
+  --cowork-sky: oklch(0.76 0.12 230);    --cowork-sky-ink: oklch(0.24 0.05 230);
+  --cowork-blue: oklch(0.70 0.15 262);   --cowork-blue-ink: oklch(0.98 0.01 262);
+  --cowork-violet: oklch(0.70 0.16 298); --cowork-violet-ink: oklch(0.98 0.01 298);
+  --cowork-pink: oklch(0.74 0.16 350);   --cowork-pink-ink: oklch(0.25 0.07 350);
+  /* Agents wear one quiet colour of their own, never a person's. */
+  --cowork-agent: oklch(0.80 0.03 250);  --cowork-agent-ink: oklch(0.24 0.02 250);
+}
+[data-theme="light"] {
+  --cowork-red: oklch(0.62 0.20 25);     --cowork-red-ink: oklch(0.99 0.01 25);
+  --cowork-orange: oklch(0.68 0.17 52);  --cowork-orange-ink: oklch(0.22 0.06 52);
+  --cowork-amber: oklch(0.76 0.15 78);   --cowork-amber-ink: oklch(0.24 0.06 78);
+  --cowork-lime: oklch(0.74 0.17 128);   --cowork-lime-ink: oklch(0.22 0.07 128);
+  --cowork-green: oklch(0.62 0.16 152);  --cowork-green-ink: oklch(0.99 0.01 152);
+  --cowork-teal: oklch(0.62 0.11 190);   --cowork-teal-ink: oklch(0.99 0.01 190);
+  --cowork-sky: oklch(0.64 0.13 232);    --cowork-sky-ink: oklch(0.99 0.01 232);
+  --cowork-blue: oklch(0.56 0.18 262);   --cowork-blue-ink: oklch(0.99 0.01 262);
+  --cowork-violet: oklch(0.56 0.19 298); --cowork-violet-ink: oklch(0.99 0.01 298);
+  --cowork-pink: oklch(0.63 0.19 350);   --cowork-pink-ink: oklch(0.99 0.01 350);
+  --cowork-agent: oklch(0.52 0.03 250);  --cowork-agent-ink: oklch(0.99 0.01 250);
+}
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    --cowork-red: oklch(0.62 0.20 25);     --cowork-red-ink: oklch(0.99 0.01 25);
+    --cowork-orange: oklch(0.68 0.17 52);  --cowork-orange-ink: oklch(0.22 0.06 52);
+    --cowork-amber: oklch(0.76 0.15 78);   --cowork-amber-ink: oklch(0.24 0.06 78);
+    --cowork-lime: oklch(0.74 0.17 128);   --cowork-lime-ink: oklch(0.22 0.07 128);
+    --cowork-green: oklch(0.62 0.16 152);  --cowork-green-ink: oklch(0.99 0.01 152);
+    --cowork-teal: oklch(0.62 0.11 190);   --cowork-teal-ink: oklch(0.99 0.01 190);
+    --cowork-sky: oklch(0.64 0.13 232);    --cowork-sky-ink: oklch(0.99 0.01 232);
+    --cowork-blue: oklch(0.56 0.18 262);   --cowork-blue-ink: oklch(0.99 0.01 262);
+    --cowork-violet: oklch(0.56 0.19 298); --cowork-violet-ink: oklch(0.99 0.01 298);
+    --cowork-pink: oklch(0.63 0.19 350);   --cowork-pink-ink: oklch(0.99 0.01 350);
+    --cowork-agent: oklch(0.52 0.03 250);  --cowork-agent-ink: oklch(0.99 0.01 250);
+  }
+
+/* Set by cursor.js (paintOwnCursor, wireOwnCursor) as tinted SVGs with their hotspots. Only on
+   a mouse or trackpad, and never under forced colours, where the system cursors stay. */
+@media (pointer: fine) and (forced-colors: none) {
+  html[data-own-cursor], html[data-own-cursor] body { cursor: var(--cursor-arrow, auto); }
+  html[data-own-cursor] :is(a[href], button:not(:disabled), [role="button"], [role="menuitem"], [role="tab"], label, summary, select, .nav-item, .btn:not(:disabled)) { cursor: var(--cursor-hand, pointer); }
+  html[data-own-cursor] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"]), textarea, [contenteditable="true"], [contenteditable=""], .cm-content, .ProseMirror) { cursor: var(--cursor-text, text); }
+  html[data-own-cursor][data-dragging], html[data-own-cursor][data-dragging] * { cursor: var(--cursor-grab, grabbing) !important; }
 }
