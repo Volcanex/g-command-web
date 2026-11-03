@@ -237,14 +237,17 @@ button.nav-item { width: 100%; }
        </div>
        <div class="page-actions">...</div>
      </div> */
-.page-head { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; min-width: 0; }
+.page-head { display: flex; align-items: center; gap: var(--sp-1) var(--sp-3); flex-wrap: wrap; min-width: 0; }  /* 4px row gap: twice over the break, 8px to the description */
 .page-head-text { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1 1 240px; }
 /* The one-row head: its badge row and actions share a line and the description drops below. */
 .page-head-text:has(> .row-tight) { display: contents; }
 .page-head-text > .row-tight { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: hidden; min-height: var(--h-control); }
 .page-head-text > .row-tight > * { flex: none; }
 .page-head-text > .row-tight > .badge { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.page-head-text:has(> .row-tight) > .page-sub { order: 2; flex: 1 0 100%; }
+/* A full-width break after the badges and actions, so the description always starts its own
+   line; the description keeps its reading measure. */
+.page-head:has(> .page-head-text > .row-tight ~ .page-sub)::after { content: ""; order: 2; flex: 0 0 100%; height: 0; }
+.page-head-text:has(> .row-tight) > .page-sub { order: 3; flex: 0 1 auto; }
 .page-head .page-title { font-size: 18px; line-height: var(--lh-3); font-weight: 500; display: flex; align-items: center; gap: var(--sp-2); margin: 0; }
 .page-sub { margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
 .page-actions { order: 1; display: flex; align-items: center; gap: var(--sp-2); flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
@@ -262,7 +265,8 @@ button.nav-item { width: 100%; }
   min-height: var(--h-control); margin: var(--sp-4) 0 0;
   font-size: 15px; line-height: var(--lh-2); font-weight: 500; color: var(--text-primary);
 }
-.section-head:first-child { margin-top: 0; }
+/* Only at the top of a card or stack: a head wrapped in its own block keeps its 16px. */
+:is(.card, .stack, .stack-tight, .stack-loose) > .section-head:first-child { margin-top: 0; }
 .section-head > .grow { flex: 1 1 auto; }
 .section-sub { margin: calc(var(--sp-1) - var(--sp-4)) 0 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); max-width: var(--col-text); }
 
