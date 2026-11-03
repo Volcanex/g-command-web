@@ -8,7 +8,7 @@
 //   Amount due        the balance at the invoice period's end (g-wages compute_invoice)
 //   Week totals       hours, earned, paid in and expenses for the week shown
 //   Owed at start/end the balance brought into and carried out of the week shown
-import { html, useState, useEffect, useCallback, PageHead, Badge, Button, Dialog, Field, Menu, Empty, ErrorState, SkeletonRows, toast, toastOk, toastError, mount } from "../../core/app/boot.js";
+import { html, useState, useEffect, useCallback, Badge, Button, Dialog, Field, Menu, Empty, ErrorState, SkeletonRows, toast, toastOk, toastError, mount } from "../../core/app/boot.js";
 import "./app.css";
 
 const API = "/api/wages";
@@ -43,6 +43,14 @@ const fmtDay = (iso, withDow = true) => {
 const pounds = (p) => (p < 0 ? "-" : "") + "£" + (Math.abs(p) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dsum = (day, kind) => day.entries.filter((e) => e.kind === kind).reduce((a, e) => a + e.amount_pence, 0);
 const icon = (n) => html`<i class=${`ph ph-${n}`} aria-hidden="true"></i>`;
+
+/* The page head carries only this page's controls: the top bar already says
+   Wages, and an in-page heading must not repeat it. The h1 stays for screen
+   readers, since the top bar title is not a heading. */
+function Head({ children }) {
+  return html`<div class="page-head wg-head"><h1 class="sr-only">Wages</h1>
+    ${children && html`<div class="page-actions">${children}</div>`}</div>`;
+}
 
 function Figure({ label, value, sub, big }) {
   return html`<div class=${`wg-fig ${big ? "wg-fig-big" : ""}`}>
@@ -360,14 +368,14 @@ function Wages() {
     client && { label: "Print this week", icon: "printer", onClick: () => window.print() },
   ]} />`;
 
-  if (error && !clients) return html`<${PageHead} title="Wages" /><${ErrorState} error=${error} retry=${() => { setError(null); loadClients(); }} />`;
-  if (!clients) return html`<${PageHead} title="Wages" /><${SkeletonRows} rows=${6} />`;
+  if (error && !clients) return html`<${Head} /><${ErrorState} error=${error} retry=${() => { setError(null); loadClients(); }} />`;
+  if (!clients) return html`<${Head} /><${SkeletonRows} rows=${6} />`;
   const client = clients.find((c) => c.slug === slug);
   const enc = encodeURIComponent(slug);
   const t = week && week.totals;
 
   return html`
-    <${PageHead} title="Wages">
+    <${Head}>
       ${clients.length > 0 && html`<span class="select-wrap wg-client"><select class="select wg-ctl" value=${slug} onChange=${(e) => setSlug(e.target.value)} aria-label="Client">
         ${clients.map((c) => html`<option value=${c.slug}>${c.name}</option>`)}</select></span>`}
       ${menu(client, enc)}

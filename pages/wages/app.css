@@ -2,6 +2,7 @@
    then cards on the page gutter. Alias tokens only. g-design has no small
    input, so the controls in a row of small buttons take --h-control-sm. */
 .wg-ctl { height: var(--h-control-sm); }
+.wg-head { justify-content: flex-end; }
 .wg-client { flex: none; width: auto; }
 .wg-client .select { width: auto; min-width: 160px; max-width: 240px; }
 
@@ -101,6 +102,7 @@
   .wg-days { display: block; }
   .wg-opt { display: none; }
   .wg-bal .wg-half-head { display: none; }
+  .wg-head { justify-content: flex-start; }
 }
 @media print {
   .wg-inv, .wg-issued, .wg-weekhead button, .wg-weekacts, .page-actions { display: none !important; }
