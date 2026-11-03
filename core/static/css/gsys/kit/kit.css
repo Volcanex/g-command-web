@@ -154,7 +154,9 @@ button.nav-item { width: 100%; }
   .g-shell > aside > * { flex: none; width: calc(var(--rail-w) - 2 * var(--sp-3)); }
   .g-shell > aside > .side-foot { margin-top: auto; }
   .g-shell[data-rail="collapsed"] > aside { width: var(--rail-mini); }
-  .g-shell[data-rail="collapsed"][data-rail-peek] > aside { width: var(--rail-w); box-shadow: var(--shadow-overlay); }
+  /* Raised while it peeks, so it floats over a second shell in the content too (Command's rail
+     over the embedded Studio's, whose aside comes later at the same z-index). */
+  .g-shell[data-rail="collapsed"][data-rail-peek] > aside { width: var(--rail-w); box-shadow: var(--shadow-overlay); z-index: 40; }
   .g-shell[data-rail-ready] { transition: grid-template-columns var(--spring-smooth-dur) var(--spring-smooth); }
   .g-shell[data-rail-ready] > aside { transition: width var(--spring-smooth-dur) var(--spring-smooth), box-shadow var(--dur-slow) var(--ease-out); }
 
