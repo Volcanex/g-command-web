@@ -2,14 +2,12 @@
   "title": "Wages",
   "slug": "wages",
   "description": "The g-wages ledger: hours, money and invoices per client.",
-  "nav": false,
-  "order": 36,
+  "nav": true,
+  "order": 27,
   "body_class": "wages-page",
-  "nav_section": "g-core",
+  "nav_section": "Work",
   "nav_icon": "currency-gbp",
   "nav_label": "Wages",
   "gsys": true,
-  "tabs": "system",
-  "tab_label": "Wages",
   "tile_note": "Ledger, invoices and reports per client."
 }

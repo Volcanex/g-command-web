@@ -25,5 +25,5 @@ app.js -> /api/wages/<path>       pages/wages/api.py, this site's gate
   (`/api/wages/c/<slug>/invoice` and so on), so they print exactly as before.
 - **Old links.** `wages.gabrielpenman.com` 301s page paths here and proxies
   `/api/` straight to g-wages behind its basic-auth, so scripts keep working.
-- **Rail.** On main it is a `system` tab beside Hours. When the rail moves
-  Hours to a top-level Work entry, move Wages with it.
+- **Rail.** A top-level Work entry beside Hours (order 27 to its 26). If Hours
+  moves, move Wages with it.
