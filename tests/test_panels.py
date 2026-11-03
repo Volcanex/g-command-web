@@ -385,8 +385,16 @@ def test_compute_missing_temperatures_keep_one_meter_per_quota(state):
 def test_compute_countdown_uses_request_time_instead_of_snapshot_age():
     quota = {"id": "claude 5h", "remaining_pct": 40, "resets_at": "2026-10-19T12:00:00Z", "seconds_to_reset": 18000}
     result = build("compute", FixtureContext({SOURCES["compute"]: {"quotas": [quota]}, "/api/compute/state": {}}))
-    assert result["blocks"][1]["sub"] == [
+    meter = next(block for block in result["blocks"] if block.get("label") == "Claude 5 hour")
+    assert meter["sub"] == [
         {"text": "Resets 13:00", "tone": "muted"}, {"text": "in 1h 00m", "tone": "muted"}]
+
+
+def test_compute_leaves_out_a_quota_with_no_reading():
+    quota = {"id": "claude 7d", "remaining_pct": 40, "resets_at": "2026-10-21T00:00:00Z"}
+    result = build("compute", FixtureContext({SOURCES["compute"]: {"quotas": [quota]}, "/api/compute/state": {}}))
+    assert [block.get("label") for block in result["blocks"] if block["type"] == "meter"] == ["Claude week"]
+    assert all(block.get("empty") != "No reading yet" for block in result["blocks"])
 
 
 @pytest.mark.parametrize("key", ["claude 7d", "claude 5h", "codex 7d"])
