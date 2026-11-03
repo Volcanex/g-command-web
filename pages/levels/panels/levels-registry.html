@@ -206,12 +206,18 @@
     const ROW = 28, GH = 22, CH = 64, SKH = 22, PAD = 28;
     const extendsLinks = [];
     m.charters.forEach(c => (c.extends || []).forEach(p => { if (m.colour.has(p)) extendsLinks.push([c.id, p]); }));
-    const gutter = 20 + 12 * Math.max(1, extendsLinks.length);
+    // The extends arcs share a gutter of at most 120px: with many links the lanes pack closer
+    // rather than pushing the charter column into the gates.
+    const lane = Math.min(12, 100 / Math.max(1, extendsLinks.length));
+    const gutter = 20 + lane * Math.max(1, extendsLinks.length);
     const cx = gutter, cw = 232;
     const skW = Math.max(110, ...m.skills.map(s => s.length * MONO + 24));
     const skX = W - skW;
     const gw = Math.max(260, Math.min(340, Math.round(W * 0.28)));
-    const gx = Math.round(cx + cw + (skX - cx - cw - gw) * 0.56);
+    // Never closer than 24px to the charters; when charters, gates and skills cannot sit side
+    // by side without touching, the list layout draws it instead (no text on text).
+    const gx = Math.max(cx + cw + 24, Math.round(cx + cw + (skX - cx - cw - gw) * 0.56));
+    if (gx + gw + 24 > skX) return false;
 
     const svg = document.createElementNS(NS, "svg");
     fig.replaceChildren(svg);
@@ -309,7 +315,7 @@
     extendsLinks.sort((a, b) => Math.abs(cTop.get(a[0]) - cTop.get(a[1])) - Math.abs(cTop.get(b[0]) - cTop.get(b[1])));
     extendsLinks.forEach(([child, parent], i) => {
       const y1 = cTop.get(child) + CH / 2 + 6, y2 = cTop.get(parent) + CH / 2 - 6;
-      const off = 14 + i * 12;
+      const off = 14 + i * lane;
       const g = el(linkG, "g", { class: "lk", "data-key": "e:" + child + ">" + parent });
       el(g, "path", { d: `M${cx} ${y1}C${cx - off} ${y1} ${cx - off} ${y2} ${cx - 5} ${y2}`, class: "ext" });
       el(g, "path", { d: `M${cx} ${y2}L${cx - 6} ${y2 - 4}L${cx - 6} ${y2 + 4}Z`, class: "ext-head" });
@@ -477,9 +483,11 @@
     if (!force && mode === lastMode && (mode === "narrow" || Math.abs(W - lastW) < 2)) return;
     lastMode = mode; lastW = W;
     const m = model(d);
-    summary(m); lint(m); legend(mode === "wide");
+    summary(m); lint(m);
     if (!m.gates.length && !m.charters.length) { fig.innerHTML = '<p class="lv-dim">The registry has no gates or charters yet.</p>'; return; }
-    if (mode === "wide") wide(m, W); else narrow(m);
+    const drewWide = mode === "wide" && wide(m, W) !== false;
+    if (!drewWide) narrow(m);
+    legend(drewWide);
   }
 
   LV.on(d => render(d, true));
