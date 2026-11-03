@@ -438,7 +438,7 @@ def emit_manifest_stubs(shell: str, handled_slugs: set[str]) -> tuple[int, int]:
 
 
 def build_nav_html(configs: list[dict]) -> str:
-    """Build nav drawer sections HTML from page configs that have nav:true.
+    """Build the sidebar nav (kit .nav-list) from page configs with nav:true.
     Groups pages by nav_section, orders sections by the lowest order value
     of any page in that section, orders pages within sections by order."""
     from collections import defaultdict
@@ -454,27 +454,23 @@ def build_nav_html(configs: list[dict]) -> str:
         for sec, pages in sections.items()
     }
 
+    # The kit's rail (g-ui-preact kit.css): one .nav-list, a .nav-head per
+    # section, a .nav-item per page. chrome.js marks the current item.
     parts = []
     for sec in sorted(sections, key=lambda s: section_min_order[s]):
         pages = sorted(sections[sec], key=lambda c: c.get("order", 999))
-        links = []
+        parts.append(f'      <div class="nav-head">{html.escape(str(sec))}</div>')
         for c in pages:
             slug = c.get("slug", "")
             icon = c.get("nav_icon", "circle")
             label = c.get("nav_label") or c.get("title", slug)
             tabs = f' data-tabs="{html.escape(str(c["tabs"]))}"' if c.get("tabs") else ""
-            links.append(
-                f'      <a href="/{slug}"{tabs}>'
-                f'<i class="ph ph-{icon}"></i>'
-                f'<span>{html.escape(str(label))}</span></a>'
+            parts.append(
+                f'      <a class="nav-item" href="/{slug}"{tabs}>'
+                f'<i class="ph ph-{icon}" aria-hidden="true"></i>'
+                f'<span class="ellipsis">{html.escape(str(label))}</span></a>'
             )
-        parts.append(
-            f'    <div class="nav-drawer-section">\n'
-            f'      <h3>{html.escape(str(sec))}</h3>\n'
-            + "\n".join(links)
-            + "\n    </div>"
-        )
-    return "\n\n".join(parts)
+    return '    <nav class="nav-list" aria-label="Pages">\n' + "\n".join(parts) + "\n    </nav>"
 
 
 def build_subnavs(configs: list[dict]) -> dict[str, str]:

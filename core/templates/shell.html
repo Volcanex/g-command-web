@@ -24,8 +24,10 @@
   <style>.site-main{opacity:0;animation:g-page-fallback .2s ease-out 1.5s forwards}@keyframes g-page-fallback{to{opacity:1}}</style>
   <noscript><style>.site-main{opacity:1;animation:none}</style></noscript>
   <link rel="preload" href="/css/vendor/phosphor/Phosphor.woff2" as="font" type="font/woff2" crossorigin>
-  <!-- g-design (vendored) + g-command-web chrome -->
+  <!-- g-design (vendored): g.css, then the app kit (Studio's shell look,
+       g-ui-preact kit.css), then g-command-web's own chrome -->
   <link rel="stylesheet" href="/css/gsys/g.css">
+  <link rel="stylesheet" href="/css/gsys/kit/kit.css">
   <link rel="stylesheet" href="/css/gsys/chrome.css">
   <link rel="stylesheet" href="/css/vendor/phosphor/style.css">
   <script>if(/ GCommandApp\//.test(navigator.userAgent))document.documentElement.setAttribute('data-app','');</script>
@@ -34,43 +36,46 @@
 </head>
 <body class="g-shell {{ body_class }}">
 
-  <aside aria-label="Main navigation">
-    <a href="/" class="brand" aria-label="Command home">
-      <span class="mark" aria-hidden="true"></span>
+  <aside aria-label="Main">
+    <a href="/" class="brand">
+      <span class="g-mark" aria-hidden="true"></span>
+      <b>Command</b>
     </a>
 
-    {{! nav_pages }}
+{{! nav_pages }}
 
     <div class="side-foot">
-      <a class="btn btn-tertiary btn-sm btn-icon" href="/setup" data-tabs="setup" data-tip="Setup, install and passport" aria-label="Setup"><i class="ph ph-wrench"></i></a>
-      <a class="btn btn-tertiary btn-sm btn-icon" href="/logout" data-tip="Log out" aria-label="Log out"><i class="ph ph-sign-out"></i></a>
-      <span class="spacer"></span>
-      <button class="btn btn-tertiary btn-sm" id="t-density" data-tip="Comfortable and compact">Density</button>
-      <button class="btn btn-tertiary btn-sm" id="t-theme" data-tip="Dark and light">Theme</button>
+      <a class="btn btn-tertiary btn-sm btn-icon" href="/setup" data-tabs="setup" data-tip="Setup, install and passport" aria-label="Setup"><i class="ph ph-wrench" aria-hidden="true"></i></a>
+      <a class="btn btn-tertiary btn-sm btn-icon" href="/logout" data-tip="Log out" aria-label="Log out"><i class="ph ph-sign-out" aria-hidden="true"></i></a>
+      <span class="grow"></span>
+      <button class="btn btn-tertiary btn-sm btn-icon" id="t-density" data-tip="Comfortable and compact" aria-label="Density"><i class="ph ph-rows" aria-hidden="true"></i></button>
+      <button class="btn btn-tertiary btn-sm btn-icon" id="t-theme" data-tip="Dark and light" aria-label="Theme"><i class="ph ph-circle-half" aria-hidden="true"></i></button>
     </div>
   </aside>
 
-  <div class="g-scrim"></div>
-
-  <div class="g-main">
-    <header class="g-top">
-      <button class="btn btn-tertiary btn-sm btn-icon g-nav-toggle" aria-label="Menu" aria-expanded="false" data-icon="list" onclick="toggleNav()"></button>
-      <span class="g-top-title">{{ title }}</span>
+  <main class="g-main">
+    <header class="topbar">
+      <button class="btn btn-tertiary btn-sm btn-icon g-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" onclick="toggleNav()"><i class="ph ph-list" aria-hidden="true"></i></button>
+      <span class="topbar-title">{{ title }}</span>
       {{! subnav }}
-      <span class="spacer"></span>
-      <a href="{{ owner_site_url }}" class="g-top-link" rel="noopener"{{ owner_site_hidden }}>{{ owner_site_label }}</a>
+      <span class="grow"></span>
+      <a href="{{ owner_site_url }}" class="topbar-link hide-sm" rel="noopener"{{ owner_site_hidden }}>{{ owner_site_label }}</a>
     </header>
 
-    <main class="site-main">
-      {{! content }}
-    </main>
+    <div class="content" id="main-content">
+      <div class="content-page site-main">
+        {{! content }}
+      </div>
+    </div>
 
     <footer class="g-status">
       <span>{{ site_name }}</span>
       <span class="host">{{ public_host }}</span>
       <span data-clock></span>
     </footer>
-  </div>
+  </main>
+
+  <div class="g-scrim"></div>
 
 </body>
 </html>

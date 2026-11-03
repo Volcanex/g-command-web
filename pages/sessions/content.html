@@ -47,15 +47,15 @@
 </div>
 
 <style>
-  /* The shell's chrome is .g-top / .g-status inside .g-main. Both are hidden
-     here and .site-main gives up its padding, scroll and max-width: this page
+  /* The shell's chrome is .topbar / .g-status inside .g-main. Both are hidden
+     here and .content / .site-main give up their padding, scroll and width: this page
      is a full-bleed app, and anything left stacked on it pushes the terminal
      off the bottom of the screen. Height comes from --vvh (the *visual*
      viewport), the only measure that shrinks when the iOS keyboard opens.
      --vvtop is applied as `top` rather than as a transform, because a
      transformed body becomes the containing block for every fixed overlay and
      the menu, toasts and tooltips would then land offset by that much. */
-  body.sessions-page .g-top,
+  body.sessions-page .topbar,
   body.sessions-page .g-status { display: none; }
   body.sessions-page {
     position: fixed;
@@ -65,10 +65,10 @@
     overscroll-behavior: none;
   }
   body.sessions-page .g-main { min-height: 0; overflow: hidden; }
+  body.sessions-page .content { overflow: hidden; }
   body.sessions-page .site-main {
-    padding: 0; height: 100%; min-height: 0; overflow: hidden;
+    padding: 0; gap: 0; max-width: none; height: 100%; min-height: 0; overflow: hidden;
   }
-  body.sessions-page .site-main > * { max-width: none; }
 
   .term-app { display: flex; flex-direction: column; height: 100%; }
 

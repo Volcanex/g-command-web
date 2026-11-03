@@ -1,74 +1,36 @@
-/* gcommand app chrome on g-system: sidebar, top bar, status line.
-   Layout comes from .g-shell in g.css; this file only styles gcommand's
-   own furniture (brand, data-driven nav sections, footer). */
+/* g-command-web chrome on top of the app kit (gsys/kit/kit.css, Studio's
+   shell look). The kit draws the sidebar, brand, nav items, side foot, top
+   bar and content page; this file holds only what is Command's own: the
+   glyph font in nav items, the side-foot toggles, the tab strip, the owner
+   link, the status line, the page reveal and the per-body overrides. */
 
-body.g-shell > aside { overflow-y: auto; }
-
-/* brand */
-.brand { display: flex; align-items: center; gap: 8px; padding: 6px 8px 12px; text-decoration: none; color: var(--text-primary); flex: none; }
-.brand .mark {
-  width: 22px; height: 22px; border-radius: var(--radius-sm);
-  background: var(--accent-fill); color: var(--accent-fg);
-  display: grid; place-items: center;
-  font-size: 12px; font-weight: 500;
-}
-/* the g mark, vendored from g-design (brand/mark.svg), drawn in the mark's text colour */
-.brand .mark::before {
-  content: ""; width: 14px; height: 14px; background: currentColor;
+/* The g mark. Studio defines .g-mark in its own CSS rather than the kit, so
+   Command draws it from the vendored brand/mark.svg until the kit carries it. */
+.g-mark {
+  display: inline-block; flex: none; width: 24px; height: 24px;
+  background: currentColor;
+  -webkit-mask: url(brand/mark.svg) center / contain no-repeat;
   mask: url(brand/mark.svg) center / contain no-repeat;
 }
-.brand b { font-size: 13px; font-weight: 500; }
-.brand span { font-size: 11px; color: var(--text-placeholder); }
 
-/* nav: compile.py emits .nav-drawer-section > h3 + a; the shell appends
-   hand-written sections in the same shape */
-.nav-drawer-section { display: flex; flex-direction: column; gap: 1px; }
-.nav-drawer-section h3 {
-  margin: 0; padding: 14px 8px 5px;
-  font-size: 11px; font-weight: 500; color: var(--text-placeholder);
-}
-.nav-drawer-section a {
-  display: flex; align-items: center; gap: 9px;
-  height: 30px; padding: 0 8px;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary); text-decoration: none;
-  font-size: var(--font-size-ui); font-weight: 450;
-  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-}
-.nav-drawer-section a i { font-size: 15px; width: 15px; text-align: center; }
-.nav-drawer-section a:hover { background: var(--fill-hover); color: var(--text-primary); }
-.nav-drawer-section a[aria-current="page"] { background: var(--fill-active); color: var(--text-primary); font-weight: 500; }
+/* nav items carry a Phosphor glyph (<i class="ph">), not the kit's svg */
+.nav-item .ph { font-size: 16px; width: 16px; flex: none; text-align: center; }
 
-.side-foot {
-  margin-top: auto; flex: none;
-  display: flex; align-items: center; gap: 4px;
-  padding: 10px 8px 2px;
-}
-.side-foot .spacer { flex: 1; }
+/* side foot: setup and log out on the left, density and theme on the right */
+.side-foot { gap: var(--sp-1); }
 .side-foot .btn { flex: none; }
-.side-foot .btn:not(.btn-icon) { padding: 0 8px; }
-.side-foot .btn-icon { width: auto; min-width: var(--h-control-sm); padding: 0 8px; }
-.side-foot a.btn { text-decoration: none; color: var(--text-secondary); }
-.side-foot a.btn .ph { font-size: 15px; }
+.side-foot a.btn { color: var(--text-secondary); }
+.side-foot .btn .ph { font-size: 16px; }
 .side-foot a[aria-current="page"] { background: var(--fill-active); color: var(--text-primary); }
 
-/* main column */
-body.g-shell > .g-main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-.g-top {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px var(--sp-5);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-1);
-  flex: none;
-}
-.g-top-title { font-size: 13px; font-weight: 500; }
-.g-top .spacer { flex: 1; }
+/* top bar: the title shows when the page has no tab strip */
+.g-nav-toggle .ph { font-size: 16px; }
 
 /* tab strip for pages that share one nav entry (compile.py build_subnavs):
    it replaces the title, sits on the bar's bottom rule and scrolls sideways
    when the bar is narrower than the tabs */
-.g-top:has(.g-subnav) { padding-block: 0; min-height: var(--h-4); }
-.g-top:has(.g-subnav) .g-top-title { display: none; }
+.topbar:has(.g-subnav) { padding-block: 0; }
+.topbar:has(.g-subnav) .topbar-title { display: none; }
 .g-subnav {
   display: flex; gap: 2px; min-width: 0; align-self: stretch;
   margin-left: calc(-1 * var(--sp-3));
@@ -84,21 +46,19 @@ body.g-shell > .g-main { display: flex; flex-direction: column; overflow: hidden
 .g-subnav .tab:hover { background: none; }
 .g-subnav .tab[aria-current="page"] { color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--text-primary); }
 .g-subnav .tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
-.g-top-link { font-size: 12px; color: var(--text-secondary); text-decoration: none; }
-.g-top-link:hover { color: var(--text-primary); }
-
-.site-main { flex: 1; overflow-y: auto; padding: var(--sp-5); }
-.site-main > * { max-width: 1080px; }
+.topbar-link { font-size: 12px; line-height: var(--lh-1); color: var(--text-secondary); text-decoration: none; }
+.topbar-link:hover { color: var(--text-primary); }
 
 /* chrome.js adds g-ready once the document is fully parsed (every body
    style block applied), then the g.css .enter stagger sweeps content in */
 .site-main.g-ready { opacity: 1; animation: none; }
 
+/* status line */
 .g-status {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px var(--sp-5);
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-1) var(--gutter);
   border-top: 1px solid var(--border-subtle);
-  font-size: 11px; color: var(--text-placeholder);
+  font-size: 11px; line-height: var(--lh-1); color: var(--text-placeholder);
   font-variant-numeric: tabular-nums;
   flex: none;
 }
@@ -110,18 +70,16 @@ body.g-shell > .g-main { display: flex; flex-direction: column; overflow: hidden
 
 /* login: no chrome, just the card */
 body.login-page { display: grid; grid-template-columns: 1fr; place-items: center; }
-body.login-page > aside, body.login-page .g-top, body.login-page .g-status, body.login-page .g-scrim { display: none; }
-body.login-page .site-main { flex: none; overflow: visible; }
+body.login-page > aside, body.login-page .topbar, body.login-page .g-status, body.login-page .g-scrim { display: none; }
+body.login-page .content { flex: none; overflow: visible; }
 
 /* inside the G-Command apps: the app draws the navigation and the title,
    so a web page shows only its content */
 html[data-app] body.g-shell { grid-template-columns: minmax(0, 1fr); }
-html[data-app] body.g-shell > aside, html[data-app] .g-top, html[data-app] .g-status, html[data-app] .g-scrim { display: none; }
+html[data-app] body.g-shell > aside, html[data-app] .topbar, html[data-app] .g-status, html[data-app] .g-scrim { display: none; }
 
-/* full-dash: full-bleed */
-body.full-dash-page .site-main { padding: 0; }
-body.full-dash-page .site-main > * { max-width: none; }
+/* full-dash, home and ops: full-bleed */
+body.full-dash-page .content-page { max-width: none; padding: 0; gap: 0; }
 @media (max-width: 720px) {
-  .g-top:has(.g-subnav) .g-top-link { display: none; }
   .g-subnav { margin-left: 0; }
 }

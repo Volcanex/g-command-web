@@ -11,12 +11,12 @@
   window.toggleNav = (force) => {
     const open = force !== undefined ? force : !document.body.hasAttribute("data-nav-open");
     document.body.toggleAttribute("data-nav-open", open);
-    document.querySelector(".g-nav-toggle")?.setAttribute("aria-expanded", open);
+    const t = document.querySelector(".g-nav-toggle"); t?.setAttribute("aria-expanded", open); t?.setAttribute("aria-label", open ? "Close menu" : "Open menu");
   };
   document.querySelector(".g-scrim")?.addEventListener("click", () => toggleNav(false));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") toggleNav(false); });
   /* close the sheet when a nav link is chosen */
-  document.querySelectorAll(".nav-drawer-section a").forEach((a) =>
+  document.querySelectorAll(".nav-item").forEach((a) =>
     a.addEventListener("click", () => toggleNav(false)));
 
   document.getElementById("t-theme")?.addEventListener("click", () => {
@@ -28,7 +28,7 @@
 
   /* a page reached through a tab strip lights its group's entry */
   const here = location.pathname.replace(/\/$/, "") || "/";
-  const links = [...document.querySelectorAll(".nav-drawer-section a, .side-foot a")];
+  const links = [...document.querySelectorAll(".nav-item, .side-foot a")];
   const path = (a) => a.getAttribute("href").split("?")[0].replace(/\/$/, "") || "/";
   let current = links.filter((a) => path(a) === here);
   const group = document.querySelector(".g-subnav")?.dataset.tabs;

@@ -23,7 +23,7 @@ class Navigation(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == "h3":
+        if tag == "div" and "nav-head" in (attrs.get("class") or "").split():
             self.capture = "section"
             self.text = ""
         if tag == "a":
@@ -38,7 +38,7 @@ class Navigation(HTMLParser):
             self.text += data
 
     def handle_endtag(self, tag):
-        if tag == "h3":
+        if tag == "div" and self.capture == "section":
             self.sections.append({"title": self.text, "entries": []})
             self.capture = None
         if tag == "a":
