@@ -2,9 +2,10 @@
 // The rail (kit.css .g-shell[data-rail], .g-rail-toggle, .nav-group), plain DOM with no imports,
 // so a server-rendered page loads it as a module and the Preact shell uses it too.
 //
-// From 721px up the rail is collapsed to icons by default. Resting the pointer on it for a
+// From 721px up the rail is collapsed to icons by default; a toggle with data-rail-default="open"
+// (Brand's railOpen) starts it pinned open instead. Resting the pointer on it for a
 // moment, or moving keyboard focus into it, opens it as an overlay above the content
-// (data-rail-peek), so nothing beside it moves; it closes a moment after the pointer leaves,
+// (data-rail-peek) and the content moves over to make room, so nothing is hidden under it; it closes a moment after the pointer leaves,
 // when focus leaves, or on Escape. The toggle beside the brand pins it open (the content then
 // makes room) and, pinned, collapses it again: "Keep open" and "Collapse". Pinned is remembered
 // per viewer under the toggle's key in localStorage, which can be missing or throw (private
@@ -16,21 +17,25 @@
 
 export const RAIL_KEY = "g-rail";
 const PINNED = "pinned";
+const COLLAPSED = "collapsed";
 const OPEN_DELAY = 150;   // intent: a pointer passing over the rail on its way elsewhere does nothing
 const CLOSE_DELAY = 300;  // a pointer that slips off the edge for a moment keeps it open
 const SETTLE = 500;       // the close transition (kit.css, --spring-smooth-dur, perceived 300ms)
 const WIDE = "(min-width: 721px)";
 
-export function railPinned(key = RAIL_KEY) {
-  try { return localStorage.getItem(key) === PINNED; } catch (e) { return false; }
+/* open: the rail's state before the viewer has chosen one. */
+export function railPinned(key = RAIL_KEY, open = false) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === PINNED || (v !== COLLAPSED && open);
+  } catch (e) { return open; }
 }
 /* Kept for callers of the open-by-default rail: collapsed now means "not pinned". */
 export function railCollapsed(key = RAIL_KEY) { return !railPinned(key); }
 
 function remember(key, pinned) {
   try {
-    if (pinned) localStorage.setItem(key, PINNED);
-    else localStorage.removeItem(key);
+    localStorage.setItem(key, pinned ? PINNED : COLLAPSED);
   } catch (e) { /* not remembered; the rail still works for this page */ }
 }
 
@@ -153,12 +158,12 @@ export function wireGroups(aside, key = RAIL_KEY) {
 
 /* Wire one toggle button: its shell takes the remembered state, hover and focus peek, and a
    click pins or unpins. */
-export function wireRailToggle(button, key = button.dataset.railKey || RAIL_KEY) {
+export function wireRailToggle(button, key = button.dataset.railKey || RAIL_KEY, open = button.dataset.railDefault === "open") {
   const shell = button.closest(".g-shell");
   if (!shell || button.dataset.railWired !== undefined) return;
   button.dataset.railWired = "";
   if (!button.innerHTML.trim()) button.innerHTML = TOGGLE_ICON;
-  applyRail(shell, !railPinned(key));
+  applyRail(shell, !railPinned(key, open));
   wirePeek(shell);
   button.addEventListener("click", () => {
     const pin = shell.getAttribute("data-rail") === "collapsed";

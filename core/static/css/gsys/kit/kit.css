@@ -94,8 +94,8 @@ button.nav-item { width: 100%; }
 }
 .nav-group[data-open] > .nav-group-row > .nav-twist::before { rotate: 45deg; margin-top: -4px; }
 /* The guide line sits under the parent's icon (the rail's 12px inset, the item's 8px, half the
-   16px icon, less the line), and a child's icon starts 4px past it: the same place whether the
-   rail is open or collapsed to icons, so peeking never moves an icon. */
+   16px icon, less the line), and a child's icon starts 4px past it. Collapsed, the children
+   step back into the parent's column (the rail rules below). */
 .nav-children {
   display: none; flex-direction: column; gap: 2px;
   margin-left: 15px; padding-left: 0;
@@ -117,8 +117,7 @@ button.nav-item { width: 100%; }
 .side-foot .who span:last-child { color: var(--text-placeholder); font-size: 11px; }
 
 /* The rail (rail.js), from 721px up. Collapsed to icons by default; hovering it for a moment or
-   moving focus into it opens it as an overlay above the content (data-rail-peek), so the
-   content never reflows; the toggle beside the brand pins it open (data-rail="pinned") and the
+   moving focus into it opens it (data-rail-peek) and the content moves over, never hidden under it; the toggle beside the brand pins it open (data-rail="pinned") and the
    content then makes room. Everything inside keeps its open-width layout in every state and the
    rail only clips it, so opening reveals labels where they already are instead of moving
    anything. Width and the content's shift ease on --spring-smooth (perceived 300ms); labels
@@ -154,9 +153,8 @@ button.nav-item { width: 100%; }
   .g-shell > aside > * { flex: none; width: calc(var(--rail-w) - 2 * var(--sp-3)); }
   .g-shell > aside > .side-foot { margin-top: auto; }
   .g-shell[data-rail="collapsed"] > aside { width: var(--rail-mini); }
-  /* Raised while it peeks, so it floats over a second shell in the content too (Command's rail
-     over the embedded Studio's, whose aside comes later at the same z-index). */
-  .g-shell[data-rail="collapsed"][data-rail-peek] > aside { width: var(--rail-w); box-shadow: var(--shadow-overlay); z-index: 40; }
+  .g-shell[data-rail="collapsed"][data-rail-peek] { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+  .g-shell[data-rail="collapsed"][data-rail-peek] > aside { width: var(--rail-w); }
   .g-shell[data-rail-ready] { transition: grid-template-columns var(--spring-smooth-dur) var(--spring-smooth); }
   .g-shell[data-rail-ready] > aside { transition: width var(--spring-smooth-dur) var(--spring-smooth), box-shadow var(--dur-slow) var(--ease-out); }
 
@@ -180,7 +178,18 @@ button.nav-item { width: 100%; }
   /* Collapsed and settled, an item's hover and current fill hugs its icon. While the rail
      closes (data-rail-settling) items keep their width, so labels fade instead of squeezing. */
   .g-shell[data-rail="collapsed"]:not([data-rail-peek], [data-rail-settling]) > aside .nav-item { width: 32px; }
-  .g-shell[data-rail="collapsed"]:not([data-rail-peek], [data-rail-settling]) > aside .nav-children > .nav-item { width: 24px; }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek], [data-rail-settling]) > aside .nav-children > .nav-item { width: 32px; }
+  /* Collapsed, nesting flattens: the guide line fades, children step out under their parent and
+     take its height, so the rail is one straight column of icons. Peeking brings the nesting back. */
+  .g-shell[data-rail-ready] > aside .nav-children {
+    transition: margin-left var(--spring-smooth-dur) var(--spring-smooth), border-color var(--spring-smooth-dur) var(--spring-smooth);
+  }
+  .g-shell[data-rail-ready] > aside .nav-item.nav-child {
+    transition: height var(--spring-smooth-dur) var(--spring-smooth), padding var(--spring-smooth-dur) var(--spring-smooth),
+      background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek]) > aside .nav-children { margin-left: 0; border-left-color: transparent; }
+  .g-shell[data-rail="collapsed"]:not([data-rail-peek]) > aside .nav-item.nav-child { height: var(--h-3); padding-left: var(--sp-2); }
 }
 @media (min-width: 721px) and (prefers-reduced-motion: reduce) {
   /* No sliding width: the rail changes at once and its labels crossfade. */

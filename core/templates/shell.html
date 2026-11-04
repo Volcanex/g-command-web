@@ -39,10 +39,10 @@
        embedded Studio at /studio. Only the cursor: no coworking. -->
   <script type="module">import { wireOwnCursor } from "/css/gsys/kit/cursor.js"; wireOwnCursor();</script>
 </head>
-<body class="g-shell {{ body_class }}" data-rail="collapsed" data-nav-current="{{ nav_current }}">
-  <!-- The rail is collapsed to icons by default (kit rail.js); a rail the viewer pinned open
-       is set before first paint, same key, so it never flashes collapsed. -->
-  <script>try{if(localStorage.getItem('g-rail-command')==='pinned')document.body.setAttribute('data-rail','pinned');}catch(e){}</script>
+<body class="g-shell {{ body_class }}" data-rail="pinned" data-nav-current="{{ nav_current }}">
+  <!-- The rail starts open (kit rail.js, data-rail-default); a rail the viewer collapsed is
+       set before first paint, same key, so it never flashes open. -->
+  <script>try{if(localStorage.getItem('g-rail-command')==='collapsed')document.body.setAttribute('data-rail','collapsed');}catch(e){}</script>
 
   <aside aria-label="Main">
     <div class="brand-row">
@@ -50,7 +50,7 @@
         <span class="g-mark" aria-hidden="true"></span>
         <b>Command</b>
       </a>
-      <button class="g-rail-toggle" type="button" data-rail-key="g-rail-command" aria-label="Keep open"></button>
+      <button class="g-rail-toggle" type="button" data-rail-key="g-rail-command" data-rail-default="open" aria-label="Collapse"></button>
     </div>
 
 {{! nav_pages }}

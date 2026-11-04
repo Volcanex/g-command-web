@@ -87,21 +87,22 @@ export function NavGroup({ id, icon, label, current, railKey = RAIL_KEY, childre
 
 /* The brand, with the rail's pin toggle beside it (rail.js: "Keep open", then "Collapse").
    railKey names where this rail's state is remembered, so two apps on one page (Studio inside
-   Command) keep their own; collapse=false leaves the toggle out. */
-export function Brand({ href, name, collapse = true, railKey = RAIL_KEY }) {
+   Command) keep their own; railOpen starts it pinned open until the viewer collapses it;
+   collapse=false leaves the toggle out. */
+export function Brand({ href, name, collapse = true, railKey = RAIL_KEY, railOpen = false }) {
   return html`<div class="brand-row">
     <a class="brand" href=${href}>
       <span class="g-mark" aria-hidden="true"></span>
       <b>${name}</b>
     </a>
-    ${collapse && html`<${RailToggle} railKey=${railKey} />`}
+    ${collapse && html`<${RailToggle} railKey=${railKey} railOpen=${railOpen} />`}
   </div>`;
 }
 
-export function RailToggle({ railKey = RAIL_KEY }) {
+export function RailToggle({ railKey = RAIL_KEY, railOpen = false }) {
   const ref = useRef(null);
-  useEffect(() => { if (ref.current) wireRailToggle(ref.current, railKey); }, []);
-  const pinned = railPinned(railKey);
+  useEffect(() => { if (ref.current) wireRailToggle(ref.current, railKey, railOpen); }, []);
+  const pinned = railPinned(railKey, railOpen);
   return html`<button ref=${ref} class="g-rail-toggle" type="button" aria-label=${pinned ? "Collapse" : "Keep open"}
     aria-pressed=${pinned ? "true" : "false"}></button>`;
 }
@@ -124,10 +125,10 @@ export function UserFoot({ name, email, initials, items, menuLabel = "Account", 
    at the top bar's end. topbar=false drops the top bar (an app that draws its own). The bar is
    .app-topbar, plus .has-actions when it carries actions, so an app can drop a bar that is only
    the menu button wherever the rail sits beside the content. */
-export function AppShell({ brand, nav, foot, title, actions, topbar = true, closeKey, railKey = RAIL_KEY, children }) {
+export function AppShell({ brand, nav, foot, title, actions, topbar = true, closeKey, railKey = RAIL_KEY, railOpen = false, children }) {
   const [open, setOpen] = useNavSheet(closeKey);
   // The rail's first state, so a pinned rail never flashes collapsed; rail.js owns it after.
-  const [rail] = useState(() => (railPinned(railKey) ? "pinned" : "collapsed"));
+  const [rail] = useState(() => (railPinned(railKey, railOpen) ? "pinned" : "collapsed"));
   return html`<div class="g-shell" data-rail=${rail} data-nav-open=${open ? "" : undefined}>
     <aside aria-label="Main">
       ${brand}
