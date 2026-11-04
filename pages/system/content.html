@@ -34,6 +34,8 @@
   .panel { padding: var(--pad-card); }
   .panel-head { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0 var(--sp-1); }
   .panel-head .spacer { flex: 1; }
+  .svc-tools { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) 0 var(--sp-3); }
+  .svc-q { width: 100%; max-width: 320px; }
 
   /* hosts */
   .sys-hosts {
@@ -163,6 +165,10 @@
       <span class="spacer"></span>
       <span class="sec-note" id="svc-summary">Loading…</span>
     </div>
+    <div class="svc-tools">
+      <input class="input svc-q" type="search" id="svc-q" placeholder="Filter service, host or check" aria-label="Filter services">
+      <span class="sec-note" id="svc-shown"></span>
+    </div>
     <div class="table-wrap">
       <table class="table">
         <thead>
@@ -173,11 +179,30 @@
     </div>`;
   const svcSummary = svcCard.querySelector('#svc-summary');
   const svcBody = svcCard.querySelector('#svc-body');
+  const svcQ = svcCard.querySelector('#svc-q');
+  const svcShown = svcCard.querySelector('#svc-shown');
+  // Problems first: down, then warn, then unknown, then up; manifest order within each.
+  const RANK = { down: 0, warn: 1, unknown: 2, up: 3 };
+  function orderAndFilter() {
+    const rows = [...svcBody.querySelectorAll('tr[data-svc-id]')];
+    rows.sort((a, b) => (RANK[a.dataset.state] ?? 2) - (RANK[b.dataset.state] ?? 2) || a.dataset.i - b.dataset.i);
+    const q = svcQ.value.trim().toLowerCase();
+    let shown = 0;
+    for (const r of rows) {
+      const hit = !q || r.textContent.toLowerCase().includes(q);
+      r.hidden = !hit;
+      shown += hit;
+      svcBody.appendChild(r);
+    }
+    svcShown.textContent = q ? `${shown} of ${rows.length} shown` : '';
+  }
+  svcQ.addEventListener('input', orderAndFilter);
 
   for (const [host, svcs] of Object.entries(byHost)) {
     for (const s of svcs) {
       const row = document.createElement('tr');
       row.dataset.svcId = s.id;
+      row.dataset.i = svcBody.children.length;
       row.innerHTML = `
         <td class="id">${s.id}</td>
         <td class="dim">${host}</td>
@@ -294,7 +319,8 @@
       svcSummary.textContent = 'Status unavailable';
       depSummary.textContent = 'Status unavailable';
       g.status(overall, { kind: 'warn', label: 'Status unavailable' });
-      checked.textContent = `Last attempt ${new Date().toLocaleTimeString()}`;
+      orderAndFilter();
+      checked.textContent = `Last attempt ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}`;
       footer.textContent = 'The brain status index did not answer. Retrying every minute.';
       if (manual) g.toast({
         title: 'Status unavailable',
@@ -312,6 +338,7 @@
       const state = (s && s.state) || 'unknown';
       const b = badgeFor(state);
       const detail = row.querySelector('.detail');
+      row.dataset.state = state;
       g.status(row.querySelector('.badge'), b);
       detail.textContent = tidy((s && s.detail) || '');
       if (s && s.detail) detail.title = tidy(s.detail);
@@ -337,12 +364,13 @@
 
     const s = snap.summary;
     const age = Math.round((Date.now() - new Date(snap.checked_at)) / 60000);
-    svcSummary.textContent = `${s.up} up, ${s.down} down, ${s.unknown} unknown`;
+    svcSummary.textContent = `${s.up} up` + (s.unknown ? `, ${s.unknown} unknown` : '');
+    orderAndFilter();
     checked.textContent = `Checked ${age}m ago`;
     g.status(overall, s.down
       ? { kind: 'danger', label: `${s.down} of ${s.total} down` }
       : { kind: 'ok', label: 'All services up' });
-    footer.textContent = `Status from the brain L5 index, refreshed ${new Date().toLocaleTimeString()}.`;
+    footer.textContent = `Status from the brain L5 index, refreshed ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}.`;
     if (manual) g.toast({ title: 'Status refreshed', kind: 'ok' });
   }
 

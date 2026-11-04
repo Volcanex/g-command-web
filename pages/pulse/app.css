@@ -1,0 +1,8 @@
+.pulse-block { display: flex; flex-direction: column; gap: var(--sp-3); }
+.pulse-prose { max-width: var(--col-text); overflow-wrap: anywhere; }
+.pulse-prose > :first-child { margin-top: 0; }
+.pulse-prose > :last-child { margin-bottom: 0; }
+.pulse-block .dim { margin: 0; color: var(--text-placeholder); }
+.brief-date { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.pulse-block .mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.api-note { padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-secondary); font-size: var(--font-size-ui); }

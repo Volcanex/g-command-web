@@ -64,7 +64,8 @@ function blocks(text) {
   return out;
 }
 
-export function Markdown({ text }) {
+// Pulse draws its page and brief with this too; `cls` names the page's own measure.
+export function Markdown({ text, cls = "chat-prose" }) {
   if (!text) return null;
-  return html`<div class="prose chat-prose">${blocks(text)}</div>`;
+  return html`<div class=${"prose " + cls}>${blocks(text)}</div>`;
 }

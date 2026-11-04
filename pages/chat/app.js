@@ -26,7 +26,7 @@ const MARKS = /\s*\[(photo|file: [^\]]*)\]/g;
 const toolName = (t) => String(t).replace(/_/g, " ");
 const timeOf = (ts) => {
   const d = ts ? new Date(ts) : null;
-  return d && !isNaN(d) ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+  return d && !isNaN(d) ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : "";
 };
 
 /* Server turns as this page draws them. Ids come from time and role, as the apps do. */
