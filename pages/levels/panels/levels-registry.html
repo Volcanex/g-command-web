@@ -1,6 +1,9 @@
 <section class="lv-section" id="lv-registry">
   <div class="rg-head">
-    <h2>Registry</h2>
+    <div class="rg-title">
+      <h2>Registry</h2>
+      <button type="button" class="btn btn-tertiary btn-sm" data-rg-full aria-pressed="false"><i class="ph ph-corners-out" aria-hidden="true"></i><span>Full screen</span></button>
+    </div>
     <p class="rg-sum lv-dim" data-rg-sum></p>
   </div>
   <div class="rg-fig" data-rg-fig><p class="lv-dim" data-lv-loading>Loading</p></div>
@@ -10,6 +13,10 @@
 
 <style>
   #lv-registry .rg-head { display: grid; gap: var(--sp-1); margin-bottom: var(--sp-3); }
+  #lv-registry .rg-title { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+  #lv-registry .rg-title h2 { margin: 0; }
+  #lv-registry:fullscreen { background: var(--bg); padding: var(--sp-5); overflow: auto; }
+  #lv-registry.rg-overlay { position: fixed; inset: 0; z-index: 100; background: var(--bg); padding: var(--sp-5); overflow: auto; }
   #lv-registry .rg-sum { margin: 0; max-width: var(--col-text); }
   #lv-registry .rg-fig { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-1); padding: var(--sp-3); min-width: 0; }
   #lv-registry .rg-fig > svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -94,6 +101,24 @@
 (function () {
   const root = document.getElementById("lv-registry");
   const fig = root.querySelector("[data-rg-fig]");
+  // Full screen: the whole section (figure, key and lint), or a fixed overlay where the browser
+  // has no Fullscreen API (iOS Safari). Escape leaves either.
+  const full = root.querySelector("[data-rg-full]");
+  const isFull = () => document.fullscreenElement === root || root.classList.contains("rg-overlay");
+  const showFull = () => {
+    const on = isFull();
+    full.setAttribute("aria-pressed", on ? "true" : "false");
+    full.querySelector("i").className = `ph ${on ? "ph-corners-in" : "ph-corners-out"}`;
+    full.querySelector("span").textContent = on ? "Leave full screen" : "Full screen";
+  };
+  full.addEventListener("click", () => {
+    if (document.fullscreenElement === root) return document.exitFullscreen();
+    if (root.classList.contains("rg-overlay")) { root.classList.remove("rg-overlay"); return showFull(); }
+    if (root.requestFullscreen && document.fullscreenEnabled) root.requestFullscreen().catch(() => { root.classList.add("rg-overlay"); showFull(); });
+    else { root.classList.add("rg-overlay"); showFull(); }
+  });
+  document.addEventListener("fullscreenchange", showFull);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && root.classList.contains("rg-overlay")) { root.classList.remove("rg-overlay"); showFull(); } });
   const NS = "http://www.w3.org/2000/svg";
   const SENSOR = { command: "cmd", review: "rev", hook: "hook" };
   const TRIGGER = { "every-run": "every run", milestone: "at milestones", "on-demand": "on demand" };
