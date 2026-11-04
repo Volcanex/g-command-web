@@ -79,7 +79,9 @@ function model(data, expand) {
   const ownerHost = new Map();
   for (const e of data.edges) if (e.kind === "has_service" && svcHost.get(e.to) && !ownerHost.has(e.from)) ownerHost.set(e.from, svcHost.get(e.to));
   const rep = (id) => (!expand && owner.has(id) ? owner.get(id) : id);
-  const hostOf = (n) => n.host || svcHost.get(n.id) || ownerHost.get(n.id);
+  // Where a thing runs beats where its checkout is: a project sits with its services (Studio's
+  // checkout is on h, its services on h2), and its own host field is only the fallback.
+  const hostOf = (n) => svcHost.get(n.id) || ownerHost.get(n.id) || n.host;
   const add = (n) => (nodes.set(n.id, { health: null, ...n }), n.id);
 
   const cloudflare = nodes.has("provider:cloudflare") ? "provider:cloudflare" : null;
