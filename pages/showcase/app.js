@@ -112,13 +112,31 @@ function Preview({ src, alt, format }) {
    the chips come from g-content, never from this page. */
 const collOf = (cols, id) => id && (cols.find((c) => c.id === id) || { id, title: id });
 
-function CollChips({ cols, items, q, go }) {
-  if (!cols.length) return null;
-  return html`<div class="sc-filters sc-filters-coll" role="radiogroup" aria-label="Collection">
-    ${[{ id: "all", title: "All" }, ...cols].map((c) => html`<button type="button" key=${c.id} role="radio"
-        aria-checked=${(q.collection || "all") === c.id} class=${`sc-chip ${(q.collection || "all") === c.id ? "on" : ""}`}
-        onClick=${() => go({ collection: c.id })}>${c.title || c.id}<span class="num">${c.id === "all" ? items.length
-          : items.filter((x) => x.collection === c.id).length}</span></button>`)}
+/* One filter row: the collections, a divider, then whatever the view adds. */
+function FilterRow({ cols, items, q, go, children }) {
+  // The divider only shows while both groups share a line.
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.ResizeObserver) return;
+    const fit = () => {
+      const [a, , c] = el.children;
+      if (a && c) el.classList.toggle("sc-filters-wrapped", c.offsetTop > a.offsetTop + 4);
+    };
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    fit();
+    return () => ro.disconnect();
+  });
+  return html`<div class="sc-filters" ref=${ref}>
+    ${cols.length > 0 && html`<div class="sc-chips" role="radiogroup" aria-label="Collection">
+      ${[{ id: "all", title: "All" }, ...cols].map((c) => html`<button type="button" key=${c.id} role="radio"
+          aria-checked=${(q.collection || "all") === c.id} class=${`sc-chip ${(q.collection || "all") === c.id ? "on" : ""}`}
+          onClick=${() => go({ collection: c.id })}>${c.title || c.id}<span class="num">${c.id === "all" ? items.length
+            : items.filter((x) => x.collection === c.id).length}</span></button>`)}
+    </div>`}
+    ${cols.length > 0 && children && html`<span class="sc-divider" aria-hidden="true"></span>`}
+    ${children}
   </div>`;
 }
 
@@ -136,7 +154,7 @@ function Source({ s }) {
   if (!s || !s.name) return null;
   const icon = html`<i class=${`ph ph-${SOURCE_ICON[s.kind] || "globe-simple"}`} aria-hidden="true"></i>`;
   return html`<div class="sc-source">${icon}${s.url
-    ? html`<a href=${s.url} target="_blank" rel="noopener" onClick=${(e) => e.stopPropagation()}>${s.name}</a>`
+    ? html`<a href=${s.url} target="_blank" rel="noopener" >${s.name}</a>`
     : html`<span>${s.name}</span>`}</div>`;
 }
 const WEEK_MS = 7 * 24 * 3600 * 1000;
@@ -145,16 +163,27 @@ const newest = (a, b) => (Date.parse(b.created || "") || 0) - (Date.parse(a.crea
 
 /* --------------------------------------------------------------- pieces */
 
+/* A card shows a still: the poster first, then the hero only when it is itself
+   an image (an image or svg piece, or a model whose hero is its render). A
+   video, html or glb hero never goes into an img. */
+const STILL = /\.(png|jpe?g|webp|gif|avif|svg)$/i;
+const cardImage = (p) => p.poster_url
+  || (p.format === "image" || p.format === "svg" || STILL.test(p.hero_url || "") ? p.hero_url : null);
+
 function PieceCard({ p, open }) {
-  return html`<a class="card sc-card" href=${`?piece=${p.id}`} onClick=${(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); open(p.id); } }}>
-    <${Preview} src=${p.hero_url || p.poster_url} alt="" format=${p.format} />
+  // The preview and the title open the piece; the source line keeps its own link.
+  const href = `?piece=${p.id}`;
+  const go = (e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); open(p.id); } };
+  return html`<div class="card sc-card">
+    <a class="sc-card-pic" href=${href} onClick=${go} tabindex="-1" aria-hidden="true">
+      <${Preview} src=${cardImage(p)} alt="" format=${p.format} /></a>
     <div class="sc-card-body">
-      <div class="sc-card-title">${p.title || p.id}</div>
+      <a class="sc-card-title" href=${href} onClick=${go}>${p.title || p.id}</a>
       ${(p.source || isNew(p)) && html`<div class="sc-card-from"><${Source} s=${p.source} />${isNew(p) && html`<span class="sc-new">New this week</span>`}</div>`}
       <div class="sc-card-meta"><span>${p.recipe}</span><span class="sc-fmt">${p.format}</span></div>
       <div class="sc-card-foot"><${Scores} judge=${p.judge_score} owner=${p.owner_score} /><${Status} status=${p.status} /></div>
     </div>
-  </a>`;
+  </div>`;
 }
 
 function Pieces({ pieces, cols, q, go, open }) {
@@ -165,12 +194,11 @@ function Pieces({ pieces, cols, q, go, open }) {
   const shown = (coll ? byStatus.filter((p) => p.collection === coll.id) : byStatus).slice().sort(newest);
   const count = (s) => (s === "all" ? inColl.length : inColl.filter((p) => p.status === s).length);
   return html`
-    <${CollChips} cols=${cols} items=${byStatus} q=${q} go=${go} />
-    <div class="sc-filters" role="radiogroup" aria-label="Status">
+    <${FilterRow} cols=${cols} items=${byStatus} q=${q} go=${go}><div class="sc-chips" role="radiogroup" aria-label="Status">
       ${STATUSES.map(([k, label]) => html`<button type="button" key=${k} role="radio"
           aria-checked=${(q.status || "all") === k} class=${`sc-chip ${(q.status || "all") === k ? "on" : ""}`}
           onClick=${() => go({ status: k }, true)}>${label}<span class="num">${count(k)}</span></button>`)}
-    </div>
+    </div><//>
     <${CollHead} c=${coll} />
     ${pieces.length === 0
       ? html`<div class="card"><${Empty} icon="info" title="No pieces yet"
@@ -237,7 +265,7 @@ function Recipes({ recipes, cols, q, go }) {
   const shown = coll ? recipes.filter((r) => r.collection === coll.id) : recipes;
   if (!recipes.length) return html`<div class="card"><${Empty} icon="info" title="No recipes yet"
     desc="A recipe is a folder under recipes/ in g-content. Its pieces show here once it has run." /></div>`;
-  return html`<${CollChips} cols=${cols} items=${recipes} q=${q} go=${go} />
+  return html`${cols.length > 0 && html`<${FilterRow} cols=${cols} items=${recipes} q=${q} go=${go} />`}
     <${CollHead} c=${coll} />
     ${shown.length === 0 ? html`<div class="card"><${Empty} icon="info" title="Nothing here yet"
         desc="No recipe belongs to this collection so far."><${Button} size="sm" onClick=${() => go({ collection: "" })}>Show all collections<//><//></div>`
