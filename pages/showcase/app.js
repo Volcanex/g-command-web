@@ -30,7 +30,10 @@ async function call(url, opts) {
   let body = null;
   try { body = await r.json(); } catch { /* a non-JSON answer is handled below */ }
   if (body && body.error && typeof body.error === "object") throw body.error;
-  if (!r.ok) throw { code: r.status === 404 ? "not_found" : "http", message: (body && body.detail) || `Command answered ${r.status}.` };
+  if (!r.ok || (body && typeof body.error === "string")) {
+    const msg = (body && (typeof body.error === "string" ? body.error : body.detail)) || `Command answered ${r.status}.`;
+    throw { code: r.status === 404 ? "not_found" : "http", message: typeof msg === "string" ? msg : JSON.stringify(msg) };
+  }
   return body;
 }
 
@@ -210,8 +213,12 @@ function Recipes({ recipes, go }) {
 
 /* --------------------------------------------------------------- disagreements */
 
+const sc = (v) => (v && typeof v === "object" ? v.score : v);
 function Disagreements({ cal, open }) {
-  const rows = (cal.disagreements || cal.pieces || []).filter((d) => d.judge != null && d.owner != null && Math.abs(d.owner - d.judge) >= 2);
+  const rows = (cal.disagreements || cal.pieces || []).map((d) => ({
+    ...d, judge: sc(d.judge), owner: sc(d.owner),
+    judge_notes: d.judge_notes ?? (d.judge && d.judge.notes), owner_note: d.owner_note ?? (d.owner && d.owner.note),
+  })).filter((d) => d.judge != null && d.owner != null && Math.abs(d.owner - d.judge) >= 2);
   const by = Object.entries(cal.by_recipe || {});
   return html`
     <section class="sc-section">
