@@ -159,6 +159,12 @@ async def recipes(request: Request):
     return await _json("GET", "/api/recipes")
 
 
+@router.get("/collections")
+async def collections(request: Request):
+    _gate(request)
+    return await _json("GET", "/api/collections")
+
+
 @router.get("/recipes/{recipe_id}")
 async def recipe(recipe_id: str, request: Request):
     _gate(request)
@@ -167,9 +173,12 @@ async def recipe(recipe_id: str, request: Request):
 
 
 @router.get("/pieces")
-async def pieces(request: Request, recipe: str = "", status: str = ""):
+async def pieces(request: Request, recipe: str = "", status: str = "", collection: str = ""):
     _gate(request)
     params = {}
+    if collection:
+        _need(RECIPE_ID, collection, "collection id")
+        params["collection"] = collection
     if recipe:
         _need(RECIPE_ID, recipe, "recipe id")
         params["recipe"] = recipe

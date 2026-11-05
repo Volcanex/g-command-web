@@ -52,7 +52,7 @@ function useLoad(url) {
   return { ...state, reload, setData: (data) => setState((s) => ({ ...s, data })) };
 }
 
-/* URL state: ?view, ?recipe, ?status, ?piece. Back and forward work. */
+/* URL state: ?view, ?collection, ?recipe, ?status, ?piece. Back and forward work. */
 function useQuery() {
   const read = () => Object.fromEntries(new URLSearchParams(location.search));
   const [q, setQ] = useState(read);
@@ -106,6 +106,30 @@ function Preview({ src, alt, format }) {
   </div>`;
 }
 
+/* --------------------------------------------------------------- collections */
+
+/* Items split by collection in the API's order. Titles and lines come from
+   g-content. Anything whose collection is unknown goes under Other, last. */
+function byCollection(items, cols) {
+  if (!cols.length) return [{ c: null, items }];
+  const known = new Set(cols.map((c) => c.id));
+  const out = cols.map((c) => ({ c, items: items.filter((x) => x.collection === c.id) }));
+  const other = items.filter((x) => !known.has(x.collection));
+  if (other.length) out.push({ c: { id: "", title: "Other" }, items: other });
+  return out;
+}
+
+function Collection({ c, children }) {
+  if (!c) return children;
+  return html`<section class="sc-coll" aria-labelledby=${`sc-coll-${c.id || "other"}`}>
+    <div class="sc-coll-head">
+      <h2 id=${`sc-coll-${c.id || "other"}`}>${c.title || c.id}</h2>
+      ${c.line && html`<p class="muted">${c.line}</p>`}
+    </div>
+    ${children}
+  </section>`;
+}
+
 /* --------------------------------------------------------------- pieces */
 
 function PieceCard({ p, open }) {
@@ -119,11 +143,21 @@ function PieceCard({ p, open }) {
   </a>`;
 }
 
-function Pieces({ pieces, q, go, open }) {
+function Pieces({ pieces, cols, q, go, open }) {
   const byRecipe = q.recipe ? pieces.filter((p) => p.recipe === q.recipe) : pieces;
-  const shown = q.status ? byRecipe.filter((p) => p.status === q.status) : byRecipe;
-  const count = (s) => (s === "all" ? byRecipe.length : byRecipe.filter((p) => p.status === s).length);
+  const coll = q.collection && (cols.find((c) => c.id === q.collection) || { id: q.collection, title: q.collection });
+  const inColl = coll ? byRecipe.filter((p) => p.collection === coll.id) : byRecipe;
+  const byStatus = q.status ? byRecipe.filter((p) => p.status === q.status) : byRecipe;
+  const shown = coll ? byStatus.filter((p) => p.collection === coll.id) : byStatus;
+  const count = (s) => (s === "all" ? inColl.length : inColl.filter((p) => p.status === s).length);
+  const groups = coll ? [{ c: coll, items: shown }] : byCollection(shown, cols).filter((g) => g.items.length);
   return html`
+    ${cols.length > 0 && html`<div class="sc-filters sc-filters-coll" role="radiogroup" aria-label="Collection">
+      ${[{ id: "all", title: "All" }, ...cols].map((c) => html`<button type="button" key=${c.id} role="radio"
+          aria-checked=${(q.collection || "all") === c.id} class=${`sc-chip ${(q.collection || "all") === c.id ? "on" : ""}`}
+          onClick=${() => go({ collection: c.id })}>${c.title || c.id}<span class="num">${c.id === "all" ? byStatus.length
+            : byStatus.filter((p) => p.collection === c.id).length}</span></button>`)}
+    </div>`}
     <div class="sc-filters" role="radiogroup" aria-label="Status">
       ${STATUSES.map(([k, label]) => html`<button type="button" key=${k} role="radio"
           aria-checked=${(q.status || "all") === k} class=${`sc-chip ${(q.status || "all") === k ? "on" : ""}`}
@@ -132,10 +166,14 @@ function Pieces({ pieces, q, go, open }) {
     ${pieces.length === 0
       ? html`<div class="card"><${Empty} icon="info" title="No pieces yet"
           desc="When a recipe makes something it lands here. Run one with g-content make <recipe>." /></div>`
+      : coll && inColl.length === 0
+        ? html`<${Collection} c=${coll}><div class="card"><${Empty} icon="info" title="Nothing here yet"
+            desc="No piece belongs to this collection so far."><${Button} size="sm" onClick=${() => go({ collection: "" })}>Show all collections<//><//></div><//>`
       : shown.length === 0
-        ? html`<div class="card"><${Empty} icon="info" title="Nothing matches"
-            desc="No piece has this recipe and status."><${Button} size="sm" onClick=${() => go({ status: "all", recipe: "" }, true)}>Show every piece<//><//></div>`
-        : html`<div class="sc-grid">${shown.map((p) => html`<${PieceCard} key=${p.id} p=${p} open=${open} />`)}</div>`}`;
+        ? html`<${Collection} c=${coll || null}><div class="card"><${Empty} icon="info" title="Nothing matches"
+            desc="No piece has this recipe and status."><${Button} size="sm" onClick=${() => go({ status: "all", recipe: "" }, true)}>Show every piece<//><//></div><//>`
+        : html`<div class="sc-colls">${groups.map((g) => html`<${Collection} key=${g.c ? g.c.id : ""} c=${g.c}>
+            <div class="sc-grid">${g.items.map((p) => html`<${PieceCard} key=${p.id} p=${p} open=${open} />`)}</div><//>`)}</div>`}`;
 }
 
 /* --------------------------------------------------------------- recipe.md */
@@ -185,11 +223,12 @@ function RecipeDoc({ id }) {
   return html`<div class="prose sc-md" dangerouslySetInnerHTML=${{ __html: renderMd(st.data.recipe_md) }}></div>`;
 }
 
-function Recipes({ recipes, go }) {
+function Recipes({ recipes, cols, go }) {
   const [openId, setOpen] = useState(null);
   if (!recipes.length) return html`<div class="card"><${Empty} icon="info" title="No recipes yet"
     desc="A recipe is a folder under recipes/ in g-content. Its pieces show here once it has run." /></div>`;
-  return html`<div class="sc-recipes">${recipes.map((r) => html`<div class="card sc-recipe" key=${r.id}>
+  return html`<div class="sc-colls">${byCollection(recipes, cols).filter((g) => g.items.length).map((g) => html`<${Collection} key=${g.c ? g.c.id : ""} c=${g.c}>
+    <div class="sc-recipes">${g.items.map((r) => html`<div class="card sc-recipe" key=${r.id}>
     <div class="sc-recipe-head">
       <div class="sc-recipe-text">
         <div class="sc-card-title">${r.title || r.id}</div>
@@ -202,13 +241,13 @@ function Recipes({ recipes, go }) {
         </div>
       </div>
       <div class="sc-recipe-actions">
-        ${r.piece_count > 0 && html`<${Button} size="sm" kind="tertiary" onClick=${() => go({ view: "pieces", recipe: r.id })}>See pieces<//>`}
+        ${r.piece_count > 0 && html`<${Button} size="sm" kind="tertiary" onClick=${() => go({ view: "", recipe: r.id, collection: r.collection || "" })}>See pieces<//>`}
         <${Button} size="sm" aria-expanded=${openId === r.id}
           onClick=${() => setOpen(openId === r.id ? null : r.id)}><i class=${`ph ph-caret-${openId === r.id ? "up" : "down"}`} aria-hidden="true"></i>${openId === r.id ? "Hide recipe.md" : "Read recipe.md"}<//>
       </div>
     </div>
     ${openId === r.id && html`<div class="sc-recipe-doc"><${RecipeDoc} id=${r.id} /></div>`}
-  </div>`)}</div>`;
+  </div>`)}</div><//>`)}</div>`;
 }
 
 /* --------------------------------------------------------------- disagreements */
@@ -407,7 +446,7 @@ function Provenance({ p }) {
   </section>`;
 }
 
-function Detail({ id, back, onRated }) {
+function Detail({ id, cols, back, go, onRated }) {
   const st = useLoad(`${API}/pieces/${id}`);
   if (st.error) {
     if (sameError(st.error)) return html`<${DetailBar} back=${back} /><${Trouble} error=${st.error} retry=${st.reload} />`;
@@ -429,7 +468,9 @@ function Detail({ id, back, onRated }) {
     <div class="sc-detail-head">
       <h2 class="sc-detail-title">${p.title || p.id}</h2>
       ${p.summary && html`<p class="muted">${p.summary}</p>`}
-      <div class="sc-recipe-meta"><span>${p.recipe}</span><span>${p.format}</span><span class="mono">${p.id}</span></div>
+      <div class="sc-recipe-meta">${p.collection && html`<a class="sc-coll-link" href=${`?collection=${p.collection}`}
+          onClick=${(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); go({ piece: "", collection: p.collection, view: "" }); } }}>
+          <i class="ph ph-folder-simple" aria-hidden="true"></i>${(cols.find((c) => c.id === p.collection) || {}).title || p.collection}</a>`}<span>${p.recipe}</span><span>${p.format}</span><span class="mono">${p.id}</span></div>
     </div>
     ${hero ? html`<div class="sc-hero"><${Output} piece=${p} f=${hero} still=${still} big /></div>`
       : html`<div class="card"><${Empty} icon="info" title="This piece lists no files" /></div>`}
@@ -469,14 +510,18 @@ function Showcase() {
   const view = q.view || "pieces";
   const recipes = useLoad(`${API}/recipes`);
   const pieces = useLoad(`${API}/pieces`);
+  const colls = useLoad(`${API}/collections`);
   const cal = useLoad(view === "disagree" ? `${API}/calibration` : null);
   const open = (id) => go({ piece: id });
   const back = () => (history.state === null && document.referrer.indexOf(location.pathname) < 0 ? go({ piece: "" }) : history.back());
   const onRated = (id, s) => pieces.data && Array.isArray(pieces.data) && pieces.setData(pieces.data.map((p) => (p.id === id ? { ...p, owner_score: s } : p)));
 
-  if (q.piece) return html`<div class="sc-page"><${Detail} id=${q.piece} back=${() => go({ piece: "" })} onRated=${onRated} /></div>`;
+  const clist = Array.isArray(colls.data) ? colls.data : (colls.data && colls.data.collections) || [];
+  if (q.piece) return html`<div class="sc-page"><${Detail} id=${q.piece} cols=${clist} go=${go} back=${() => go({ piece: "" })} onRated=${onRated} /></div>`;
 
-  const err = pieces.error || recipes.error;
+  // A g-content without collections yet still shows its pieces, ungrouped.
+  const err = pieces.error || recipes.error || (colls.error && sameError(colls.error) ? colls.error : null);
+  const cwait = colls.data === undefined && !colls.error;
   const plist = Array.isArray(pieces.data) ? pieces.data : (pieces.data && pieces.data.pieces) || [];
   const rlist = Array.isArray(recipes.data) ? recipes.data : (recipes.data && recipes.data.recipes) || [];
   return html`<div class="sc-page">
@@ -491,12 +536,12 @@ function Showcase() {
         ${rlist.map((r) => html`<option key=${r.id} value=${r.id}>${r.title || r.id} (${plist.filter((p) => p.recipe === r.id).length})</option>`)}
       </select></span>`}
     <//>
-    ${err ? html`<${Trouble} error=${err} retry=${() => { pieces.reload(); recipes.reload(); }} />`
-      : view === "recipes" ? (recipes.data === undefined ? html`<${SkeletonRows} rows=${4} height=${72} />` : html`<${Recipes} recipes=${rlist} go=${go} />`)
+    ${err ? html`<${Trouble} error=${err} retry=${() => { pieces.reload(); recipes.reload(); colls.reload(); }} />`
+      : view === "recipes" ? (recipes.data === undefined || cwait ? html`<${SkeletonRows} rows=${4} height=${72} />` : html`<${Recipes} recipes=${rlist} cols=${clist} go=${go} />`)
       : view === "disagree" ? (cal.error ? html`<${Trouble} error=${cal.error} retry=${cal.reload} />`
           : cal.data === undefined ? html`<${SkeletonRows} rows=${4} height=${56} />` : html`<${Disagreements} cal=${cal.data} open=${open} />`)
-      : pieces.data === undefined ? html`<div class="sc-grid">${[0, 1, 2, 3, 4, 5].map((i) => html`<div class="card sc-card" key=${i}><div class="sc-preview skeleton"></div><div class="sc-card-body"><div class="skeleton" style="height:16px;width:70%"></div><div class="skeleton" style="height:12px;width:40%"></div></div></div>`)}</div>`
-      : html`<${Pieces} pieces=${plist} q=${q} go=${go} open=${open} />`}
+      : pieces.data === undefined || cwait ? html`<div class="sc-grid">${[0, 1, 2, 3, 4, 5].map((i) => html`<div class="card sc-card" key=${i}><div class="sc-preview skeleton"></div><div class="sc-card-body"><div class="skeleton" style="height:16px;width:70%"></div><div class="skeleton" style="height:12px;width:40%"></div></div></div>`)}</div>`
+      : html`<${Pieces} pieces=${plist} cols=${clist} q=${q} go=${go} open=${open} />`}
   </div>`;
 }
 

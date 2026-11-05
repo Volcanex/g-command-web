@@ -12,6 +12,12 @@
 .sc-chip .num { color: var(--text-placeholder); }
 .sc-chip.on .num { color: var(--text-secondary); }
 .sc-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.sc-filters-coll { margin-bottom: var(--sp-2); }
+.sc-colls { display: flex; flex-direction: column; gap: var(--sp-7); }
+.sc-coll-head { display: flex; flex-direction: column; gap: var(--sp-1); margin-bottom: var(--sp-4); max-width: 720px; }
+.sc-coll-head h2, .sc-coll-head p { margin: 0; }
+.sc-coll-link { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--text-secondary); }
+.sc-coll-link:hover { color: var(--text-primary); }
 .sc-recipe-pick { min-width: 0; max-width: 240px; }
 
 .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-4); max-width: 1320px; }
@@ -108,6 +114,7 @@
   .sc-dis-grid { grid-template-columns: 1fr; }
   .sc-kv { grid-template-columns: 1fr; gap: 0; }
   .sc-kv dd { margin-bottom: var(--sp-2); }
+  .sc-colls { gap: var(--sp-6); }
   .sc-recipe-pick { max-width: none; flex: 1 1 100%; }
 }
 .sc-page .btn > span > .ph { margin-right: var(--sp-1); vertical-align: -2px; }

@@ -69,7 +69,8 @@ def signed(client):
     ("get", "/api/showcase/recipes"), ("get", "/api/showcase/recipes/iso-scene"),
     ("get", "/api/showcase/pieces"), ("get", f"/api/showcase/pieces/{PIECE}"),
     ("get", f"/api/showcase/pieces/{PIECE}/files/hero.png"), ("get", "/api/showcase/calibration"),
-    ("get", "/api/showcase/runners"), ("get", "/api/showcase/vendor/three/build/three.module.js"),
+    ("get", "/api/showcase/runners"), ("get", "/api/showcase/collections"),
+    ("get", "/api/showcase/vendor/three/build/three.module.js"),
     ("post", f"/api/showcase/pieces/{PIECE}/rating"),
 ])
 def test_every_route_needs_the_cookie(client, method, url):
@@ -92,7 +93,8 @@ def test_forwards_with_token_and_never_returns_it(client):
 @pytest.mark.parametrize("url", [
     "/api/showcase/recipes/Bad_ID", "/api/showcase/pieces/not-a-piece",
     f"/api/showcase/pieces/{PIECE}/files/.hidden", f"/api/showcase/pieces/{PIECE}/files/Hero.PNG",
-    "/api/showcase/pieces?recipe=..", "/api/showcase/pieces?status=anything",
+    "/api/showcase/pieces?recipe=..", "/api/showcase/pieces?collection=G_Studio",
+    "/api/showcase/pieces?collection=../x", "/api/showcase/pieces?status=anything",
     "/api/showcase/vendor/three/package.json", "/api/showcase/vendor/three/build/../../secret.js",
     "/api/showcase/vendor/three/src/Three.js",
 ])
@@ -176,3 +178,11 @@ def test_token_file_is_read_at_call_time(client, monkeypatch, tmp_path):
     f.write_text(TOKEN + "\n")
     monkeypatch.setenv("G_CONTENT_TOKEN_FILE", str(f))
     assert signed(client).get("/api/showcase/recipes").json()["auth"] is True
+
+
+def test_collections_forward_and_filter_passes_through(client):
+    signed(client)
+    body = client.get("/api/showcase/collections").json()
+    assert body["path"] == "/api/collections" and body["auth"] is True
+    body = client.get("/api/showcase/pieces?collection=g-studio&status=candidate").json()
+    assert body["path"] == "/api/pieces" and "collection=g-studio" in body["q"] and "status=candidate" in body["q"]
