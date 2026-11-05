@@ -80,7 +80,7 @@ function Trouble({ error, retry }) {
 
 /* --------------------------------------------------------------- small parts */
 
-const score = (v) => (v == null ? html`<span class="sc-none">None</span>` : html`<span class="num">${v}</span>`);
+const score = (v) => (v == null ? html`<span class="sc-none">not yet</span>` : html`<span class="num">${v}</span>`);
 
 function Scores({ judge, owner }) {
   return html`<dl class="sc-scores">
