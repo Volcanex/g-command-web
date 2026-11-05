@@ -28,6 +28,8 @@ def respond(request):
         return raw(200, b"<script>1</script>", {"content-type": "text/html; charset=utf-8"})
     if path.endswith("/files/hero.svg"):
         return raw(200, b"<svg/>", {"content-type": "image/svg+xml"})
+    if path.endswith("/thumb"):
+        return raw(200, b"webp", {"content-type": "image/webp"})
     if path.endswith("/files/hero.png"):
         return raw(200, b"png", {"content-type": "image/png"})
     if path.endswith("/files/gone.png"):
@@ -68,7 +70,8 @@ def signed(client):
 @pytest.mark.parametrize("method,url", [
     ("get", "/api/showcase/recipes"), ("get", "/api/showcase/recipes/iso-scene"),
     ("get", "/api/showcase/pieces"), ("get", f"/api/showcase/pieces/{PIECE}"),
-    ("get", f"/api/showcase/pieces/{PIECE}/files/hero.png"), ("get", "/api/showcase/calibration"),
+    ("get", f"/api/showcase/pieces/{PIECE}/files/hero.png"), ("get", f"/api/showcase/pieces/{PIECE}/thumb"),
+    ("get", "/api/showcase/calibration"),
     ("get", "/api/showcase/runners"), ("get", "/api/showcase/collections"),
     ("get", "/api/showcase/vendor/three/build/three.module.js"),
     ("post", f"/api/showcase/pieces/{PIECE}/rating"),
@@ -91,7 +94,7 @@ def test_forwards_with_token_and_never_returns_it(client):
 
 
 @pytest.mark.parametrize("url", [
-    "/api/showcase/recipes/Bad_ID", "/api/showcase/pieces/not-a-piece",
+    "/api/showcase/recipes/Bad_ID", "/api/showcase/pieces/not-a-piece", "/api/showcase/pieces/not-a-piece/thumb",
     f"/api/showcase/pieces/{PIECE}/files/.hidden", f"/api/showcase/pieces/{PIECE}/files/Hero.PNG",
     "/api/showcase/pieces?recipe=..", "/api/showcase/pieces?collection=G_Studio",
     "/api/showcase/pieces?collection=../x", "/api/showcase/pieces?status=anything",
@@ -186,3 +189,10 @@ def test_collections_forward_and_filter_passes_through(client):
     assert body["path"] == "/api/collections" and body["auth"] is True
     body = client.get("/api/showcase/pieces?collection=g-studio&status=candidate").json()
     assert body["path"] == "/api/pieces" and "collection=g-studio" in body["q"] and "status=candidate" in body["q"]
+
+
+def test_thumb_streams_from_g_content(client):
+    r = signed(client).get(f"/api/showcase/pieces/{PIECE}/thumb")
+    assert r.status_code == 200 and r.content == b"webp" and r.headers["content-type"] == "image/webp"
+    assert client.seen[-1].url.path == f"/api/pieces/{PIECE}/thumb"
+    assert client.seen[-1].headers["authorization"] == f"Bearer {TOKEN}"

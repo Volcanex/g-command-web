@@ -119,8 +119,12 @@ a.sc-card-title:focus-visible { outline: 2px solid var(--focus-ring); outline-of
 .sc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); font-size: 13px; }
 .sc-list li { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; overflow-wrap: anywhere; }
 
+@media (max-width: 600px) {
+  .sc-grid { grid-template-columns: 1fr; }
+  .sc-preview { aspect-ratio: 16 / 9; }
+}
 @media (max-width: 720px) {
-  .sc-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--sp-3); }
+  .sc-grid { gap: var(--sp-3); }
   .sc-dis-grid { grid-template-columns: 1fr; }
   .sc-kv { grid-template-columns: 1fr; gap: 0; }
   .sc-kv dd { margin-bottom: var(--sp-2); }

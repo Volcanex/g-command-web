@@ -149,7 +149,7 @@ function CollHead({ c }) {
 }
 
 /* Where a piece came from: one quiet line, the name a link when it has one. */
-const SOURCE_ICON = { web: "globe-simple", house: "house-simple", lab: "flask" };
+const SOURCE_ICON = { web: "globe-simple", house: "house-simple" };
 function Source({ s }) {
   if (!s || !s.name) return null;
   const icon = html`<i class=${`ph ph-${SOURCE_ICON[s.kind] || "globe-simple"}`} aria-hidden="true"></i>`;
@@ -163,12 +163,10 @@ const newest = (a, b) => (Date.parse(b.created || "") || 0) - (Date.parse(a.crea
 
 /* --------------------------------------------------------------- pieces */
 
-/* A card shows a still: the poster first, then the hero only when it is itself
-   an image (an image or svg piece, or a model whose hero is its render). A
-   video, html or glb hero never goes into an img. */
-const STILL = /\.(png|jpe?g|webp|gif|avif|svg)$/i;
-const cardImage = (p) => p.poster_url
-  || (p.format === "image" || p.format === "svg" || STILL.test(p.hero_url || "") ? p.hero_url : null);
+/* A card shows a small still: g-content's cached thumb first, then the poster,
+   then the hero only for an image or svg piece. A video, html or glb hero never
+   goes into an img. The detail view keeps the full-size files. */
+const cardImage = (p) => p.thumb_url || p.poster_url || (p.format === "image" || p.format === "svg" ? p.hero_url : null);
 
 function PieceCard({ p, open }) {
   // The preview and the title open the piece; the source line keeps its own link.

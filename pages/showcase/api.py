@@ -204,6 +204,13 @@ async def piece_file(piece_id: str, name: str, request: Request):
     return await _stream(f"/api/pieces/{piece_id}/files/{name}", request, sandbox=True)
 
 
+@router.get("/pieces/{piece_id}/thumb")
+async def piece_thumb(piece_id: str, request: Request):
+    _gate(request)
+    _need(PIECE_ID, piece_id, "piece id")
+    return await _stream(f"/api/pieces/{piece_id}/thumb", request, sandbox=True)
+
+
 @router.post("/pieces/{piece_id}/rating")
 async def rate(piece_id: str, request: Request):
     _gate(request)
