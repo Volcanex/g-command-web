@@ -108,27 +108,40 @@ function Preview({ src, alt, format }) {
 
 /* --------------------------------------------------------------- collections */
 
-/* Items split by collection in the API's order. Titles and lines come from
-   g-content. Anything whose collection is unknown goes under Other, last. */
-function byCollection(items, cols) {
-  if (!cols.length) return [{ c: null, items }];
-  const known = new Set(cols.map((c) => c.id));
-  const out = cols.map((c) => ({ c, items: items.filter((x) => x.collection === c.id) }));
-  const other = items.filter((x) => !known.has(x.collection));
-  if (other.length) out.push({ c: { id: "", title: "Other" }, items: other });
-  return out;
+/* Collections are a filter over the one feed. Titles, lines and the order of
+   the chips come from g-content, never from this page. */
+const collOf = (cols, id) => id && (cols.find((c) => c.id === id) || { id, title: id });
+
+function CollChips({ cols, items, q, go }) {
+  if (!cols.length) return null;
+  return html`<div class="sc-filters sc-filters-coll" role="radiogroup" aria-label="Collection">
+    ${[{ id: "all", title: "All" }, ...cols].map((c) => html`<button type="button" key=${c.id} role="radio"
+        aria-checked=${(q.collection || "all") === c.id} class=${`sc-chip ${(q.collection || "all") === c.id ? "on" : ""}`}
+        onClick=${() => go({ collection: c.id })}>${c.title || c.id}<span class="num">${c.id === "all" ? items.length
+          : items.filter((x) => x.collection === c.id).length}</span></button>`)}
+  </div>`;
 }
 
-function Collection({ c, children }) {
-  if (!c) return children;
-  return html`<section class="sc-coll" aria-labelledby=${`sc-coll-${c.id || "other"}`}>
-    <div class="sc-coll-head">
-      <h2 id=${`sc-coll-${c.id || "other"}`}>${c.title || c.id}</h2>
-      ${c.line && html`<p class="muted">${c.line}</p>`}
-    </div>
-    ${children}
-  </section>`;
+function CollHead({ c }) {
+  if (!c) return null;
+  return html`<div class="sc-coll-head">
+    <h2>${c.title || c.id}</h2>
+    ${c.line && html`<p class="muted">${c.line}</p>`}
+  </div>`;
 }
+
+/* Where a piece came from: one quiet line, the name a link when it has one. */
+const SOURCE_ICON = { web: "globe-simple", house: "house-simple", lab: "flask" };
+function Source({ s }) {
+  if (!s || !s.name) return null;
+  const icon = html`<i class=${`ph ph-${SOURCE_ICON[s.kind] || "globe-simple"}`} aria-hidden="true"></i>`;
+  return html`<div class="sc-source">${icon}${s.url
+    ? html`<a href=${s.url} target="_blank" rel="noopener" onClick=${(e) => e.stopPropagation()}>${s.name}</a>`
+    : html`<span>${s.name}</span>`}</div>`;
+}
+const WEEK_MS = 7 * 24 * 3600 * 1000;
+const isNew = (p) => { const t = Date.parse(p.created || ""); return !isNaN(t) && Date.now() - t < WEEK_MS; };
+const newest = (a, b) => (Date.parse(b.created || "") || 0) - (Date.parse(a.created || "") || 0);
 
 /* --------------------------------------------------------------- pieces */
 
@@ -137,6 +150,7 @@ function PieceCard({ p, open }) {
     <${Preview} src=${p.hero_url || p.poster_url} alt="" format=${p.format} />
     <div class="sc-card-body">
       <div class="sc-card-title">${p.title || p.id}</div>
+      ${(p.source || isNew(p)) && html`<div class="sc-card-from"><${Source} s=${p.source} />${isNew(p) && html`<span class="sc-new">New this week</span>`}</div>`}
       <div class="sc-card-meta"><span>${p.recipe}</span><span class="sc-fmt">${p.format}</span></div>
       <div class="sc-card-foot"><${Scores} judge=${p.judge_score} owner=${p.owner_score} /><${Status} status=${p.status} /></div>
     </div>
@@ -145,35 +159,29 @@ function PieceCard({ p, open }) {
 
 function Pieces({ pieces, cols, q, go, open }) {
   const byRecipe = q.recipe ? pieces.filter((p) => p.recipe === q.recipe) : pieces;
-  const coll = q.collection && (cols.find((c) => c.id === q.collection) || { id: q.collection, title: q.collection });
+  const coll = collOf(cols, q.collection);
   const inColl = coll ? byRecipe.filter((p) => p.collection === coll.id) : byRecipe;
   const byStatus = q.status ? byRecipe.filter((p) => p.status === q.status) : byRecipe;
-  const shown = coll ? byStatus.filter((p) => p.collection === coll.id) : byStatus;
+  const shown = (coll ? byStatus.filter((p) => p.collection === coll.id) : byStatus).slice().sort(newest);
   const count = (s) => (s === "all" ? inColl.length : inColl.filter((p) => p.status === s).length);
-  const groups = coll ? [{ c: coll, items: shown }] : byCollection(shown, cols).filter((g) => g.items.length);
   return html`
-    ${cols.length > 0 && html`<div class="sc-filters sc-filters-coll" role="radiogroup" aria-label="Collection">
-      ${[{ id: "all", title: "All" }, ...cols].map((c) => html`<button type="button" key=${c.id} role="radio"
-          aria-checked=${(q.collection || "all") === c.id} class=${`sc-chip ${(q.collection || "all") === c.id ? "on" : ""}`}
-          onClick=${() => go({ collection: c.id })}>${c.title || c.id}<span class="num">${c.id === "all" ? byStatus.length
-            : byStatus.filter((p) => p.collection === c.id).length}</span></button>`)}
-    </div>`}
+    <${CollChips} cols=${cols} items=${byStatus} q=${q} go=${go} />
     <div class="sc-filters" role="radiogroup" aria-label="Status">
       ${STATUSES.map(([k, label]) => html`<button type="button" key=${k} role="radio"
           aria-checked=${(q.status || "all") === k} class=${`sc-chip ${(q.status || "all") === k ? "on" : ""}`}
           onClick=${() => go({ status: k }, true)}>${label}<span class="num">${count(k)}</span></button>`)}
     </div>
+    <${CollHead} c=${coll} />
     ${pieces.length === 0
       ? html`<div class="card"><${Empty} icon="info" title="No pieces yet"
           desc="When a recipe makes something it lands here. Run one with g-content make <recipe>." /></div>`
       : coll && inColl.length === 0
-        ? html`<${Collection} c=${coll}><div class="card"><${Empty} icon="info" title="Nothing here yet"
-            desc="No piece belongs to this collection so far."><${Button} size="sm" onClick=${() => go({ collection: "" })}>Show all collections<//><//></div><//>`
+        ? html`<div class="card"><${Empty} icon="info" title="Nothing here yet"
+            desc="No piece belongs to this collection so far."><${Button} size="sm" onClick=${() => go({ collection: "" })}>Show all collections<//><//></div>`
       : shown.length === 0
-        ? html`<${Collection} c=${coll || null}><div class="card"><${Empty} icon="info" title="Nothing matches"
-            desc="No piece has this recipe and status."><${Button} size="sm" onClick=${() => go({ status: "all", recipe: "" }, true)}>Show every piece<//><//></div><//>`
-        : html`<div class="sc-colls">${groups.map((g) => html`<${Collection} key=${g.c ? g.c.id : ""} c=${g.c}>
-            <div class="sc-grid">${g.items.map((p) => html`<${PieceCard} key=${p.id} p=${p} open=${open} />`)}</div><//>`)}</div>`}`;
+        ? html`<div class="card"><${Empty} icon="info" title="Nothing matches"
+            desc="No piece has this recipe and status."><${Button} size="sm" onClick=${() => go({ status: "all", recipe: "" }, true)}>Show every piece<//><//></div>`
+        : html`<div class="sc-grid">${shown.map((p) => html`<${PieceCard} key=${p.id} p=${p} open=${open} />`)}</div>`}`;
 }
 
 /* --------------------------------------------------------------- recipe.md */
@@ -223,15 +231,21 @@ function RecipeDoc({ id }) {
   return html`<div class="prose sc-md" dangerouslySetInnerHTML=${{ __html: renderMd(st.data.recipe_md) }}></div>`;
 }
 
-function Recipes({ recipes, cols, go }) {
+function Recipes({ recipes, cols, q, go }) {
   const [openId, setOpen] = useState(null);
+  const coll = collOf(cols, q.collection);
+  const shown = coll ? recipes.filter((r) => r.collection === coll.id) : recipes;
   if (!recipes.length) return html`<div class="card"><${Empty} icon="info" title="No recipes yet"
     desc="A recipe is a folder under recipes/ in g-content. Its pieces show here once it has run." /></div>`;
-  return html`<div class="sc-colls">${byCollection(recipes, cols).filter((g) => g.items.length).map((g) => html`<${Collection} key=${g.c ? g.c.id : ""} c=${g.c}>
-    <div class="sc-recipes">${g.items.map((r) => html`<div class="card sc-recipe" key=${r.id}>
+  return html`<${CollChips} cols=${cols} items=${recipes} q=${q} go=${go} />
+    <${CollHead} c=${coll} />
+    ${shown.length === 0 ? html`<div class="card"><${Empty} icon="info" title="Nothing here yet"
+        desc="No recipe belongs to this collection so far."><${Button} size="sm" onClick=${() => go({ collection: "" })}>Show all collections<//><//></div>`
+    : html`<div class="sc-recipes">${shown.map((r) => html`<div class="card sc-recipe" key=${r.id}>
     <div class="sc-recipe-head">
       <div class="sc-recipe-text">
         <div class="sc-card-title">${r.title || r.id}</div>
+        <${Source} s=${r.source} />
         <p class="muted">${r.summary}</p>
         <div class="sc-recipe-meta">
           <span><i class="ph ph-cpu" aria-hidden="true"></i>${r.runner}</span>
@@ -241,13 +255,13 @@ function Recipes({ recipes, cols, go }) {
         </div>
       </div>
       <div class="sc-recipe-actions">
-        ${r.piece_count > 0 && html`<${Button} size="sm" kind="tertiary" onClick=${() => go({ view: "", recipe: r.id, collection: r.collection || "" })}>See pieces<//>`}
+        ${r.piece_count > 0 && html`<${Button} size="sm" kind="tertiary" onClick=${() => go({ view: "", recipe: r.id })}>See pieces<//>`}
         <${Button} size="sm" aria-expanded=${openId === r.id}
           onClick=${() => setOpen(openId === r.id ? null : r.id)}><i class=${`ph ph-caret-${openId === r.id ? "up" : "down"}`} aria-hidden="true"></i>${openId === r.id ? "Hide recipe.md" : "Read recipe.md"}<//>
       </div>
     </div>
     ${openId === r.id && html`<div class="sc-recipe-doc"><${RecipeDoc} id=${r.id} /></div>`}
-  </div>`)}</div><//>`)}</div>`;
+  </div>`)}</div>`}`;
 }
 
 /* --------------------------------------------------------------- disagreements */
@@ -467,6 +481,7 @@ function Detail({ id, cols, back, go, onRated }) {
     <//>
     <div class="sc-detail-head">
       <h2 class="sc-detail-title">${p.title || p.id}</h2>
+      <${Source} s=${p.source} />
       ${p.summary && html`<p class="muted">${p.summary}</p>`}
       <div class="sc-recipe-meta">${p.collection && html`<a class="sc-coll-link" href=${`?collection=${p.collection}`}
           onClick=${(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); go({ piece: "", collection: p.collection, view: "" }); } }}>
@@ -537,7 +552,7 @@ function Showcase() {
       </select></span>`}
     <//>
     ${err ? html`<${Trouble} error=${err} retry=${() => { pieces.reload(); recipes.reload(); colls.reload(); }} />`
-      : view === "recipes" ? (recipes.data === undefined || cwait ? html`<${SkeletonRows} rows=${4} height=${72} />` : html`<${Recipes} recipes=${rlist} cols=${clist} go=${go} />`)
+      : view === "recipes" ? (recipes.data === undefined || cwait ? html`<${SkeletonRows} rows=${4} height=${72} />` : html`<${Recipes} recipes=${rlist} cols=${clist} q=${q} go=${go} />`)
       : view === "disagree" ? (cal.error ? html`<${Trouble} error=${cal.error} retry=${cal.reload} />`
           : cal.data === undefined ? html`<${SkeletonRows} rows=${4} height=${56} />` : html`<${Disagreements} cal=${cal.data} open=${open} />`)
       : pieces.data === undefined || cwait ? html`<div class="sc-grid">${[0, 1, 2, 3, 4, 5].map((i) => html`<div class="card sc-card" key=${i}><div class="sc-preview skeleton"></div><div class="sc-card-body"><div class="skeleton" style="height:16px;width:70%"></div><div class="skeleton" style="height:12px;width:40%"></div></div></div>`)}</div>`
