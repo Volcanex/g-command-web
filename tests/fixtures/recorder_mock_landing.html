@@ -62,7 +62,8 @@ addEventListener("message", (e) => {
   if (m.session !== session) return;
   if (m.type === "start") { t0 = performance.now(); recording = true; batch = []; requestAnimationFrame(flush); }
   if (m.type === "stop") { recording = false; if (batch.length) send({ type: "events", batch }); batch = []; send({ type: "stopped", duration_ms: performance.now() - t0 }); }
-  if (m.type === "play") playTake(m.take);
+  // ?noplayer=1 answers play the way the landing does before its cursor engine lands.
+  if (m.type === "play") { if (new URLSearchParams(location.search).has("noplayer")) send({ type: "played", error: "no-player" }); else playTake(m.take); }
   if (m.type === "halt") { playing++; document.getElementById("dot").style.display = "none"; }
 });
 </script></body></html>

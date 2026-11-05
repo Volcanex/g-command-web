@@ -284,7 +284,10 @@ function Recorder() {
       if (Array.isArray(d.batch)) { for (const ev of d.batch) events.current.push(ev); setCount(events.current.length); }
     },
     stopped: (d) => { if (rec === "stopping" || rec === "recording") finish(typeof d.duration_ms === "number" ? d.duration_ms : null); },
-    played: () => setInPage(false),
+    played: (d) => {
+      setInPage(false);
+      if (d.error) toast({ title: "The landing can't play takes yet", desc: "Replay shows it here.", kind: "error" });
+    },
   };
 
   useEffect(() => {
