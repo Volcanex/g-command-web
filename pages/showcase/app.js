@@ -278,12 +278,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 const say = (m) => parent.postMessage({ scModel: m }, "*");
 try {
-  const r = new THREE.WebGLRenderer({ antialias: true });
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  r.setClearColor(0x000000, 0);
   r.setPixelRatio(Math.min(devicePixelRatio, 2));
   r.toneMapping = THREE.ACESFilmicToneMapping;
   document.body.appendChild(r.domElement);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(${JSON.stringify(bg)});
   scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
   const cam = new THREE.PerspectiveCamera(40, 1, 0.01, 1000);
   const ctl = new OrbitControls(cam, r.domElement);
