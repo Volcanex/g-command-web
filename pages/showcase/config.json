@@ -1,0 +1,13 @@
+{
+  "title": "Showcase",
+  "slug": "showcase",
+  "description": "What the g-content recipes have made, how each piece was made, and your rating against the judge's.",
+  "nav": false,
+  "nav_icon": "images-square",
+  "nav_label": "Showcase",
+  "order": 28,
+  "body_class": "showcase-page",
+  "gsys": true,
+  "tabs": "design",
+  "tab_label": "Showcase"
+}

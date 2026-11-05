@@ -8,5 +8,8 @@
   "nav_section": "Work",
   "nav_icon": "palette",
   "nav_label": "Design",
-  "gsys": true
+  "gsys": true,
+  "tabs": "design",
+  "tab_label": "Language",
+  "tab_icon": "text-aa"
 }

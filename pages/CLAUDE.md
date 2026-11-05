@@ -34,7 +34,7 @@ manifest (their sidebar draws the same groups, and their Overview dash is
 still Life, System and Full dash). There are no hub or tile pages.
 Groups: `life` (Calendar, Pulse), `system` (Diagram, Services `/system`,
 Compute, Crons, Tickets, Projects, Levels), `brain` (Graph, Notes,
-Nerves, References, Lineage) and `setup` (Bootstrap `/setup`, Install,
+Nerves, References, Lineage), `design` (Language `/design`, Showcase) and `setup` (Bootstrap `/setup`, Install,
 Passport). `/home`, `/ops`, `/brain` and `/voice` are 301s to Home, Home, Graph and Chat.
 A page left out of the nav keeps its route: hide pages, never delete or
 rename them, since the Mac app and old links name them directly.
