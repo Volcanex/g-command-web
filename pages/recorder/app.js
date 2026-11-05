@@ -111,15 +111,16 @@ function useLanding(frame) {
 
 /* ------------------------------------------------------------- replay overlay */
 
-/* Anchor fractions to overlay px in the iframe's current layout. "page" is the
-   viewport itself. An anchor missing from the layout drops its events. */
+/* Anchor fractions to overlay px in the iframe's current layout. For a = "page"
+   the landing sends x = clientX / innerWidth and y = clientY / innerHeight
+   (confirmed with its builder), and "page" never appears in anchors, so it maps
+   onto the viewport itself. Any other anchor missing from the layout gives null. */
 function placer(layout) {
   const rects = {};
   for (const a of (layout && layout.anchors) || []) rects[a.id] = a.rect;
   const sy = (layout && layout.scroll && layout.scroll.y) || 0;
   const vp = (layout && layout.viewport) || { w: 0, h: 0 };
   return (ev) => {
-    if (typeof ev.x !== "number" || typeof ev.y !== "number") return null;
     if (ev.a === "page" || ev.a == null) return [ev.x * vp.w, ev.y * vp.h];
     const r = rects[ev.a];
     return r ? [r.x + ev.x * r.w, r.y - sy + ev.y * r.h] : null;
@@ -131,18 +132,19 @@ function useReplay(layoutRef) {
   const [playing, setPlaying] = useState(false);
   const raf = useRef(0);
   const stop = useCallback(() => { cancelAnimationFrame(raf.current); setPlaying(false); setView(null); }, []);
+  // Points keep their anchor and fractions and are mapped on every frame against
+  // the latest layout, so a scroll or re-layout during the replay never drifts.
   const play = useCallback((take) => {
     cancelAnimationFrame(raf.current);
-    const at = placer(layoutRef.current);
     const pts = [];
     let down = false;
     for (const ev of take.events || []) {
       if (ev.k === "down") down = true;
       if (ev.k === "up") down = false;
-      const p = at(ev);
-      if (p) pts.push({ t: ev.t, x: p[0], y: p[1], down });
+      if (typeof ev.x === "number" && typeof ev.y === "number") pts.push({ t: ev.t, a: ev.a, x: ev.x, y: ev.y, down });
     }
-    if (!pts.length) { toast({ title: "Nothing to replay", desc: "No event in this take lands on the page as it is laid out now.", kind: "error" }); return; }
+    const at0 = placer(layoutRef.current);
+    if (!pts.some((q) => at0(q))) { toast({ title: "Nothing to replay", desc: "No event in this take lands on the page as it is laid out now.", kind: "error" }); return; }
     const dur = Math.max(take.duration_ms || 0, pts[pts.length - 1].t);
     const start = performance.now() - pts[0].t;
     let i = 0;
@@ -150,9 +152,14 @@ function useReplay(layoutRef) {
     const frame = (now) => {
       const t = now - start;
       while (i < pts.length - 1 && pts[i + 1].t <= t) i++;
+      const at = placer(layoutRef.current);
       const a = pts[i], b = pts[Math.min(i + 1, pts.length - 1)];
-      const f = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 0;
-      setView({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, down: a.down, p: dur ? Math.min(1, t / dur) : 1 });
+      const pa = at(a), pb = at(b) || pa;
+      const p = dur ? Math.min(1, t / dur) : 1;
+      if (pa) {
+        const f = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 0;
+        setView({ x: pa[0] + (pb[0] - pa[0]) * f, y: pa[1] + (pb[1] - pa[1]) * f, down: a.down, p });
+      } else setView((v) => v && { ...v, p }); // anchor gone from the layout: skip, hold the cursor
       if (t < dur) raf.current = requestAnimationFrame(frame);
       else { setPlaying(false); setView((v) => v && { ...v, down: false, p: 1 }); }
     };
