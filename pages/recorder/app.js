@@ -16,7 +16,7 @@ const LANDING = "https://studio.gabrielpenman.com/?record=1";
 const KINDS = [["gabriel", "Gabriel"], ["you", "You"], ["agent", "Agent"]];
 const KIND_LABEL = Object.fromEntries(KINDS);
 const HELLO_EVERY_MS = 1000;
-const HELLO_FOR_MS = 10000;
+const HELLO_FOR_MS = 30000;
 const STOP_WAIT_MS = 2000;
 
 /* Loopback page and loopback override only, so a dev run can frame a mock landing.
