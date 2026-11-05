@@ -66,8 +66,8 @@ def _error(code: str, message: str) -> JSONResponse:
 
 NO_TOKEN = ("no_token", "No g-content token is set. Set G_CONTENT_TOKEN or put the token in "
             "G_CONTENT_TOKEN_FILE (default /etc/g-content/token), then restart gcommand.")
-DOWN = ("unreachable", "g-content is not answering on loopback. Start it with "
-        "`systemctl start g-content` on h, then try again.")
+DOWN = ("unreachable", "g-content is not answering on loopback. Start it with systemctl start "
+        "g-content on h, then try again.")
 
 
 def _gate(request: Request) -> None:
