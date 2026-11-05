@@ -155,7 +155,7 @@ def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
     setup = web[4]["entries"][0]
     assert setup["slug"] is None and [k["label"] for k in setup["children"]] == ["Bootstrap", "Install", "Passport"]
     design = [e for e in web[1]["entries"] if e["label"] == "Design"][0]
-    assert design["slug"] is None and [(k["slug"], k["label"]) for k in design["children"]] == [("design", "Language"), ("showcase", "Showcase")]
+    assert design["slug"] is None and [(k["slug"], k["label"]) for k in design["children"]] == [("design", "Language"), ("showcase", "Showcase"), ("recorder", "Recorder")]
     html = compiler.build_nav_html(configs(PAGES))
     assert html.count('class="nav-group"') == 5 and html.count("data-open") == 5
     assert "hub" not in html and 'class="nav-twist"' not in html

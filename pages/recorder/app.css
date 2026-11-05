@@ -1,0 +1,57 @@
+/* Recorder. Alias tokens only, 4px grid. The stage is sized in px by app.js so the
+   iframe keeps its natural CSS size and pointer coordinates match the overlay. */
+.rc-page { display: contents; }
+.rc-page .btn > span > .ph { margin-right: var(--sp-1); vertical-align: -2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.rc-stage-box { width: 100%; max-width: 1440px; min-width: 0; }
+.rc-stage { position: relative; max-width: 100%; background: var(--well-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-card); overflow: hidden; box-sizing: content-box; }
+.rc-stage iframe { display: block; border: 0; background: var(--bg); }
+.rc-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.rc-tip { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
+.rc-arrow { position: absolute; display: block; }
+/* A press grows from the tip as a ring, a scaled reveal, never a fade. */
+.rc-press { position: absolute; left: -12px; top: -12px; width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--cowork-red); box-sizing: border-box;
+  animation: rc-grow var(--dur-base) var(--ease-out) both; }
+@keyframes rc-grow { from { transform: scale(0.2); } to { transform: scale(1); } }
+.rc-note { position: absolute; z-index: 1; inset: auto var(--sp-3) var(--sp-3) var(--sp-3); display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--bg); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: var(--radius-card); font-size: 13px; }
+.rc-note > span { flex: 1 1 240px; min-width: 0; }
+/* Not answering covers the frame, since what the browser shows there instead says nothing useful. */
+.rc-note.rc-cover { inset: 0; border: 0; border-radius: 0; justify-content: center; align-content: center; text-align: center;
+  background: var(--bg); padding: var(--sp-6, 32px); }
+.rc-note.rc-cover > span { flex: 0 1 100%; max-width: 480px; }
+
+.rc-progress { height: 2px; max-width: 100%; margin-top: var(--sp-2); background: var(--border); overflow: hidden; border-radius: 1px; }
+.rc-progress span { display: block; height: 100%; background: var(--text-secondary); transform-origin: left center; }
+.rc-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); min-height: var(--h-1); margin-top: var(--sp-2); font-size: 13px; }
+.rc-live { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--danger-text); }
+.rc-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.rc-take-form { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 560px; margin-top: var(--sp-4); }
+.rc-form-meta { display: flex; gap: var(--sp-4); font-size: 13px; color: var(--text-secondary); }
+.rc-form-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.rc-save-err .empty { padding: var(--sp-3) 0; }
+.rc-kept { margin: var(--sp-4) 0 0; font-size: 13px; }
+
+.rc-saved { margin-top: var(--sp-6, 32px); max-width: 1040px; }
+.rc-saved > h2 { margin: 0 0 var(--sp-3); }
+.rc-trouble { max-width: 640px; }
+.rc-takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--sp-4); }
+.rc-take { display: flex; gap: var(--sp-4); padding: var(--sp-3); min-width: 0; }
+.rc-poster { flex: none; width: 112px; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
+  background: var(--well-bg); border: 1px solid var(--border); border-radius: var(--radius-sm, 6px); overflow: hidden;
+  color: var(--text-placeholder); font-size: 24px; }
+.rc-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rc-take-body { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; flex: 1; }
+.rc-take-title { font-weight: 500; color: var(--text-primary); overflow-wrap: anywhere; }
+.rc-take-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-3); font-size: 12px; color: var(--text-secondary); }
+.rc-take-actions { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+
+@media (max-width: 720px) {
+  .rc-takes { grid-template-columns: minmax(0, 1fr); }
+  .rc-poster { width: 88px; }
+}

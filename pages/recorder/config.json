@@ -1,0 +1,13 @@
+{
+  "title": "Recorder",
+  "slug": "recorder",
+  "description": "Record cursor takes on the G-Studio landing page, replay them and keep the good ones in g-content.",
+  "nav": false,
+  "nav_icon": "record",
+  "nav_label": "Recorder",
+  "order": 29,
+  "body_class": "recorder-page",
+  "gsys": true,
+  "tabs": "design",
+  "tab_label": "Recorder"
+}

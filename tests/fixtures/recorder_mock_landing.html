@@ -1,0 +1,68 @@
+<!doctype html>
+<!-- A stand-in for the G-Studio landing in record mode (?record=1), for testing the
+     Recorder page on loopback. It speaks the iframe side of gs-cursor-take/1: ready,
+     anchors, events (coalesced samples, once a frame), stopped, play and played. -->
+<html><head><meta charset="utf-8"><title>mock landing</title>
+<style>
+  body { margin: 0; font: 14px system-ui; background: #f4f1ea; color: #222; height: 1600px; }
+  [data-anchor] { position: absolute; border: 2px solid #3f6489; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  #dot { position: fixed; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: #3f6489; display: none; pointer-events: none; }
+</style></head><body>
+<div data-anchor="hero-g" style="left:40px;top:40px;width:320px;height:220px">hero-g</div>
+<div data-anchor="nudge" style="left:420px;top:60px;width:200px;height:120px">nudge</div>
+<div data-anchor="link" style="left:420px;top:220px;width:200px;height:60px"><a href="#">link</a></div>
+<div id="dot"></div>
+<script>
+let parentOrigin = null, session = null, t0 = 0, recording = false, batch = [], anchorPending = false, playing = 0;
+const send = (m) => parentOrigin && parent.postMessage({ gsr: 1, session, ...m }, parentOrigin);
+const anchors = () => [...document.querySelectorAll("[data-anchor]")].map((el) => {
+  const r = el.getBoundingClientRect();
+  return { id: el.dataset.anchor, rect: { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height } };
+});
+const layout = () => ({ viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio },
+  scroll: { y: scrollY, max: document.documentElement.scrollHeight - innerHeight }, anchors: anchors() });
+const queueAnchors = () => { if (anchorPending || !session) return; anchorPending = true;
+  requestAnimationFrame(() => { anchorPending = false; send({ type: "anchors", ...layout() }); }); };
+addEventListener("resize", queueAnchors);
+addEventListener("scroll", () => { queueAnchors(); if (recording) batch.push({ t: performance.now() - t0, k: "scroll", y: scrollY }); });
+let dragAnchor = null;
+function place(e) {
+  const el = dragAnchor ? document.querySelector(`[data-anchor="${dragAnchor}"]`) : document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-anchor]");
+  if (!el) return { a: "page", x: +(e.clientX / innerWidth).toFixed(4), y: +(e.clientY / innerHeight).toFixed(4) };
+  const r = el.getBoundingClientRect();
+  return { a: el.dataset.anchor, x: +((e.clientX - r.left) / r.width).toFixed(4), y: +((e.clientY - r.top) / r.height).toFixed(4) };
+}
+const push = (k, e, extra) => recording && batch.push({ t: e.timeStamp - t0, k, ...place(e), ...extra });
+addEventListener("pointermove", (e) => {
+  for (const c of (e.getCoalescedEvents ? e.getCoalescedEvents() : [e])) push("move", c, { b: e.buttons });
+});
+addEventListener("pointerdown", (e) => { push("down", e, { btn: e.button, pt: e.pointerType, on: "none" }); dragAnchor = place(e).a; });
+addEventListener("pointerup", (e) => { push("up", e, { btn: e.button }); dragAnchor = null; });
+addEventListener("keydown", (e) => recording && batch.push({ t: e.timeStamp - t0, k: "key", key: e.key, mods: (e.shiftKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.altKey ? 4 : 0) | (e.metaKey ? 8 : 0) }));
+function flush() { if (recording && batch.length) { send({ type: "events", batch }); batch = []; } if (recording) requestAnimationFrame(flush); }
+function playTake(take) {
+  const dot = document.getElementById("dot"), evs = (take.events || []).filter((e) => typeof e.x === "number");
+  const rects = Object.fromEntries(anchors().map((a) => [a.id, a.rect]));
+  const id = ++playing, start = performance.now();
+  dot.style.display = "block";
+  const step = (now) => {
+    if (id !== playing) return;
+    const t = now - start, ev = evs.findLast((e) => e.t <= t) || evs[0];
+    if (ev) { const r = ev.a === "page" ? { x: 0, y: scrollY, w: innerWidth, h: innerHeight } : rects[ev.a];
+      if (r) { dot.style.left = r.x + ev.x * r.w - scrollX + "px"; dot.style.top = r.y + ev.y * r.h - scrollY + "px"; } }
+    if (!evs.length || t >= evs[evs.length - 1].t) { dot.style.display = "none"; send({ type: "played" }); return; }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+addEventListener("message", (e) => {
+  if (e.source !== parent || !e.data || e.data.gsr !== 1) return;
+  const m = e.data;
+  if (m.type === "hello") { parentOrigin = e.origin; session = m.session; send({ type: "ready", rev: "mock-0001", ...layout() }); return; }
+  if (m.session !== session) return;
+  if (m.type === "start") { t0 = performance.now(); recording = true; batch = []; requestAnimationFrame(flush); }
+  if (m.type === "stop") { recording = false; if (batch.length) send({ type: "events", batch }); batch = []; send({ type: "stopped", duration_ms: performance.now() - t0 }); }
+  if (m.type === "play") playTake(m.take);
+  if (m.type === "halt") { playing++; document.getElementById("dot").style.display = "none"; }
+});
+</script></body></html>

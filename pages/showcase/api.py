@@ -80,14 +80,21 @@ def _client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=TIMEOUT_S)
 
 
-async def _json(method: str, path: str, params: dict | None = None, body: dict | None = None):
+async def _json(method: str, path: str, params: dict | None = None, body: dict | None = None,
+                content: bytes | None = None, timeout: float | None = None):
+    # `content` is a raw JSON body sent as is (the Recorder's takes); `timeout`
+    # overrides TIMEOUT_S for one slow call.
     token = _token()
     if not token:
         return _error(*NO_TOKEN)
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
+    if content is not None:
+        headers["Content-Type"] = "application/json"
     try:
         async with _client() as c:
-            up = await c.request(method, _base() + path, params=params, json=body,
-                                 headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
+            up = await c.request(method, _base() + path, params=params, json=body, content=content,
+                                 headers=headers,
+                                 timeout=timeout if timeout is not None else httpx.USE_CLIENT_DEFAULT)
     except httpx.HTTPError:
         return _error(*DOWN)
     if up.status_code in (401, 403):
