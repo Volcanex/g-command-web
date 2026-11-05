@@ -50,6 +50,10 @@
         <span class="spinner"></span><span>Add item</span>
       </button>
     </div>
+    <label class="field f-details">
+      <span class="label">Details (optional)</span>
+      <textarea class="textarea" name="body" rows="2" placeholder="Booking ref, address, who it's with"></textarea>
+    </label>
   </form>
 </section>
 
@@ -86,6 +90,8 @@
     .add-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .add-form .f-title, .add-form .f-actions { grid-column: 1 / -1; }
   }
+  .add-form .f-details { grid-column: 1 / -1; }
+  @media (min-width: 901px) { .add-form .f-details { grid-row: 2; } }
 
   /* The list: Overdue, Today, Tomorrow, This week, Later. Each row is a tick,
      the when, the title and a move button, on a fixed grid so the titles line
@@ -110,6 +116,34 @@
     overflow-wrap: anywhere;
   }
   .row .title a:hover { text-decoration: underline; }
+  .row .title .open {
+    all: unset; cursor: pointer; color: var(--text-primary); font-size: 14px; line-height: var(--lh-2);
+    overflow-wrap: anywhere;
+  }
+  .row .title .open:hover { text-decoration: underline; }
+  .row .title .open:focus-visible { outline: 2px solid var(--accent-edge, var(--text-primary)); outline-offset: 2px; border-radius: var(--radius-sm); }
+  .row.is-done .title .open { color: var(--ok-text); text-decoration: line-through; }
+  .row.is-failed .title .open { color: var(--danger-text); text-decoration: line-through; }
+
+  /* Details open in place under their row, lined up with the title column.
+     They arrive by a mask wiping down, never a fade. */
+  .details {
+    margin: 0 0 var(--sp-3) calc(var(--h-1) + 120px + 2 * var(--sp-3));
+    padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-sm); background: var(--surface-2);
+    display: grid; gap: var(--sp-3); animation: cal-wipe var(--dur-base, 200ms) var(--ease-out, ease-out);
+  }
+  @keyframes cal-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+  @media (prefers-reduced-motion: reduce) { .details { animation: none; } }
+  .details dl { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--sp-1) var(--sp-3); margin: 0; }
+  .details dt { color: var(--text-secondary); font-size: 12px; line-height: var(--lh-2); }
+  .details dd { margin: 0; font-size: 13px; line-height: var(--lh-2); overflow-wrap: anywhere; }
+  .details .body { margin: 0; font-size: 13px; line-height: var(--lh-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .details .body a { color: var(--accent-edge, var(--text-primary)); }
+  .details .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  .details .muted { color: var(--text-placeholder); font-size: 13px; margin: 0; }
+  .edit-form { display: grid; gap: var(--sp-3); grid-template-columns: 152px 112px minmax(0, 1fr) 112px; align-items: end; }
+  .edit-form .f-wide { grid-column: 1 / -1; }
+  @media (max-width: 900px) { .edit-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
   .row .dot { flex: none; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--cat, var(--chart-6)); }
   .row .late { color: var(--warn-text); font-size: 12px; white-space: nowrap; }
   .row .vital-mark { color: var(--danger-text); font-weight: 500; }
@@ -129,6 +163,7 @@
     .row .tick { grid-row: 1 / span 2; }
     .row .title { flex-wrap: wrap; column-gap: var(--sp-2); }
     .row .title .dot { display: none; }
+    .details { margin-left: calc(var(--h-1) + var(--sp-2)); padding: var(--sp-3); }
   }
 
   .month-nav { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
@@ -223,9 +258,83 @@
                aria-label="${it.done ? 'Mark not done' : 'Mark done'}: ${esc(it.title)}">
         <span class="when">${whenText}</span>
         <span class="title"><span class="dot"></span>
-          <a href="/note/${esc(it.permalink || 'todos/' + it.slug)}">${it.vital ? '<span class="vital-mark">!</span> ' : ''}${esc(it.title)}</a>${late}</span>
+          <button class="open" type="button" data-act="open" data-i="${i}" aria-expanded="${openKey === keyOf(it)}">${it.vital ? '<span class="vital-mark">!</span> ' : ''}${esc(it.title)}</button>${late}</span>
         ${move || '<span></span>'}
+      </div>${openKey === keyOf(it) ? `<div class="details" data-details="${i}">${detailsHtml(it)}</div>` : ''}`;
+  }
+
+  // Details: one item open at a time, keyed by slug and date so the right
+  // occurrence stays open across a reload. The calendar feed carries no body
+  // or amount, so the full todo is fetched when it opens.
+  let openKey = null, editing = false;
+  const full = {};   // slug -> the full todo, or {error}
+  const keyOf = (it) => `${it.slug}@${it.date}`;
+  const raw = (s) => String(s ?? '').replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const linkify = (s) => raw(s).replace(/https?:\/\/[^\s<]+[^\s<.,:;)\]'"!?]/g,
+    (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+  const money = (a) => {
+    const n = Number(a);
+    return a === '' || a == null ? '' : Number.isFinite(n) ? `£${n.toFixed(2)}` : String(a);
+  };
+  const startOf = (t) => {   // {date, time} from the stored start or due
+    const s = t.start ? String(t.start) : '';
+    if (s.includes('T')) return { date: s.slice(0, 10), time: t.all_day ? '' : s.slice(11, 16) };
+    return { date: String(t.due || s || '').slice(0, 10), time: '' };
+  };
+
+  function detailsHtml(it) {
+    const t = full[it.slug];
+    if (!t) return '<p class="muted">Loading details</p>';
+    if (t.error) return `<p class="muted">Details unavailable: the brain did not answer (${raw(t.error)}). Close and open it to try again.</p>`;
+    const i = items.indexOf(it);
+    const note = `<a class="btn btn-tertiary btn-sm" href="/note/${esc(it.permalink || 'todos/' + it.slug)}">Open note</a>`;
+    if (editing) {
+      const s = startOf(t);
+      return `<form class="edit-form" data-edit="${i}">
+        ${it.recurring ? '' : `<label class="field"><span class="label">Date</span>
+          <input class="input num" type="date" name="date" value="${raw(s.date || it.date)}" required></label>`}
+        <label class="field"><span class="label">Time</span>
+          <input class="input num" type="time" name="time" value="${raw(s.time)}"></label>
+        <label class="field"><span class="label">Location</span>
+          <input class="input" type="text" name="location" value="${raw(t.location || '')}" autocomplete="off"></label>
+        <label class="field"><span class="label">Amount</span>
+          <input class="input num" type="text" inputmode="decimal" name="amount" value="${raw(t.amount ?? '')}" autocomplete="off"></label>
+        <label class="field f-wide"><span class="label">Details</span>
+          <textarea class="textarea" name="body" rows="4">${raw((t.body || '').trimEnd())}</textarea></label>
+        <div class="actions f-wide">
+          <button class="btn btn-primary btn-sm" type="submit"><span class="spinner"></span><span>Save details</span></button>
+          <button class="btn btn-tertiary btn-sm" type="button" data-act="cancel" data-i="${i}">Cancel</button>
+        </div>
+      </form>`;
+    }
+    const when = it.time ? `${short(it.date)} at ${it.time}` : `${short(it.date)}, all day`;
+    const rows = [['When', raw(when) + (it.recurring ? ', repeats' : '')],
+                  ['Where', t.location ? linkify(t.location) : ''],
+                  ['Amount', raw(money(t.amount))]]
+      .filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    const body = (t.body || '').trim();
+    return `<dl>${rows}</dl>${body ? `<p class="body">${linkify(body)}</p>` : ''}
+      <div class="actions">
+        <button class="btn btn-secondary btn-sm" type="button" data-act="edit" data-i="${i}">Edit details</button>${note}
       </div>`;
+  }
+
+  function repaintDetails() {
+    const box = document.querySelector('[data-details]');
+    const it = box && items[Number(box.dataset.details)];
+    if (it) box.innerHTML = detailsHtml(it);
+  }
+
+  async function fetchFull(slug) {
+    try {
+      const r = await fetch(`${API_BASE}/api/todos/${encodeURIComponent(slug)}`);
+      if (!r.ok) throw new Error(`status ${r.status}`);
+      full[slug] = await r.json();
+    } catch (e) {
+      full[slug] = { error: e.message };
+    }
+    repaintDetails();
   }
 
   function section(key, title, rows, whenOf) {
@@ -342,7 +451,17 @@
     if (!el) return;
     const it = items[Number(el.dataset.i)];
     if (!it) return;
-    if (el.dataset.act === 'tick') {
+    if (el.dataset.act === 'open') {
+      const k = keyOf(it);
+      openKey = openKey === k ? null : k;
+      editing = false;
+      if (openKey) { delete full[it.slug]; fetchFull(it.slug); }
+      paint();
+    } else if (el.dataset.act === 'edit' || el.dataset.act === 'cancel') {
+      editing = el.dataset.act === 'edit';
+      repaintDetails();
+      if (editing) document.querySelector('[data-edit] input, [data-edit] textarea')?.focus();
+    } else if (el.dataset.act === 'tick') {
       el.disabled = true;
       patch(it, tickBody(it), it.done ? 'Marked not done' : 'Marked done');
     } else if (el.dataset.act === 'move') {
@@ -355,6 +474,50 @@
     if (!input || !input.value) return;
     const it = items[Number(input.dataset.move)];
     if (it && input.value !== it.date) patch(it, { reschedule_to: input.value }, `Moved to ${short(input.value)}`);
+  });
+
+  // Save: only the fields that changed go in the PATCH. A time sets start
+  // (keeping any end the same length after it), no time makes it all day.
+  document.addEventListener('submit', async (e) => {
+    const f = e.target.closest('[data-edit]');
+    if (!f) return;
+    e.preventDefault();
+    const it = items[Number(f.dataset.edit)], t = it && full[it.slug];
+    if (!t || t.error) return;
+    const fd = new FormData(f), was = startOf(t), body = {};
+    const date = it.recurring ? was.date : String(fd.get('date') || '');
+    const time = String(fd.get('time') || '');
+    if (!date) {
+      g.toast({ title: 'Date needed', desc: 'Every item has a date. Pick one, then save.', kind: 'danger' });
+      return;
+    }
+    if (date !== was.date || time !== was.time) {
+      if (time) {
+        body.start = `${date}T${time}:00`;
+        body.all_day = false;
+        body.due = null;
+        if (t.end && t.start && String(t.start).includes('T')) {
+          const len = new Date(t.end) - new Date(t.start);
+          const end = new Date(new Date(`${date}T${time}:00`).getTime() + len);
+          body.end = `${iso(end)}T${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}:00`;
+        }
+      } else {
+        body.due = date; body.start = null; body.end = null; body.all_day = true;
+      }
+    }
+    const loc = String(fd.get('location') || '').trim();
+    if (loc !== (t.location || '')) body.location = loc || null;
+    const amt = String(fd.get('amount') || '').trim().replace(/^£/, '');
+    if (amt !== String(t.amount ?? '')) body.amount = amt === '' ? null : (Number.isFinite(Number(amt)) ? Number(amt) : amt);
+    const text = String(fd.get('body') || '').trimEnd();
+    if (text !== (t.body || '').trimEnd()) body.body = text;
+    if (!Object.keys(body).length) { editing = false; repaintDetails(); return; }
+    f.querySelector('[type=submit]').setAttribute('data-loading', '');
+    editing = false;
+    if (!it.recurring) openKey = `${it.slug}@${date}`;
+    delete full[it.slug];
+    await patch(it, body, 'Details saved');
+    await fetchFull(it.slug);
   });
 
   grid.addEventListener('click', (e) => {
@@ -406,6 +569,8 @@
                       requester: 'gabriel', composer: 'gabriel', source: 'gcommand:calendar' };
     if (time) payload.start = `${date}T${time}`;
     if (fd.get('category')) payload.category = String(fd.get('category'));
+    const details = String(fd.get('body') || '').trim();
+    if (details) payload.body = details;
     const submit = $('[data-submit]');
     submit.setAttribute('data-loading', '');
     try {
