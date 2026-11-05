@@ -15,10 +15,12 @@
 </div>
 
 <style>
-  /* The studio fills the space under the top bar edge to edge and scrolls inside itself. */
-  body.studio-page .content { display: flex; flex-direction: column; overflow: hidden; }
-  body.studio-page .site-main { flex: 1 1 auto; min-height: 0; max-width: none; padding: 0; gap: 0; overflow: hidden; display: flex; flex-direction: column; }
-  body.studio-page .site-main > * { max-width: none; }
+  /* The studio fills the space under the top bar edge to edge and scrolls inside itself.
+     Aim at Command's own .content (a child of body > .g-main) only: the embedded studio uses the same kit classes
+     (.content, even id="main-content", is its scroll area), so a descendant rule here clips it unscrollable. */
+  body.studio-page > .g-main > .content { display: flex; flex-direction: column; overflow: hidden; }
+  body.studio-page > .g-main > .content > .site-main { flex: 1 1 auto; min-height: 0; max-width: none; padding: 0; gap: 0; overflow: hidden; display: flex; flex-direction: column; }
+  body.studio-page > .g-main > .content > .site-main > * { max-width: none; }
   .studio-host { flex: 1; min-height: 0; position: relative; }
   /* One bar, not two (g-navigation R7). Once the studio draws its own bar, that bar says where
      you are (the site and section, or Your sites) and holds the studio's verbs, so Command's
