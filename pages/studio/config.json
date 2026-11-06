@@ -3,9 +3,9 @@
   "slug": "studio",
   "description": "g-studio, running here: edit, preview and publish sites without leaving Command.",
   "nav": true,
-  "order": 50,
+  "order": 0.5,
   "body_class": "studio-page",
-  "nav_section": "Publish",
+  "nav_section": "Overview",
   "nav_icon": "paint-brush-broad",
   "nav_label": "Studio",
   "gsys": true
