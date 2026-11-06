@@ -28,6 +28,28 @@ const radius = (d) => (d.type === "repo" ? 9 : d.pair === "none" ? 3.5 : 5.5);
 // carrying markdown; flatten before they reach a plain slot.
 const plain = (t) => (window.g && window.g.plain ? window.g.plain(t) : String(t ?? ""));
 
+// brain/nerves/ is the brain's synced-from-GitHub copy of every repo's nerves, so
+// the API walks it as ~1500 dirs under one repo: every other repo a second time,
+// all pulled into a single grid cell where the charge piles them into a blob that
+// swamps the web and keeps the reframe jittering. Fold it to its root dir and count
+// the summary from what is drawn, so the mirror neither renders nor double-counts.
+const MIRROR = { repo: "brain", root: "nerves" };
+const inMirror = (id, byId) => {
+  const d = byId.get(id);
+  return !!d && d.repo === MIRROR.repo && (d.path || "").startsWith(MIRROR.root + "/");
+};
+function foldMirror({ nodes, links, summary }) {
+  const byId = new Map(nodes.map((d) => [d.id, d]));
+  const kept = nodes.filter((d) => !inMirror(d.id, byId)).map((d) =>
+    d.repo === MIRROR.repo && d.path === MIRROR.root ? { ...d, label: "nerves (mirror)", mirror: true } : d);
+  if (kept.length === nodes.length) return { nodes, links, summary };
+  const keptLinks = links.filter((l) => !inMirror(l.source.id || l.source, byId) && !inMirror(l.target.id || l.target, byId));
+  const counts = {};
+  kept.forEach((d) => { if (d.pair && d.pair !== "none") counts[d.pair] = (counts[d.pair] || 0) + 1; });
+  const nerve_dirs = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { nodes: kept, links: keptLinks, summary: { ...summary, ...Object.fromEntries(Object.keys(STATE).map((k) => [k, counts[k] || 0])), nerve_dirs } };
+}
+
 function matches(d, mode, query) {
   if (query && !`${d.repo}/${d.path || ""}`.toLowerCase().includes(query)) return false;
   if (mode === "unpaired") return PROBLEM.has(d.pair);
@@ -168,7 +190,7 @@ function Nerves() {
     let live = true;
     setError(null);
     Promise.all([getJson(`${BRAIN}/api/nerves`), loadScript(D3)])
-      .then(([d]) => live && setData(d), (e) => live && setError(e));
+      .then(([d]) => live && setData(foldMirror(d)), (e) => live && setError(e));
     return () => { live = false; };
   }, [tick]);
 
