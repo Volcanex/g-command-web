@@ -290,6 +290,9 @@ async def serve_pages(path: str, request: Request):
         if (resolved := _safe_under_output(candidate)) is not None:
             return FileResponse(resolved)
 
+    # pages/not-found: the 404 inside Command's shell. Before its first compile, the bare one.
+    if (resolved := _safe_under_output(OUTPUT_DIR / "not-found.html")) is not None:
+        return FileResponse(resolved, status_code=404)
     return HTMLResponse(_placeholder_404(path), status_code=404)
 
 

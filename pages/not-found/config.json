@@ -1,0 +1,8 @@
+{
+  "title": "Page not found",
+  "slug": "not-found",
+  "description": "The page Command shows for an address it has no page for.",
+  "nav": false,
+  "body_class": "not-found-page",
+  "gsys": true
+}
