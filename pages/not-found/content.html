@@ -1,0 +1,21 @@
+<!-- Served by server.py with status 404 for any address Command has no page for, inside the
+     usual shell so the rail still takes you somewhere. -->
+<section class="nf">
+  <div class="empty">
+    <i class="ph ph-compass" aria-hidden="true"></i>
+    <h1 class="e-title">Nothing lives here</h1>
+    <p class="e-desc">Command has no page at <code class="nf-path" data-nf-path></code>, so the link is probably old or the page has moved. Pick one from the menu or start again from Home.</p>
+    <a class="btn btn-primary btn-sm" href="/"><i class="ph ph-house"></i>Go to Home</a>
+  </div>
+</section>
+
+<style>
+  .nf { display: grid; place-items: center; min-height: 60vh; }
+  .nf .empty > i.ph { font-size: var(--h-1); color: var(--text-placeholder); }
+  .nf .e-desc { max-width: 360px; }
+  .nf-path { font-family: var(--font-mono); overflow-wrap: anywhere; }
+</style>
+
+<script>
+  document.querySelector("[data-nf-path]").textContent = location.pathname;
+</script>
