@@ -1,4 +1,4 @@
-/* g-design@1.6.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.7.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 /* g-ui-preact kit.css: the app shell look, lifted from Studio without changing a rule.
    Classes on top of g.css (link g.css first); alias tokens only, no raw colours.
    Works on plain HTML: nothing here needs the Preact components.
@@ -347,7 +347,9 @@ a.btn { text-decoration: none; }
 /* Larger sizes of g-design's dialog for change lists and pickers; the
    chrome (border, radius, motion, backdrop) is the component's own. */
 dialog.dlg { max-height: calc(100dvh - 32px); }
-dialog.dlg[open] { display: flex; flex-direction: column; }
+/* Flex whether open or not, so the layout holds while the masked exit plays after close(). */
+dialog.dlg { display: flex; flex-direction: column; }
+dialog.dlg:not([open]) { display: none; }
 dialog.dlg-sm { width: min(400px, calc(100vw - 32px)); }
 dialog.dlg-md { width: min(480px, calc(100vw - 32px)); }
 dialog.dlg-lg { width: min(720px, calc(100vw - 32px)); }

@@ -6,7 +6,7 @@ description = "Command center: the G-System web UI for ops, Brain views and serv
 [tool.gcore]
 depends = []
 starter = "gseed-app"
-design = "g-system@1.6.0"
+design = "g-system@1.7.0"
 
 [[tool.gcore.connects]]
 to = "g-system"

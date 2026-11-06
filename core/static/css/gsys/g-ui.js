@@ -1,4 +1,4 @@
-/* g-design@1.6.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.7.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-icons: generated from packages/g-icons/icons/*.svg. Do not edit. */
 (() => {
   const g = (window.g = window.g || {});
@@ -283,6 +283,9 @@
     el.sticky = opts.kind === "loading" || opts.sticky;
     toaster.append(el);
     toasts.unshift(el);
+    /* read the style once so the masked start state is computed before it is
+       lifted; without the read the toast lands in one frame */
+    void getComputedStyle(el).clipPath;
     requestAnimationFrame(() => { el.removeAttribute("data-entering"); restack(); });
     if (!el.sticky) el.timer = setTimeout(() => dismiss(el), opts.duration || 4000);
     return {
@@ -314,10 +317,15 @@
     const i = toasts.indexOf(el);
     if (i < 0) return;
     toasts.splice(i, 1);
-    el.style.translate = ""; el.style.scale = "";
+    el.style.translate = ""; el.style.scale = ""; el.style.opacity = "";
     el.setAttribute("data-leaving", "");
-    el.addEventListener("transitionend", () => el.remove(), { once: true });
-    setTimeout(() => el.remove(), 400);
+    /* go when the last running transition on the toast itself ends; the
+       timeout outlasts the longest motion token (825ms) in case none run */
+    const gone = () => el.remove();
+    el.addEventListener("transitionend", (e) => {
+      if (e.target === el && !el.getAnimations().some((a) => a.playState === "running")) gone();
+    });
+    setTimeout(gone, 900);
     restack();
   }
 

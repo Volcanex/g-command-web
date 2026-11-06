@@ -1,4 +1,4 @@
-/* g-design@1.6.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.7.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-tokens: generated from @radix-ui/colors by scripts/build-tokens.mjs. Do not edit. */
 
 /* Dark is the default, unconditionally. data-theme="light" opts a tree out;
@@ -1172,6 +1172,12 @@ a:hover { text-decoration-color: currentColor; }
 
 /* ---------------------------------------------------------------- overlays */
 
+/* Dialogs and toasts reveal behind a moving mask, never a fade: the clip
+   edge is the effect and the panel's opacity is never animated. The clip
+   reaches 64px past the box at rest so the shadow is not cut. A dialog
+   unrolls from its top edge on the sheet spring (500ms perceived) and rolls
+   back up on the smooth spring (300ms perceived); its content stays rendered
+   until that exit ends (the kit's Dialog keeps it, onExited says when). */
 dialog.dlg {
   width: min(440px, calc(100vw - 32px));
   padding: 0;
@@ -1180,26 +1186,40 @@ dialog.dlg {
   background: var(--overlay-bg);
   color: var(--text-primary);
   box-shadow: var(--overlay-shadow);
-  opacity: 0;
+  /* the :modal geometry, stated so it holds through the exit after close() */
+  position: fixed; inset: 0; margin: auto;
+  max-width: calc(100% - 2em - 6px); max-height: calc(100% - 2em - 6px);
+  overflow: auto;
+  clip-path: inset(-64px -64px 100% -64px);
   translate: 0 6px;
-  scale: 0.97;
   transition:
-    opacity var(--dur-slow) var(--ease-out),
-    translate var(--dur-slow) var(--ease-out),
-    scale var(--dur-slow) var(--ease-out),
-    overlay var(--dur-slow) allow-discrete,
-    display var(--dur-slow) allow-discrete;
+    clip-path var(--spring-smooth-dur) var(--spring-smooth),
+    translate var(--spring-smooth-dur) var(--spring-smooth),
+    overlay var(--spring-smooth-dur) allow-discrete,
+    display var(--spring-smooth-dur) allow-discrete;
 }
-dialog.dlg[open] { opacity: 1; translate: 0 0; scale: 1; }
+dialog.dlg[open] {
+  clip-path: inset(-64px);
+  translate: 0 0;
+  transition:
+    clip-path var(--spring-sheet-dur) var(--spring-sheet),
+    translate var(--spring-sheet-dur) var(--spring-sheet),
+    overlay var(--spring-sheet-dur) allow-discrete,
+    display var(--spring-sheet-dur) allow-discrete;
+}
 @starting-style {
-  dialog.dlg[open] { opacity: 0; translate: 0 6px; scale: 0.97; }
+  dialog.dlg[open] { clip-path: inset(-64px -64px 100% -64px); translate: 0 6px; }
 }
+/* The backdrop is a scrim, not content: its dim eases in and out. */
 dialog.dlg::backdrop {
   background: rgb(0 0 0 / 0.44);
   opacity: 0;
-  transition: opacity var(--dur-slow) var(--ease-out), overlay var(--dur-slow) allow-discrete, display var(--dur-slow) allow-discrete;
+  transition: opacity var(--spring-smooth-dur) var(--ease-out), overlay var(--spring-smooth-dur) allow-discrete, display var(--spring-smooth-dur) allow-discrete;
 }
-dialog.dlg[open]::backdrop { opacity: 1; }
+dialog.dlg[open]::backdrop {
+  opacity: 1;
+  transition: opacity var(--spring-smooth-dur) var(--ease-out), overlay var(--spring-sheet-dur) allow-discrete, display var(--spring-sheet-dur) allow-discrete;
+}
 @starting-style { dialog.dlg[open]::backdrop { opacity: 0; } }
 
 .dlg-body { padding: var(--sp-4) var(--sp-4) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); }
@@ -1301,13 +1321,26 @@ dialog.dlg[open]::backdrop { opacity: 1; }
   background: var(--overlay-bg);
   box-shadow: var(--overlay-shadow);
   font-size: var(--font-size-ui);
+  clip-path: inset(-48px);
   transition:
+    clip-path var(--spring-smooth-dur) var(--spring-smooth),
     translate var(--spring-smooth-dur) var(--spring-smooth),
     scale var(--spring-smooth-dur) var(--spring-smooth),
     opacity var(--dur-slow) var(--ease-out);
 }
-.toast[data-entering] { translate: 0 16px; opacity: 0; }
-.toast[data-leaving] { translate: 0 8px; opacity: 0; }
+/* Enter: the mask's top edge rises from the toast's foot (300ms perceived).
+   Leave: it drops back down on the same spring, and g-ui.js removes the
+   toast only once its last transition has ended. Opacity animates only for
+   the stack's fourth and later toasts, which recede out of view. */
+.toast[data-entering] { translate: 0 16px; clip-path: inset(100% -48px -48px -48px); }
+.toast[data-leaving] {
+  translate: 0 8px;
+  clip-path: inset(100% -48px -48px -48px);
+  transition:
+    clip-path var(--spring-smooth-dur) var(--spring-smooth),
+    translate var(--spring-smooth-dur) var(--spring-smooth),
+    scale var(--spring-smooth-dur) var(--spring-smooth);
+}
 /* Icons sit on the title's first line: a 15px glyph centred in the title's
    20px line-box, so the spinner and the status glyphs share one vertical. */
 .toast > svg, .toast > .spinner { width: 15px; height: 15px; flex: none; margin-top: 2.5px; }
@@ -1810,6 +1843,10 @@ dialog.cmdk {
     transition-property: opacity, overlay, display !important;
     transition-duration: var(--dur-base) !important;
   }
+  /* The masks go too: dialogs and toasts crossfade instead. */
+  dialog.dlg, .toast { clip-path: none !important; }
+  dialog.dlg:not([open]), .toast[data-entering], .toast[data-leaving] { opacity: 0; }
+  @starting-style { dialog.dlg[open] { opacity: 0; } }
   .skeleton::after { animation: none; }
   .dl-btn [data-part="arrow"], .dl-btn [data-part="tray"],
   [data-ring] .gi-bell [data-part] { animation: none !important; }

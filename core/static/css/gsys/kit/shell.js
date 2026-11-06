@@ -1,4 +1,4 @@
-/* g-design@1.6.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.7.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 // The app shell (g-design .g-shell): sidebar with brand, nav and user foot, the top bar, the
 // phone nav sheet, and the theme switch. The app passes in what is its own (brand name, nav
 // items, menu items, what closes the sheet) as props; nothing here knows its routes.

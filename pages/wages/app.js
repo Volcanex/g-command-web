@@ -8,7 +8,7 @@
 //   Amount due        the balance at the invoice period's end (g-wages compute_invoice)
 //   Week totals       hours, earned, paid in and expenses for the week shown
 //   Owed at start/end the balance brought into and carried out of the week shown
-import { html, useState, useEffect, useCallback, Badge, Button, Dialog, Field, Menu, Empty, ErrorState, SkeletonRows, toast, toastOk, toastError, mount } from "../../core/app/boot.js";
+import { html, useState, useEffect, useRef, useCallback, Badge, Button, Dialog, Field, Menu, Empty, ErrorState, SkeletonRows, toast, toastOk, toastError, mount } from "../../core/app/boot.js";
 import "./app.css";
 
 const API = "/api/wages";
@@ -124,7 +124,11 @@ function DayList({ week, onHours, onDay }) {
 }
 
 /* One day: hours, the pulled work-log, free notes and the money entries. */
-function DayDialog({ week, dow, onClose, onHours, onChanged }) {
+function DayDialog({ week, dow: asked, onClose, onHours, onChanged }) {
+  // the day stays shown after it is closed, so the dialog's exit has its content to play
+  const last = useRef(asked);
+  if (asked != null) last.current = asked;
+  const dow = last.current;
   const d = week && dow != null ? week.days.find((x) => x.dow === dow) : null;
   const [kind, setKind] = useState("expense");
   const [amt, setAmt] = useState("");
@@ -149,7 +153,7 @@ function DayDialog({ week, dow, onClose, onHours, onChanged }) {
     try { await api("POST", `/c/${encodeURIComponent(week.slug)}/notes`, { week_start: week.week_start, dow, notes }); toastOk("Note saved"); await onChanged(); }
     catch (e) { toastError(e, "Note not saved"); }
   };
-  return html`<${Dialog} open=${true} onClose=${onClose} size="md" title=${FULL[dow]}
+  return html`<${Dialog} open=${asked != null} onClose=${onClose} size="md" title=${FULL[dow]}
       desc=${`${dt.getDate()} ${MON[dt.getMonth()]} ${dt.getFullYear()}, ${locked ? "locked" : "active"} week`}>
     <div class="wg-day">
       <${Field} label="Hours worked" hint=${`Earned ${d.working_total}`} id="wg-dh">
