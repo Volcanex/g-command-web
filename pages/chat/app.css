@@ -44,7 +44,10 @@ body.chat-page .content-page { max-width: none; height: 100%; padding: 0; gap: 0
   width: 100%; max-width: calc(var(--col-content) + 2 * var(--gutter)); margin: 0 auto;
   padding: var(--sp-3) var(--gutter) max(var(--sp-3), env(safe-area-inset-bottom));
 }
-.chat-input { flex: 1 1 auto; min-height: var(--h-control); max-height: 200px; resize: none; line-height: var(--lh-2); }
+/* #4, #6: the textarea had no block padding, so one line sat at the top of the bar. Pad it so a
+   single line centres in the control height (less the 1px borders) and growth keeps that inset. */
+.chat-input { flex: 1 1 auto; min-height: var(--h-control); max-height: 200px; resize: none; line-height: var(--lh-2);
+  padding-block: calc((var(--h-control) - var(--lh-2) - 2px) / 2); }
 
 /* Reply blocks: the dash's look, from the same tokens */
 .cb-blocks { display: flex; flex-direction: column; gap: var(--sp-3); max-width: var(--col-content); }
