@@ -269,7 +269,7 @@ function Variant({ service, onClose, reload }) {
   };
   return html`<${Dialog} open onClose=${onClose} busy=${busy} title="Create bot variant" desc=${`Use ${serviceLabel(service.name)} with a separate configuration. Zero replicas keeps the new service stopped.`}>
     <form class="resell-stack" onSubmit=${create}>
-      <${Field} label="Variant name" id="resell-variant-name"><input id="resell-variant-name" class="input" required pattern="[a-zA-Z0-9_-]+" value=${name} onInput=${(e) => setName(e.target.value)} /><//>
+      <${Field} label="Variant name" id="resell-variant-name"><input id="resell-variant-name" class="input" required pattern="(?:[a-zA-Z0-9_]|-)+" title="Use letters, numbers, underscores or hyphens." value=${name} onInput=${(e) => setName(e.target.value)} /><//>
       <${Field} label="Replicas" id="resell-variant-count"><input id="resell-variant-count" class="input" type="number" min="0" step="1" required value=${replicas} onInput=${(e) => setReplicas(e.target.value)} /><//>
       ${error && html`<${ErrorState} error=${error} />`}
       <div class="resell-row"><${Button} onClick=${onClose} disabled=${busy}>Cancel<//><${Button} type="submit" kind="primary" busy=${busy} disabled=${busy}>Create variant<//></div>
