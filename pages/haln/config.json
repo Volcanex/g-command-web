@@ -1,0 +1,11 @@
+{
+  "title": "HALN",
+  "slug": "haln",
+  "description": "The HALN shop: products, sourcing, creative review, activity and orders.",
+  "nav": false,
+  "tabs": "projects",
+  "tab_label": "HALN",
+  "nav_icon": "storefront",
+  "order": 20,
+  "gsys": true
+}

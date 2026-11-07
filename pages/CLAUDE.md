@@ -32,7 +32,7 @@ an entry on the web rail apart from the apps (Upload is at the top here and
 under Publish there). The key keeps its name because the apps read the same
 manifest (their sidebar draws the same groups, and their Overview dash is
 still Life, System and Full dash). There are no hub or tile pages.
-Groups: `projects` (project admin tools, including Studio recorder at `/recorder`,
+Groups: `projects` (HALN `/haln`, Studio recorder at `/recorder`,
 under Work), `life` (Calendar, Pulse), `system` (Diagram, Services `/system`,
 Compute, Crons, Tickets, Projects, Levels), `brain` (Graph, Notes,
 Nerves, References, Lineage), `design` (Language `/design`, Showcase) and `setup` (Bootstrap `/setup`, Install,
