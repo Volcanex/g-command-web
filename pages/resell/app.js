@@ -57,8 +57,8 @@ function Data({ state, children }) {
 function Metric({ name, value }) {
   return html`<div class="card resell-metric"><span class="resell-muted">${name}</span><strong class="num">${value}</strong></div>`;
 }
-function Table({ label: name, headers, children }) {
-  return html`<div class="card resell-table"><table class="table" aria-label=${name}>
+function Table({ label: name, headers, top, children }) {
+  return html`<div class="card resell-table"><table class=${top ? "table resell-table-top" : "table"} aria-label=${name}>
     <thead><tr>${headers.map((h) => html`<th key=${h}>${h}</th>`)}</tr></thead><tbody>${children}</tbody>
   </table></div>`;
 }
@@ -97,7 +97,7 @@ function Dashboard() {
 function Events() {
   const state = useJson(`${ROOT}/pool/events?limit=20`);
   return html`<section class="resell-stack"><div class="resell-row resell-between"><h2 class="card-title">Recent events</h2><${Refresh} state=${state} /></div>
-    <${Data} state=${state}>${({ events = [] }) => events.length ? html`<${Table} label="Recent pool events" headers=${["Event", "Time", "Details"]}>
+    <${Data} state=${state}>${({ events = [] }) => events.length ? html`<${Table} top label="Recent pool events" headers=${["Event", "Time", "Details"]}>
       ${events.map((event) => html`<tr key=${event._id}><td>${label(event.event_type)}</td><td>${date(event.timestamp)}</td><td><pre class="resell-code">${JSON.stringify(event.data || {}, null, 2)}</pre></td></tr>`)}
     <//>` : html`<${Empty} title="No recent events" desc="Refresh to check for new pool activity."><${Refresh} state=${state} /><//>`}<//>
   </section>`;
@@ -141,7 +141,7 @@ function Pool() {
     ${selected.length > 0 && html`<div class="resell-row"><span class="num">${selected.length} selected</span><${Button} kind="danger" size="sm" onClick=${() => setDeleting(true)}>Delete selected items<//></div>`}
     ${deleteError && html`<${ErrorState} error=${deleteError} retry=${() => setDeleting(true)} />`}
     <${Data} state=${state}>${({ items = [], total, total_pages }) => html`
-      ${items.length ? html`<${Table} label="Pool items" headers=${["Select", "Item", "Status", "Created", "Locked by", "Actions"]}>
+      ${items.length ? html`<${Table} top label="Pool items" headers=${["Select", "Item", "Status", "Created", "Locked by", "Actions"]}>
         <tr><td><input class="checkbox" type="checkbox" aria-label="Select all items on this page" checked=${items.every((i) => selected.includes(i._id))} onChange=${(e) => setSelected(e.target.checked ? items.map((i) => i._id) : [])} /></td><td colspan="5" class="resell-muted num">${total} items match</td></tr>
         ${items.map((item) => html`<tr key=${item._id}>
           <td><input class="checkbox" type="checkbox" aria-label=${`Select ${title(item)}`} checked=${selected.includes(item._id)} onChange=${(e) => setSelected(e.target.checked ? [...selected, item._id] : selected.filter((id) => id !== item._id))} /></td>

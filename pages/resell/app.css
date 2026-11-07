@@ -6,8 +6,8 @@
 .resell-metric { display: flex; flex-direction: column; gap: var(--sp-2); }
 .resell-metric strong { font-size: calc(var(--font-size-body) * 1.5); font-variant-numeric: tabular-nums; }
 .resell-muted { color: var(--text-secondary); }
-.resell-table { overflow-x: auto; max-width: 100%; }
-.resell-table td { vertical-align: top; }
+.resell-table { overflow-x: auto; max-width: 100%; padding: 0; }
+.resell-table-top td { vertical-align: top; padding-block: var(--sp-2); }
 .resell-title { min-width: var(--col-narrow); white-space: normal; overflow-wrap: anywhere; }
 .resell-code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--font-size-ui); max-height: var(--col-text); overflow-y: auto; }
 .resell-editor { min-height: var(--col-narrow); font-family: var(--font-mono); }
