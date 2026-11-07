@@ -1,4 +1,4 @@
-"""Chat: a Preact page at the top of the rail on the apps' Voice session (pages/chat)."""
+"""Chat: a Preact page under Additional tools on the apps' Voice session (pages/chat)."""
 import json
 import subprocess
 from pathlib import Path
@@ -10,12 +10,12 @@ import compile as c
 PAGE = Path(__file__).resolve().parent.parent / "pages" / "chat"
 
 
-def test_chat_sits_at_the_top_of_the_rail_after_home_and_stays_out_of_the_apps_nav():
+def test_chat_sits_under_additional_tools_and_stays_out_of_the_apps_nav():
     config = json.loads((PAGE / "config.json").read_text())
     assert config["nav"] is True and "tabs" not in config
     pages = [dict(json.loads(p.read_text()), slug=p.parent.name) for p in PAGE.parent.glob("*/config.json")]
-    top = c.page_tree(pages)[0][1]
-    assert [entry.get("slug") for entry, _ in top][:3] == ["index", "chat", "upload"]
+    tree = dict(c.page_tree(pages))
+    assert "chat" in [entry.get("slug") for entry, _ in tree["Additional tools"]]
     from core.panels.manifest import build_manifest
     tabs = [t["slug"] for s in build_manifest(PAGE.parent)["sections"] for e in s["entries"] for t in [e, *e.get("tabs", [])]]
     assert "chat" not in tabs

@@ -136,18 +136,18 @@ def test_manifest_matches_real_sidebar_and_tabs():
         "crons": {"title": "Crons", "icon": "clock"},
     }
     # Overview first: the apps take the first section as their dash (Life, System, Full dash)
-    assert [section["title"] for section in manifest["sections"]] == ["Overview", "Work", "Knowledge", "Publish", "Setup", "Additional tools"]
+    assert [section["title"] for section in manifest["sections"]] == ["Overview", "Work", "Knowledge", "Publish", "Setup"]
     assert [entry["slug"] for entry in manifest["sections"][0]["entries"]] == ["home", "ops", "full-dash"]
 
 
 def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
-    """g-navigation: Home (the full dash), Chat, Upload, Life, System at the
+    """g-navigation: Home (the full dash), Studio, Upload, Life, System at the
     top with no heading, then the other sections; groups are open disclosure
     rows, never pages, and every child carries its own icon."""
     web = rail(configs(PAGES))
     assert [s["title"] for s in web] == [None, "Work", "Knowledge", "Publish", "Setup", "Additional tools"]
     top = web[0]["entries"]
-    assert [(e["slug"], e["label"]) for e in top] == [("", "Home"), ("chat", "Chat"), ("upload", "Upload"), (None, "Life"), (None, "System")]
+    assert [(e["slug"], e["label"]) for e in top] == [("", "Home"), ("studio", "Studio"), ("upload", "Upload"), (None, "Life"), (None, "System")]
     assert [k["slug"] for k in top[3]["children"]] == ["calendar", "pulse"]
     assert [k["slug"] for k in top[4]["children"]] == ["diagram", "system", "compute", "crons", "tickets", "projects", "levels"]
     brain = [e for e in web[2]["entries"] if e["label"] == "Brain"][0]
@@ -157,7 +157,7 @@ def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
     design = [e for e in web[1]["entries"] if e["label"] == "Design"][0]
     assert design["slug"] is None and [(k["slug"], k["label"]) for k in design["children"]] == [("design", "Language"), ("showcase", "Showcase")]
     html = compiler.build_nav_html(configs(PAGES))
-    assert html.count('class="nav-group"') == 5 and html.count("data-open") == 5
+    assert html.count('class="nav-group"') == 6 and html.count("data-open") == 6
     assert "hub" not in html and 'class="nav-twist"' not in html
 
 
