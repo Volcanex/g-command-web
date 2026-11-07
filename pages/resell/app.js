@@ -145,7 +145,7 @@ function Pool() {
         <tr><td><input class="checkbox" type="checkbox" aria-label="Select all items on this page" checked=${items.every((i) => selected.includes(i._id))} onChange=${(e) => setSelected(e.target.checked ? items.map((i) => i._id) : [])} /></td><td colspan="5" class="resell-muted num">${total} items match</td></tr>
         ${items.map((item) => html`<tr key=${item._id}>
           <td><input class="checkbox" type="checkbox" aria-label=${`Select ${title(item)}`} checked=${selected.includes(item._id)} onChange=${(e) => setSelected(e.target.checked ? [...selected, item._id] : selected.filter((id) => id !== item._id))} /></td>
-          <td class="resell-title">${title(item)}<div class="resell-muted mono">${item._id}</div></td>
+          <td class="resell-title"><a href=${`/resell?view=pool&item=${encodeURIComponent(item._id)}`} onClick=${(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); navigate("pool", item._id); }}>${title(item)}</a><div class="resell-muted mono">${item._id}</div></td>
           <td><${Status} value=${item.status} /></td><td>${date(item.created_at)}</td><td>${item.locked_by || "Unlocked"}</td>
           <td><${Button} size="sm" onClick=${() => navigate("pool", item._id)}>View details<//></td>
         </tr>`)}
@@ -178,7 +178,7 @@ function Item({ id }) {
         Status: label(item.status), Source: item.source_url, Brand: d.brand || d.brand_name,
         Size: d.size, Colour: d.color, Material: d.material, Condition: d.depop_condition || d.condition,
         Category: d.category, Seller: d.seller, "Buy cost": money(d.purchase_cost_gbp),
-        "Sold for": money(d.sold_price_gbp), "Profit": numeric(d.purchase_cost_gbp) && numeric(d.sold_price_gbp) ? money(Number(d.sold_price_gbp) - Number(d.purchase_cost_gbp)) : "No cost basis",
+        "Sold for": money(d.sold_price_gbp), "Profit": numeric(d.purchase_cost_gbp) && numeric(d.sold_price_gbp) ? money(Number(d.sold_price_gbp) - Number(d.purchase_cost_gbp)) : "Not recorded",
         "List readiness": d.verification ? (d.verification.list_ready ? "Ready" : `Needs ${(d.verification.missing_for_listing || []).join(", ")}`) : null,
         "Locked by": item.locked_by || "Unlocked", Created: date(item.created_at), Updated: date(item.updated_at),
       };
