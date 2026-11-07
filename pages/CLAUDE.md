@@ -37,8 +37,9 @@ still Life, System and Full dash). There are no hub or tile pages.
 Groups: `projects` (HALN `/haln`, Studio recorder at `/recorder`,
 under Work), `life` (Calendar, Pulse), `system` (Diagram, Services `/system`,
 Compute, Crons, Tickets, Projects, Levels), `brain` (Graph, Notes,
-Nerves, References, Lineage), `design` (Language `/design`, Showcase) and `setup` (Bootstrap `/setup`, Install,
-Passport). `/home`, `/ops`, `/brain` and `/voice` are 301s to Home, Home, Graph and Chat.
+Nerves, References, Lineage), `research` (Making ladder, ANS, Dissertation
+at `/research/<area>`, under Knowledge, see `research/CLAUDE.md`), `design` (Language `/design`, Showcase) and `setup` (Bootstrap `/setup`, Install,
+Passport). `/home`, `/ops`, `/brain`, `/voice` and `/research` are 301s to Home, Home, Graph, Chat and the making ladder.
 `/projects-group` goes to `/recorder`; the Projects group has no hub page.
 A page left out of the nav keeps its route: hide pages, never delete or
 rename them, since the Mac app and old links name them directly.

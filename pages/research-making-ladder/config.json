@@ -1,0 +1,11 @@
+{
+  "title": "Making ladder",
+  "slug": "research/making-ladder",
+  "description": "The making ladder paper with its headings as contents, and its main claims beside the live g-levels gates and charters.",
+  "nav": false,
+  "tabs": "research",
+  "tab_label": "Making ladder",
+  "nav_icon": "ladder",
+  "order": 1,
+  "gsys": true
+}

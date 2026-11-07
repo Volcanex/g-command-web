@@ -1,0 +1,65 @@
+{
+  "_doc": "The Research registry (pages/research/CLAUDE.md). One entry per area: its rail page, the checkout it reads (a sibling of this one) and its sub-views. Files are read from disk on every request. exclude names folders that are never read, deny names files that are never read.",
+  "areas": [
+    {
+      "id": "making-ladder",
+      "title": "Making ladder",
+      "sub": "Research note 1 from g-research, with its main claims checked against the live g-levels registry.",
+      "root": "g-research",
+      "path": "pieces",
+      "views": [
+        { "id": "paper", "title": "Paper", "kind": "paper", "file": "making-ladder.md" },
+        {
+          "id": "claims",
+          "title": "Claims and gates",
+          "kind": "claims",
+          "file": "making-ladder.md",
+          "section": "Main claims",
+          "then": { "date": "2026-10-18", "gates": 7, "charters": 2, "design": 1 },
+          "domain": "research",
+          "links": [
+            { "match": "seven gates and two charters", "evidence": ["registry"] },
+            { "match": "harness gates fail open", "evidence": ["hooks"] },
+            { "match": "cheap mechanical sensors", "evidence": ["sensors"] },
+            { "match": "Guidance and sensor", "evidence": ["sensors"] },
+            { "match": "Blocking levels", "evidence": ["blocking"] },
+            { "match": "four-valued result", "evidence": ["results", "silent", "charters"] },
+            { "match": "Design gates are a distinct", "evidence": ["design"] },
+            { "match": "saturation thresholds", "evidence": ["design"] },
+            { "match": "reference corpus", "evidence": ["review"] },
+            { "match": "Research belongs", "evidence": ["domain"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ans",
+      "title": "ANS",
+      "sub": "How much a small local model gains from its harness, measured on this host. Private repo.",
+      "root": "ans",
+      "path": "",
+      "exclude": [".venv", ".git", "ans.egg-info", "traj"],
+      "views": [
+        { "id": "thesis", "title": "Thesis", "kind": "docs", "globs": ["thesis/*.md", "thesis/*/*.md"] },
+        { "id": "literature", "title": "Literature", "kind": "docs", "globs": ["lit/notes/*.md"], "bib": "lit/refs.bib" },
+        { "id": "runs", "title": "Runs", "kind": "ans-runs", "db": "runs/ans.sqlite" },
+        { "id": "atlas", "title": "Atlas", "kind": "ans-atlas", "dir": "atlas/data" }
+      ]
+    },
+    {
+      "id": "dissertation",
+      "title": "Dissertation",
+      "sub": "Results, chapters, tables and charts as the dissertation job writes them. Raw data stays private.",
+      "root": "g-research",
+      "path": "dissertation",
+      "exclude": ["data", "raw", "prompts"],
+      "deny": ["prompt"],
+      "views": [
+        { "id": "results", "title": "Results", "kind": "paper", "file": "results.md" },
+        { "id": "chapters", "title": "Chapters", "kind": "docs", "globs": ["chapters/*.md", "*.md"], "skip": ["results.md", "README.md", "CLAUDE.md", "AGENTS.md"] },
+        { "id": "tables", "title": "Tables", "kind": "tables", "globs": ["**/*.csv", "**/*.tsv"] },
+        { "id": "charts", "title": "Charts", "kind": "charts", "globs": ["**/*.svg", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp"] }
+      ]
+    }
+  ]
+}
