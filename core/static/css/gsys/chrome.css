@@ -14,6 +14,10 @@
   mask: url(brand/mark.svg) center / contain no-repeat;
 }
 
+/* The page measure. g-design ships 980px, which leaves a wide Mac or desktop screen
+   mostly empty; Command pages (and the studio mounted in /studio) grow to 2000px. */
+:root, [data-theme] { --col-page: 2000px; }
+
 /* nav items carry a Phosphor glyph (<i class="ph">), not the kit's svg */
 .nav-item .ph { font-size: 16px; width: 16px; flex: none; text-align: center; }
 
@@ -62,8 +66,9 @@ html[data-app] body.g-shell > aside, html[data-app] .topbar, html[data-app] .g-s
 /* Home and the full dash: full-bleed. Home's agenda card sits above the dash
    on the page gutter, like any other view (g-admin ticket 2), and the dash
    fills what is left. */
-body.full-dash-page .content-page { max-width: none; height: 100%; padding: 0; gap: 0; }  /* .fd-dash fills it */
-body.full-dash-page :is(.dash-top, .fd-dash) { padding-inline: var(--gutter); }
+body.full-dash-page .content-page { max-width: var(--col-page); height: 100%; padding: 0; gap: 0; }  /* .fd-dash fills it */
+/* The cards sit as far from the rail as from the top bar (sp-3 both ways), so the edge reads even. */
+body.full-dash-page :is(.dash-top, .fd-dash) { padding-inline: var(--sp-3); }
 body.full-dash-page .dash-top { padding-top: var(--sp-3); flex: none; }
 .agenda-card { padding: var(--sp-3); }
 .agenda-card .essentials-line { overflow-wrap: anywhere; }
