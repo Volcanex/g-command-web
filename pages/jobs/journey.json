@@ -1,0 +1,16 @@
+[
+  {"goto": "/jobs"},
+  {"expect": "Daytime tap"},
+  {"click": ".jobs-tabs a[href='/jobs?view=applications']"},
+  {"click": "button:has-text('View record') >> nth=0"},
+  {"expect": "Archived record"},
+  {"click": "button:has-text('Close record')"},
+  {"click": ".jobs-tabs a[href='/jobs?view=letters']"},
+  {"expect": "Cover letters"},
+  {"click": ".jobs-tabs a[href='/jobs?view=questions']"},
+  {"expect": "Screening questions"},
+  {"click": ".jobs-tabs a[href='/jobs?view=runs']"},
+  {"expect": "Pace"},
+  {"click": "button:has-text('Refresh records')"},
+  {"expect": "Where these records come from"}
+]

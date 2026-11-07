@@ -1,0 +1,11 @@
+{
+  "title": "Jobs",
+  "slug": "jobs",
+  "description": "Applications, archived CVs, cover letters, screening questions and run history from g-jobs.",
+  "nav": false,
+  "tabs": "projects",
+  "tab_label": "Jobs",
+  "nav_icon": "briefcase",
+  "order": 40,
+  "gsys": true
+}
