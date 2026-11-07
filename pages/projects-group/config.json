@@ -1,0 +1,13 @@
+{
+  "title": "Projects",
+  "slug": "projects-group",
+  "description": "Project admin tools.",
+  "nav": true,
+  "tabs": "projects",
+  "nav_label": "Projects",
+  "nav_icon": "squares-four",
+  "nav_section": "Work",
+  "order": 28,
+  "web_page": false,
+  "gsys": true
+}
