@@ -27,6 +27,11 @@
 .side-foot a.btn { color: var(--text-secondary); }
 .side-foot .btn .ph { font-size: 16px; }
 .side-foot a[aria-current="page"] { background: var(--fill-active); color: var(--text-primary); }
+/* The rail foot's first mark (log out here, the avatar in the Studio mounted at /studio) sits on
+   the nav icons' column, centred sp-2 + 8px in, so it stays put while the rail eases shut around
+   it and ends centred in the mini rail as the icons do, instead of 2-4px left of them. */
+.g-shell > aside > .side-foot > .btn-icon:first-child { margin-left: calc(var(--sp-2) + 8px - var(--h-control-sm) / 2); }
+.g-shell > aside > .side-foot > .avatar:first-child { margin-left: calc(var(--sp-2) + 8px - var(--h-1) / 2); }
 /* A group with no page of its own is named in the top bar, not linked. */
 .topbar-crumbs .crumb-group { color: var(--text-secondary); white-space: nowrap; flex: none; }
 
