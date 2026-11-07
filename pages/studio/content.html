@@ -5,7 +5,7 @@
      styles are scoped to the mount element and it uses this page's g-design, so it looks and
      behaves as part of Command. Deep links are this page plus the studio's hash route:
      /studio#/site/<pid>/pages. The studio must list this origin in GS_EMBED_ORIGINS. -->
-<div class="studio-host" data-studio-host data-origin="<!-- seed:studio_origin -->">
+<div class="studio-host" data-studio-host data-studio-loading data-origin="<!-- seed:studio_origin -->">
   <div class="studio-msg" data-msg hidden>
     <div class="card studio-msg-card">
       <h2 class="card-title" data-msg-title>Studio is not set up here</h2>
@@ -22,6 +22,20 @@
   body.studio-page > .g-main > .content > .site-main { flex: 1 1 auto; min-height: 0; max-width: none; padding: 0; gap: 0; overflow: hidden; display: flex; flex-direction: column; }
   body.studio-page > .g-main > .content > .site-main > * { max-width: none; }
   .studio-host { flex: 1; min-height: 0; position: relative; }
+  /* The studio arrives after first paint (its mount.js, styles and first API answers come
+     from its own origin), so the page transition would land on an empty host and the studio
+     would then pop in and reflow. Hold the host and Command's bar back until it has settled,
+     then enter once with the same rise as every other page. The delayed fallback reveals it
+     if the script never gets that far. */
+  .studio-host[data-studio-loading] { opacity: 0; animation: g-page-fallback .2s ease-out 4s forwards; }
+  .studio-host[data-studio-in] { animation: g-vt-in var(--dur-slow) var(--ease-out) both; }
+  @media (min-width: 721px) {
+    body.studio-page .g-main:has(.studio-host[data-studio-loading]) > .topbar { opacity: 0; }
+    body.studio-page .g-main:has(.studio-host[data-studio-in]) > .topbar { animation: g-vt-in var(--dur-slow) var(--ease-out) both; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .studio-host[data-studio-in], body.studio-page .g-main > .topbar { animation-duration: 1ms !important; }
+  }
   /* One bar, not two (g-navigation R7). Once the studio draws its own bar, that bar says where
      you are (the site and section, or Your sites) and holds the studio's verbs, so Command's
      "Studio" bar above it goes. On a phone Command's bar stays: it carries Command's menu. */
@@ -37,10 +51,45 @@
 <script type="module">
   const host = document.querySelector('[data-studio-host]');
   const origin = host.dataset.origin;
+  /* Reveal once the studio stops changing: its stylesheet has loaded, none of its first API
+     calls is still out, and its DOM has been quiet for a moment (it renders a spinner, then
+     the view, then fills it from the API). Capped so a slow studio still shows itself. */
+  let inflight = 0;
+  const nativeFetch = window.fetch;
+  window.fetch = function (input, init) {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (!host.hasAttribute('data-studio-loading') || !String(url).startsWith(origin)) return nativeFetch.call(this, input, init);
+    inflight++;
+    const p = nativeFetch.call(this, input, init);
+    p.finally(() => { inflight--; poke(); }).catch(() => {});
+    return p;
+  };
+  let poke = () => {};
+  const reveal = () => {
+    if (!host.hasAttribute('data-studio-loading')) return;
+    host.removeAttribute('data-studio-loading');
+    host.setAttribute('data-studio-in', '');
+  };
+  const settle = (quietMs = 150, capMs = 2500) => {
+    let t;
+    const done = () => { obs.disconnect(); clearTimeout(t); clearTimeout(cap); poke = () => {}; requestAnimationFrame(reveal); };
+    const quiet = () => { if (!inflight) done(); };
+    poke = () => { clearTimeout(t); t = setTimeout(quiet, quietMs); };
+    const obs = new MutationObserver(() => poke());
+    const cap = setTimeout(done, capMs);
+    obs.observe(host, { childList: true, subtree: true, attributes: true, characterData: true });
+    poke();
+  };
+  const sheetLoaded = () => {
+    const link = document.querySelector('link[data-gs-studio][href$="mount.css"]');
+    if (!link || link.sheet) return Promise.resolve();
+    return new Promise((r) => { link.addEventListener('load', r, { once: true }); link.addEventListener('error', r, { once: true }); setTimeout(r, 2000); });
+  };
   const say = (title, body) => {
     host.querySelector('[data-msg-title]').textContent = title;
     host.querySelector('[data-msg-body]').textContent = body;
     host.querySelector('[data-msg]').hidden = false;
+    reveal();
   };
   if (!origin) {
     say('Studio is not set up here', "Set STUDIO_ORIGIN in this server's .env to the studio's address, then restart Command.");
@@ -48,6 +97,7 @@
     try {
       const { mount } = await import(origin + '/static/mount.js');
       mount(host, { apiBase: origin + '/api' });
+      sheetLoaded().then(() => settle());
     } catch (e) {
       console.error(e);
       say('Studio could not be loaded', `Check that ${origin} is up and lists this site in GS_EMBED_ORIGINS.`);
