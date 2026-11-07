@@ -15,6 +15,8 @@ layout and `core/templates/CLAUDE.md` for available template tokens.
 - `crons/`: a page with the optional `api.py` sibling file. The
   auto-discovered router is mounted at `/api/crons`.
 
+- `resell/`: Resell project admin under Projects: dashboard, pool and item details, profit, and bot controls. See `resell/CLAUDE.md`.
+
 ## Nav groups
 
 The left rail is the only navigation (g-design `skills/g-navigation`).

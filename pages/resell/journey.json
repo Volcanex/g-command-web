@@ -1,0 +1,10 @@
+[
+  {"goto": "/resell"},
+  {"expect": "Pool, profit and bot controls for Resell."},
+  {"click": "a[href='/resell?view=pool']"},
+  {"expect": "Items per page"},
+  {"click": "a[href='/resell?view=profit']"},
+  {"expect": "All sold real stock, with frozen purchase cost"},
+  {"click": "a[href='/resell?view=bots']"},
+  {"expect": "Bot services and current tasks"}
+]

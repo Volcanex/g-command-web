@@ -1,0 +1,11 @@
+{
+  "title": "Resell",
+  "slug": "resell",
+  "description": "Resell pool, profit and bot controls.",
+  "nav": false,
+  "tabs": "projects",
+  "tab_label": "Resell",
+  "nav_icon": "tag",
+  "order": 65,
+  "gsys": true
+}
