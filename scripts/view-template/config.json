@@ -1,0 +1,11 @@
+{
+  "title": "__TITLE__",
+  "slug": "__SLUG__",
+  "description": "__TITLE__: one sentence on what this view shows.",
+  "nav": false,
+  "tabs": "__GROUP__",
+  "tab_label": "__TITLE__",
+  "nav_icon": "squares-four",
+  "order": 99,
+  "gsys": true
+}

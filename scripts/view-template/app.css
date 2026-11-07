@@ -1,0 +1,3 @@
+/* __TITLE__. Alias tokens only (g-design); no margin on top-level blocks, the page stack spaces them. */
+.__SLUG__-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.__SLUG__-row { display: flex; align-items: center; gap: var(--sp-3); color: var(--text-primary); }

@@ -51,5 +51,6 @@ shell provides those.
 
 ## Adding a page
 
-Use `/new-page` (see `.claude/commands/new-page.md`) or create the files
+For a Preact view use `python3 scripts/new-view.py <slug> --group <g>`
+(`pages/CLAUDE.md`, "New views"). Otherwise use `/new-page` (see `.claude/commands/new-page.md`) or create the files
 by hand. Always run `python3 compile.py` after.

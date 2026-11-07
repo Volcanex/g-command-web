@@ -72,3 +72,30 @@ A page moves to Preact by shipping `app.js` beside its `config.json`
 - `app_nav: false` in a config keeps a nav entry out of the apps' manifest
   (Home: the apps draw their own navigation).
 - Tests: `tests/test_preact_pages.py`.
+
+## New views
+
+Start every new view from the scaffold, not by copying a page:
+
+    python3 scripts/new-view.py <slug> --group <group> [--title "Title"] [--no-api]
+    python3 compile.py
+
+It copies `scripts/view-template/` (kept outside `pages/`, so the template is
+never compiled or put on the rail) into `pages/<slug>/`: a `config.json`
+nested under `<group>` (`nav: false`, `tabs`, `tab_label`; set `nav_icon`
+and `order`), a fallback `content.html`, a Preact `app.js`, a token-only
+`app.css` and an admin-gated `api.py` at `/api/<slug>` returning `{items: []}`.
+The view contract it holds is checked, warn-only for now, by the g-levels gate
+`correct.ui.view-contract` (`glevels check pages`, or
+`python3 ~/g-levels/glevels/viewcontract.py . --page <slug>`):
+
+- Header: the top bar names the page (`Group > Page`); the page opens with the
+  kit `PageHead` (title screen-reader only, `sub` line, actions). No visible
+  title, no title spacing, no raw px top offsets.
+- Margins: `.content-page` owns the gutter and the `--sp-4` stack gap. Never
+  pad or margin `.content-page`/`.site-main`.
+- Motion: the shell's cross-document view transition (`g-vt-in`, in
+  `g-admin.css`) brings every page in. No page-local entry `@keyframes`.
+- States: `useJson` + `Loaded` (skeleton, `ErrorState` with retry), and `Empty`
+  when there are no rows.
+- Tokens: alias tokens only; no hex, no raw px (0 and 1px hairlines aside).
