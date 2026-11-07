@@ -1,0 +1,11 @@
+{
+  "title": "ANS",
+  "slug": "research/ans",
+  "description": "ANS: the thesis drafts, the literature notes, run results and the atlas, read from the private ans checkout.",
+  "nav": false,
+  "tabs": "research",
+  "tab_label": "ANS",
+  "nav_icon": "cpu",
+  "order": 2,
+  "gsys": true
+}

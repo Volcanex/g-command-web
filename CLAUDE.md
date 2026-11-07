@@ -22,6 +22,7 @@ name and the `gcommand` compat symlink on h keep the old name.
 - `/calendar`: the one view of brain todos (Todos merged in on 2026-11-03; `/todos` is a 301 here, see `MOVED` in `server.py`). Every item has a date. The default is a list (Overdue, Today, Tomorrow, This week, Later, five weeks out) with a tick and a move button per row; `?view=month` is the month grid, a cell click listing that day below it. Adding needs a date, the time is optional. Ticking a recurring item ticks that occurrence only; moving is for one-offs (the brain refuses to reschedule a series). Daily habits show on today only. Recurrence and overdue carry-over are the brain's (`/api/todos/calendar`). The essentials (at most three lines: overdue, today, bills of 50 pounds or more this week, tomorrow) are the `agenda` panel (`core/panels/agenda.py`), shown in Home's agenda card (`<div data-lines>`, filled by `hub.js`). Every count beside the calendar (the dash panel's head, the Calendar page's badge) is the agenda's own (`agenda.counts`), so a head never says nothing is due while the agenda names something. It reads the brain's `/api/todos/agenda` and, while that is missing, works the lines out from the calendar feed; a failure is a line, never a blank.
 - `/tickets`: every g-admin ticket across every project that speaks the contract, aggregated live via `core/api/gadmin_panel.py`. No local store; same pattern as `/system`. Deep link `/tickets?project=<id>&id=<ticket>` filters to the project and opens that ticket (the desktop app, g-command-mac, uses it); `project` alone just filters.
 - `/levels`: g-levels (gates, charters, results, the candidate-gate backlog and the share of Gabriel's prompts per level), read live from the g-levels checkout through `pages/levels/api.py`. Grading a verdict runs `glevels grade`. See `pages/levels/CLAUDE.md`.
+- `/research/<area>`: the Research group, one page per research area (the making ladder paper and its claims against live g-levels gates, ANS thesis, literature, runs and atlas, the dissertation's results, chapters, tables and charts), read from the sibling checkouts on each request through `pages/research/api.py`. Areas are entries in `pages/research/areas.json`. See `pages/research/CLAUDE.md`.
 - `/browser`: g-browser (the always-on logged-in Chrome on this host) to watch and drive: the noVNC live view (inline, full screen or its own tab), status, mode switch, profile and bandwidth, restart, re-seed from a profile export and the activity feed. It replaces g-browser's own panel: `browser.gabrielpenman.com` 301s its pages here. `pages/browser/api.py` proxies g-browser's panel API and its `/vnc/` socket, adding g-browser's admin cookie server-side, so the visitor needs only this site's gate and a paired app drives it with its device token. The secret comes from `/etc/g-secrets/gbrowser-admin.env` via the `zz-gbrowser.conf` drop-in. nginx needs the `location /api/browser/vnc/websockify` upgrade block, since `location /` sends no Upgrade header.
 - `/wages`: g-wages' ledger editor (clients, the week grid of hours, earned, paid in, expenses and work-log, the day editor, invoice period, mark and issued list, report and hours basis), a Work entry beside Hours. `pages/wages/api.py` proxies `/api/wages/*` to g-wages' `/api/ledger/*` on loopback behind this site's gate; g-wages keeps its process and data. `wages.gabrielpenman.com` 301s here. See `pages/wages/CLAUDE.md`.
 - `/studio`: g-studio itself, run in this page with no iframe. `pages/studio/content.html` imports `<STUDIO_ORIGIN>/static/mount.js` from the studio's origin and mounts it in the content area; the studio's API, events and sockets stay on its origin with its own session cookie (same site, so it travels). Nothing of the studio is bundled here. Deep links are `/studio#/site/<pid>/<section>`: the studio owns the hash. `STUDIO_ORIGIN` comes from `.env` like `PUBLIC_HOST`, unset the page says Studio is not set up, and the studio must list this origin in its `GS_EMBED_ORIGINS` (g-studio contracts.md "Embedding").
@@ -62,10 +63,15 @@ Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `
 | `pages/CLAUDE.md` | Pages |
 | `pages/blog/CLAUDE.md` | blog |
 | `pages/full-dash/CLAUDE.md` | full-dash |
+| `pages/haln/CLAUDE.md` | HALN |
 | `pages/hours/CLAUDE.md` | hours |
+| `pages/jobs/CLAUDE.md` | Jobs |
 | `pages/levels/CLAUDE.md` | levels |
+| `pages/research/CLAUDE.md` | Research |
+| `pages/resell/CLAUDE.md` | resell |
 | `pages/sessions/CLAUDE.md` | sessions: the terminal page |
 | `pages/upload/CLAUDE.md` | upload |
+| `pages/wages/CLAUDE.md` | wages |
 
-_Auto-compiled 2026-10-20 12:44 UTC, 11 doc(s) found._
+_Auto-compiled 2026-11-07 14:15 UTC, 16 doc(s) found._
 <!-- DOCS:END -->

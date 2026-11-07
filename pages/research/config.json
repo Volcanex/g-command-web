@@ -1,0 +1,13 @@
+{
+  "title": "Research",
+  "slug": "research",
+  "description": "Research areas read from their checkouts: the making ladder, ANS and the dissertation.",
+  "nav": true,
+  "order": 44,
+  "nav_section": "Knowledge",
+  "nav_icon": "flask",
+  "nav_label": "Research",
+  "gsys": true,
+  "tabs": "research",
+  "web_page": false
+}

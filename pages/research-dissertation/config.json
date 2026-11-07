@@ -1,0 +1,11 @@
+{
+  "title": "Dissertation",
+  "slug": "research/dissertation",
+  "description": "The dissertation: results, chapters, aggregate tables and charts. Raw data is never shown.",
+  "nav": false,
+  "tabs": "research",
+  "tab_label": "Dissertation",
+  "nav_icon": "graduation-cap",
+  "order": 3,
+  "gsys": true
+}
