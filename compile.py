@@ -633,7 +633,9 @@ def build_nav_html(configs: list[dict]) -> str:
         return f'<i class="ph ph-{html.escape(str(name))}" aria-hidden="true"></i>'
 
     def item(c: dict, label: str, cls: str = "nav-item", icon: str | None = None) -> str:
-        return (f'<a class="{cls}" href="{html.escape(page_href(c))}">{glyph(icon or c.get("nav_icon", "circle"))}'
+        pin = c.get("nav_pin")
+        pin_attr = f' data-pin="{pin}"' if type(pin) is int and 1 <= pin <= 4 else ""
+        return (f'<a class="{cls}" href="{html.escape(page_href(c))}"{pin_attr}>{glyph(icon or c.get("nav_icon", "circle"))}'
                 f'<span class="ellipsis">{html.escape(str(label))}</span></a>')
 
     parts = []

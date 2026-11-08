@@ -4,6 +4,7 @@
   "href": "/",
   "description": "The whole G-System at a glance: Life's agenda, then the full dash.",
   "nav": true,
+  "nav_pin": 1,
   "app_nav": false,
   "order": 0,
   "nav_section": "Overview",

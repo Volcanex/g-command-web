@@ -47,6 +47,11 @@ set `nav: false`, `tabs` to that entry's group and a `tab_label`
 (`pages/CLAUDE.md` lists the groups). `chrome.js` marks the current link,
 and on a tab page with no link of its own it marks the group's entry.
 
+Set `nav_pin` to an integer from 1 to 4 to pin that page in the shared
+phone dock, in pin order. It adds `data-pin` to the page's rail link,
+including a group child, without changing the rail order. Leave it unset
+for an unpinned page.
+
 ## Styling: g-design
 
 The shell links the vendored g-design pack (`core/static/css/gsys/`:

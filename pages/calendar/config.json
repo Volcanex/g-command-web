@@ -3,6 +3,7 @@
   "slug": "calendar",
   "description": "Every item has a date. Tick it off or move it.",
   "nav": false,
+  "nav_pin": 2,
   "order": 10,
   "nav_icon": "calendar-blank",
   "nav_label": "Calendar",
