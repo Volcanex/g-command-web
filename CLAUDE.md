@@ -42,6 +42,19 @@ needed once per checkout and after `package.json` changes; without it the
 Preact pages serve their plain `content.html` and the compile still succeeds.
 Served on `127.0.0.1:$PORT` (default 8089), fronted by nginx. Deployed via the `gcommand` systemd unit on h.
 
+For an isolated worktree preview, run `scripts/dev-serve.sh PORT [STUDIO_ORIGIN]`.
+It compiles this checkout, binds only 127.0.0.1, and uses this checkout's venv
+or the existing `/home/gabriel/g-command-web/.venv/bin/python3`. Supply only
+fake `ADMIN_PASSWORD` and `ADMIN_COOKIE_VALUE` in the environment; unset
+values are generated with a `fake-dev-` prefix. It keeps the default
+`BRAIN_API=/api/brain`, passes through `STUDIO_ORIGIN` (the argument overrides
+the environment), and enables the gate cookie over local HTTP. Ports 8089
+and 8240 are refused. The printed, gitignored `var/dev/PORT/storage-state.json`
+is a signed-in Playwright state (0600); load it with `storage_state` in
+Python or `storageState` in JavaScript, or pass it to spacing's
+`--storage-state`. The state uses the same cookie as the gate's
+`POST /api/admin/login`; `/login` has `#password` and `#login-form`.
+
 ## Gotchas
 - Brain data is **not** local: every brain page fetches `${BRAIN_API}/api/*` from the browser. Nothing here reads the brain filesystem. `BRAIN_API` is the one place the origin is set: `compile.py` reads it from the environment, then from `.env` beside it (default `/api/brain`, this server's admin-gated proxy to the g-brain at `BRAIN_UPSTREAM`, trailing slash dropped), the shell writes it into `<meta name="brain-api">` and an inline head script copies that to `window.BRAIN_API`. Pages read the global and never name the host. It is baked in at compile time, so a change needs a recompile, which the unit's `ExecStartPre` runs on every restart. Set it in `.env` (the unit's `EnvironmentFile`). `OWNER_SITE_URL` (the owner's site, linked from the drawer and top bar, hidden when unset) `STUDIO_ORIGIN` (g-studio's origin for `/studio`) `PUBLIC_HOST` (the host in the status line) and `MCP_URL` and `MCP_HEADLESS_URL` (the brain's MCP endpoints, quoted on the install and setup pages through `<!-- seed: -->` tokens) work the same way. compile.py takes only these keys and the `SEED_MANIFEST_*` ones from `.env`, so a compile by hand matches the one on restart.
 - Auth is the whole-site gate in `server.py` (`_admin_gated`), not just `/admin/*`. Password comes from `ADMIN_PASSWORD`, set in this server's `.env` (one of the unit's `EnvironmentFile`s). It is a single shared secret, a placeholder until g-auth exists. The cookie it sets carries `ADMIN_COOKIE_VALUE`, a second secret with no default. `core/auth.py` is the one place that reads it and the cookie name: every router imports them from there, and the server refuses to start without the secret (set by the `zz-admin-secret.conf` drop-in from `/etc/g-secrets/gcommand-admin.env`).
