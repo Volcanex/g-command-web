@@ -59,7 +59,7 @@ def test_command_pins_preserve_the_existing_rail():
     after = c.build_nav_html(pages)
     assert re.sub(r' data-pin="[1-4]"', "", after) == before
     assert {a["href"]: a["data-pin"] for a in Links(after).links if "data-pin" in a} == {
-        "/": "1", "/calendar": "2", "/studio": "3", "/upload": "4",
+        "/": "1", "/calendar": "2", "/studio": "3",
     }
 
 

@@ -4,7 +4,6 @@
   "description": "Drop files onto the server, a plain dropbox in the upload directory.",
   "gsys": true,
   "nav": true,
-  "nav_pin": 4,
   "order": 53,
   "body_class": "upload-page",
   "nav_section": "Publish",
