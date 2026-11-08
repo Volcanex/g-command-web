@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="/css/gsys/kit/kit.css">
   <link rel="stylesheet" href="/css/gsys/chrome.css">
   <link rel="stylesheet" href="/css/vendor/phosphor/style.css">
-  <script>if(/ GCommandApp\//.test(navigator.userAgent))document.documentElement.setAttribute('data-app','');</script>
+  <script>if(/ GCommandApp\//.test(navigator.userAgent)&&!/GShell\//.test(navigator.userAgent)&&!document.documentElement.hasAttribute('data-gshell'))document.documentElement.setAttribute('data-app','');</script>
   <script defer src="/css/gsys/g-ui.js"></script>
   <script defer src="/js/chrome.js"></script>
   <script defer src="/js/hub.js"></script>

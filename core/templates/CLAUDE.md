@@ -102,8 +102,12 @@ overrides without polluting global stylesheets. The login page uses
 full-dash, home and ops use `full-dash-page` (full-bleed, no measure cap).
 
 ## Inside the apps
-The G-Command iPhone and Mac apps load web pages with ` GCommandApp/<version>`
-in the user agent. A head script then sets `data-app` on `<html>`, and
-`chrome.css` hides the sidebar, top bar and status line: the app draws the
-navigation and title. Browsers never send the marker, so the site itself is
-unchanged.
+The new thin shell draws the web's own chrome: the rail, top bar and phone
+dock. Its user agent keeps ` GCommandApp/<version>` and adds ` GShell/1`;
+its bridge sets `data-gshell` on `<html>` at document start. Either shell
+marker prevents the head script from setting `data-app`.
+
+The old iPhone and Mac apps are being retired. For their user agent
+(` GCommandApp/<version>` without either shell marker), the head script
+still sets `data-app` and `chrome.css` hides the sidebar, top bar and status
+line because those apps draw the navigation and title.
