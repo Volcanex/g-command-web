@@ -1,0 +1,40 @@
+{
+  "serve": "scripts/dev-serve.sh {port}",
+  "ready": "http://127.0.0.1:{port}/login",
+  "timeout": 30,
+  "viewports": "phone-s=320x568,phone=390x844,tablet=768x1024,desktop=1440x900",
+  "env": {
+    "GCOMMAND_DEV_STORAGE_STATE": "{repo}/var/dev/{port}/storage-state.json",
+    "GLEVELS_STORAGE_STATE": "{repo}/var/dev/{port}/storage-state.json"
+  },
+  "pages": [
+    {
+      "name": "Home",
+      "url": "http://127.0.0.1:{port}/"
+    },
+    {
+      "name": "Calendar",
+      "url": "http://127.0.0.1:{port}/calendar"
+    },
+    {
+      "name": "Upload",
+      "url": "http://127.0.0.1:{port}/upload"
+    },
+    {
+      "name": "Studio",
+      "url": "http://127.0.0.1:{port}/studio"
+    },
+    {
+      "name": "Tickets",
+      "url": "http://127.0.0.1:{port}/tickets"
+    },
+    {
+      "name": "Chat",
+      "url": "http://127.0.0.1:{port}/chat"
+    },
+    {
+      "name": "Compute",
+      "url": "http://127.0.0.1:{port}/compute"
+    }
+  ]
+}
