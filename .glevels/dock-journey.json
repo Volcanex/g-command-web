@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Open Home",
+    "goto": "/"
+  },
+  {
+    "expect": "Home"
+  },
+  {
+    "name": "Choose Calendar in the rail",
+    "click": "aside a[href=\"/calendar\"]"
+  },
+  {
+    "expect": "Calendar"
+  },
+  {
+    "name": "Choose Upload in the rail",
+    "click": "aside a[href=\"/upload\"]"
+  },
+  {
+    "expect": "Upload"
+  },
+  {
+    "name": "Choose Studio in the rail",
+    "click": "aside a[href=\"/studio\"]"
+  },
+  {
+    "expect": "Studio"
+  },
+  {
+    "name": "Open Tickets",
+    "goto": "/tickets"
+  },
+  {
+    "expect": "Tickets"
+  },
+  {
+    "name": "Open Chat",
+    "goto": "/chat"
+  },
+  {
+    "expect": "Chat"
+  },
+  {
+    "name": "Open Compute",
+    "goto": "/compute"
+  },
+  {
+    "expect": "Compute"
+  }
+]
