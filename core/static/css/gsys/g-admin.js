@@ -1,4 +1,4 @@
-/* g-design@1.8.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.9.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-admin overlay: the admin-only half of the g-admin contract
    (agents/g-admin-contract.md). Loaded by the stub in g-ui.js, only for a
    session the server verified, and never part of the public bundle.
@@ -194,6 +194,25 @@
   sheet.href = new URL("g-admin.css", SELF).href;
   shadow.append(sheet);
 
+  /* The dock: a host that names a slot with <meta name="g-admin-dock"
+     content="selector"> gets the bar in that slot, in flow, rather than fixed
+     over its top 28px. The bar moves into a second shadow root on its own
+     element (same sheet, same theme mirroring), because the main host has to
+     stay on body: the stage and the panels are fixed layers that a slot
+     inside the host's chrome could clip or stack under. No meta, or a
+     selector that matches nothing, is today's fixed bar. */
+  const DOCK = meta("g-admin-dock");
+  const dockHost = DOCK ? document.createElement("g-admin-dock") : null;
+  let dockShadow = null;
+  if (dockHost) {
+    dockHost.setAttribute("data-g-admin", "");
+    dockShadow = dockHost.attachShadow({ mode: "open" });
+    dockShadow.append(sheet.cloneNode());
+  }
+  const hosts = dockHost ? [host, dockHost] : [host];
+  /* Both host elements are ours: the page walks, hit tests and observers skip them. */
+  const mine = (node) => hosts.some((h) => node === h || h.contains(node));
+
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
     if (cls) node.className = cls;
@@ -206,8 +225,10 @@
   function mirrorTheme() {
     for (const attr of ["data-theme", "data-density"]) {
       const v = document.documentElement.getAttribute(attr);
-      if (v == null) host.removeAttribute(attr);
-      else host.setAttribute(attr, v);
+      for (const h of hosts) {
+        if (v == null) h.removeAttribute(attr);
+        else h.setAttribute(attr, v);
+      }
     }
     mirrorAccent();
   }
@@ -224,7 +245,7 @@
     const cs = getComputedStyle(document.documentElement);
     for (const token of ["--accent", "--accent-fill", "--accent-fill-hover", "--accent-fg", "--accent-edge"]) {
       const value = cs.getPropertyValue(token).trim();
-      if (value) host.style.setProperty(token, value);
+      if (value) for (const h of hosts) h.style.setProperty(token, value);
     }
   }
   /* The x-ray sheet is painted pixels, not styled nodes, so a theme change
@@ -350,7 +371,7 @@
      covered element is reachable only by naming the ones covering it. */
   function stackUnder(x, y) {
     return (document.elementsFromPoint(x, y) || []).filter((node) =>
-      node !== host && !shadow.contains(node) && node !== document.body && node !== document.documentElement);
+      !mine(node) && !shadow.contains(node) && node !== document.body && node !== document.documentElement);
   }
   const elementUnder = (x, y) => stackUnder(x, y)[0] || null;
 
@@ -402,7 +423,7 @@
     const walk = (node, depth, parentCs, origin) => {
       for (const child of node.children) {
         if (out.length >= XRAY_MAX) return;
-        if (child === host || XRAY_SKIP.has(child.tagName)) continue;
+        if (mine(child) || XRAY_SKIP.has(child.tagName)) continue;
         if (child.classList.contains("sr-only") || child.hasAttribute("data-audit-skip")) continue;
         const cs = getComputedStyle(child);
         if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) === 0) continue;
@@ -522,7 +543,7 @@
      told apart without a second observer. */
   const xrayWatch = new MutationObserver((records) => {
     for (const record of records) {
-      if (record.target === host || host.contains(record.target)) continue;
+      if (mine(record.target)) continue;
       scheduleXray();
       return;
     }
@@ -1249,7 +1270,7 @@
      so leaving it out is one containment check, the same as stackUnder. */
   function likeThis(sig) {
     try {
-      return [...document.querySelectorAll(sig.selector)].filter((node) => node !== host && !shadow.contains(node));
+      return [...document.querySelectorAll(sig.selector)].filter((node) => !mine(node) && !shadow.contains(node));
     } catch { return []; /* a class the page can no longer escape */ }
   }
 
@@ -1324,7 +1345,7 @@
   let trail = []; /* selections the walk stepped through, for Esc to unwind */
   const cameFrom = new WeakMap(); /* container -> the child the walk came up from */
 
-  const walkable = (node) => node && node.nodeType === 1 && node !== host
+  const walkable = (node) => node && node.nodeType === 1 && !mine(node)
     && node !== document.body && node !== document.documentElement;
 
   function walkTo(node) {
@@ -1348,7 +1369,7 @@
     const next = back && back.isConnected && back.parentElement === from
       ? back
       : [...from.children].find((child) => {
-        if (child === host || XRAY_SKIP.has(child.tagName)) return false;
+        if (mine(child) || XRAY_SKIP.has(child.tagName)) return false;
         const r = child.getBoundingClientRect();
         return r.width >= 1 && r.height >= 1;
       });
@@ -1385,8 +1406,8 @@
      walk must not take it as well. Both roots are asked: the host page keeps
      its own focus while the overlay is up. */
   function typingNow() {
-    for (const node of [shadow.activeElement, document.activeElement]) {
-      if (!node || node === host) continue;
+    for (const node of [shadow.activeElement, dockShadow?.activeElement, document.activeElement]) {
+      if (!node || mine(node)) continue;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(node.tagName) || node.isContentEditable) return true;
     }
     return false;
@@ -1503,7 +1524,7 @@
       textSwallow = false;
       if (!editingText) return;
       if (editingText.el.contains(e.target)) return; /* placing the caret */
-      const ours = e.target === host || host.contains(e.target);
+      const ours = mine(e.target);
       endText(false);
       if (ours) return;
       textSwallow = true;
@@ -2103,7 +2124,7 @@
   function setMode(next) {
     if (next === mode && next !== "off") return;
     leave();
-    if (next !== "off") { enter(next); return; }
+    if (next !== "off") { placeUnder(); enter(next); return; }
     mode = "off";
     xrayOn = false;
     xraySwitch.checked = false;
@@ -2111,6 +2132,8 @@
     textSwitch.checked = false;
     try { localStorage.removeItem(KEY); } catch { /* nothing to clear */ }
     host.remove();
+    dockWatch?.disconnect();
+    dockHost?.remove();
     window.removeEventListener("keydown", onKey);
     window.removeEventListener("resize", onResize);
     window.removeEventListener("scroll", onScroll, true);
@@ -2153,11 +2176,13 @@
     editKeys(e);
   }
   function onResize() {
+    placeUnder();
     if (mode === "annotate") { sizeCanvas(); redraw(); renderPicked(); }
     if (xrayOn) { sizeCanvas(xrayCanvas); scheduleXray(); }
     scheduleRedrawBoxes();
   }
   function onScroll() {
+    placeUnder();
     if (mode === "edit") scheduleRedrawBoxes();
     scheduleXray();
   }
@@ -2174,8 +2199,46 @@
      to say so. The stub owns `window.__gAdmin`; this is its counterpart. */
   window.__gAdminOff = () => setMode("off");
 
+  /* Dock the bar if the host's slot is there, undock it if the slot went
+     away. A single page app redraws its chrome on navigation, so the slot is
+     looked for again whenever the page's tree changes, on the next frame. */
+  let docked = false;
+  function dock() {
+    if (!dockHost || !host.isConnected) return;
+    let slot = null;
+    try { slot = document.querySelector(DOCK); } catch { /* not a selector: stay fixed */ }
+    if (slot && mine(slot)) slot = null;
+    if (slot) {
+      if (dockHost.parentNode !== slot) slot.append(dockHost);
+      if (bar.parentNode !== dockShadow) dockShadow.append(bar);
+    } else {
+      dockHost.remove();
+      if (bar.parentNode !== wrap) wrap.prepend(bar);
+    }
+    docked = !!slot;
+    for (const h of hosts) h.toggleAttribute("data-docked", docked);
+    placeUnder();
+  }
+  /* Fixed layers that start under the bar (the inspector, the hint, and in
+     dock mode the hit layer) read --ga-under. Fixed, it is the bar's height
+     from the sheet; docked, it is wherever the bar's foot is on screen. */
+  function placeUnder() {
+    if (!docked) { host.style.removeProperty("--ga-under"); return; }
+    host.style.setProperty("--ga-under", `${Math.max(0, Math.round(bar.getBoundingClientRect().bottom))}px`);
+  }
+  let dockFrame = 0;
+  const dockWatch = dockHost ? new MutationObserver((records) => {
+    if (dockFrame || records.every((r) => mine(r.target))) return;
+    dockFrame = requestAnimationFrame(() => { dockFrame = 0; dock(); });
+  }) : null;
+
   function mount() {
     document.body.append(host);
+    if (dockHost) {
+      dock();
+      window.g?.init?.(dockShadow);
+      dockWatch.observe(document.body, { childList: true, subtree: true });
+    }
     /* The shipped pane behaviour lives in g-ui.js and only ever walks the root
        it is given, so the shadow root is just another root to it. It has to
        run after the panes exist, which is why mounting is last. */

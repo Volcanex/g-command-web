@@ -1,4 +1,4 @@
-/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.9.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 import { html } from "./html.js";
 
 /* Phosphor Regular glyphs as inline SVG. The kit ships no glyph data: the app registers the

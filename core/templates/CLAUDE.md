@@ -63,7 +63,10 @@ side-foot toggles, the status line, Home's agenda card, the page
 reveal). There is no tab strip: the rail nests one level (kit `.nav-group`, a
 disclosure row per group) and the top bar is the kit's slim bar (g-design
 `skills/g-navigation`, R1 and R7). The rail's collapse, hover peek and pin
-are the kit's `rail.js`, loaded as a module from the shell; `body` starts
+are the kit's `rail.js`, loaded as an async module at the end of the shell
+(so the phone dock is drawn in the first frames, not at DOMContentLoaded);
+the content is revealed by an inline script right after it, not by a script
+file. Under 721px the status line is hidden: the dock is the foot. `body` starts
 `data-rail="collapsed"` and an inline script sets `pinned` before first
 paint when the viewer pinned it.
 

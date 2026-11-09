@@ -1,4 +1,4 @@
-/* g-design@1.8.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.9.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-icons: generated from packages/g-icons/icons/*.svg. Do not edit. */
 (() => {
   const g = (window.g = window.g || {});
@@ -520,32 +520,67 @@
 
   /* One swell: the pill resizes to its new label while colours crossfade and
      the text types through a blur; once settled, the pill blinks three times.
-     Width is measured in px at both ends so the transition has real numbers. */
+     Width is measured in px at both ends so the transition has real numbers.
+
+     A page sets dozens of badges at once (System sets 74 on load), so nothing
+     here reads layout per call: a badge's first value lands without a swell
+     (it is arriving, not changing), its width is read later with every other
+     badge's in one batch, and a change reads and writes all pending badges in
+     two layout passes per frame, not two per badge. The label and kind change
+     at once, so a caller reading the badge straight after sees the new one. */
+  const swells = new Set(), measures = new Set();
+  let swellQueued = false;
+  function queueSwell() {
+    if (swellQueued) return;
+    swellQueued = true;
+    queueMicrotask(() => {
+      swellQueued = false;
+      const items = [...swells].filter((el) => el.isConnected);
+      const sized = [...measures].filter((el) => el.isConnected && !swells.has(el));
+      swells.clear(); measures.clear();
+      items.forEach((el) => { el.style.width = ""; });
+      const tos = items.map((el) => el.getBoundingClientRect().width);   // one layout
+      sized.forEach((el) => { el._gWidth = el.getBoundingClientRect().width; });
+      if (!items.length) return;
+      items.forEach((el) => {
+        el.style.width = el._gFrom + "px";
+        el.removeAttribute("data-flash");
+        el.classList.remove("g-label-bridge");
+      });
+      void document.body.offsetWidth;   /* one restart for every animation */
+      items.forEach((el, i) => {
+        el._gWidth = tos[i];
+        el.style.width = tos[i] + "px";
+        el.setAttribute("data-flash", "");
+        if (el._gBridge) el.classList.add("g-label-bridge");
+        clearTimeout(el._swell);
+        el._swell = setTimeout(() => { el.style.width = ""; el.classList.remove("g-swelling"); el._gWidth = el.getBoundingClientRect().width; }, 700);
+      });
+    });
+  }
   g.status = (el, { kind, label }) => {
     const nextClass = "badge" + (kind ? " badge-" + kind : "");
     const sameClass = el.className.replace(/\s*g-swelling\s*/, " ").trim() === nextClass;
     const sameText = label == null || el.textContent === label;
     if (sameClass && sameText) return;
+    const first = !el._gStatus;
+    el._gStatus = true;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || !el.isConnected) {
+    if (first || reduce || !el.isConnected) {
       el.className = nextClass;
       if (label != null) el.textContent = label;
+      if (el.isConnected) { measures.add(el); queueSwell(); }
       return;
     }
-    const from = el.getBoundingClientRect().width;
+    if (!swells.has(el)) {
+      // the width it shows now: known from the last batch, else read once
+      el._gFrom = el._gWidth != null ? el._gWidth : el.getBoundingClientRect().width;
+    }
     el.className = nextClass + " g-swelling";
     if (label != null) el.textContent = label;
-    el.style.width = "";
-    const to = el.getBoundingClientRect().width;
-    el.style.width = from + "px";
-    void el.offsetWidth;
-    el.style.width = to + "px";
-    el.removeAttribute("data-flash");
-    void el.offsetWidth; /* restart the animation */
-    el.setAttribute("data-flash", "");
-    if (label != null && !sameText) bridgeLabel(el);
-    clearTimeout(el._swell);
-    el._swell = setTimeout(() => { el.style.width = ""; el.classList.remove("g-swelling"); }, 700);
+    el._gBridge = label != null && !sameText;
+    swells.add(el);
+    queueSwell();
   };
 
   /* ---- confirm button: tick draws in on click --------------------------- */

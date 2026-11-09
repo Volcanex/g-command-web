@@ -1,0 +1,16 @@
+[
+  {"name": "Home loads with its agenda", "wait": 1500},
+  {"name": "Go opens on Ctrl+K with every place listed", "press": "Control+k"},
+  {"wait": 500},
+  {"expect": "Calendar"},
+  {"expect": "Alerts"},
+  {"name": "Typing filters", "fill": "dialog.g-palette .cmdk-input", "value": "tick"},
+  {"wait": 300},
+  {"expect": "Tickets"},
+  {"name": "Enter goes there", "press": "Enter"},
+  {"wait": 1500},
+  {"name": "Calendar from the rail", "goto": "/calendar"},
+  {"wait": 1500},
+  {"name": "Alerts", "goto": "/alerts"},
+  {"wait": 1500}
+]

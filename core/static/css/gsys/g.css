@@ -1,4 +1,4 @@
-/* g-design@1.8.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.9.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-tokens fonts: Inter (UI), Space Grotesk (display, optional), JetBrains Mono. */
 
 @font-face {
@@ -2475,6 +2475,102 @@ dialog.cmdk {
 }
 .menu-item:disabled { color: var(--text-placeholder); cursor: default; }
 .menu-item:disabled:hover { background: none; }
+
+/* ---------------------------------------------------------------- native: the phone layer */
+
+/* What makes a g web app feel like an app on a phone rather than a web page. Two scopes:
+
+   1. A touch phone (max-width 720px, coarse pointer), in Safari or in a shell: the browser's
+      own web-page habits go. No grey tap flash, no 300ms double-tap wait, no long-press
+      callout or text selection on chrome, no zoom when a field takes focus (iOS zooms under
+      16px), no hover state left stuck on whatever was tapped, an immediate pressed state, and
+      the page itself does not rubber-band (its content scroller still does).
+
+   2. Inside an iPhone shell (html[data-gshell], set by the shell's bridge) at phone width, the
+      look moves to iOS's: filled grouped surfaces instead of outlined cards, 15px controls and
+      17px body text, semibold titles, filled secondary controls and taller controls. It is done
+      by re-pointing tokens wherever a token carries it, so every component and every app that
+      vendors g.css follows the web as it changes; only what no token reaches is a rule here.
+      The kit (g-ui-preact kit.css, "native") adds the dock's and the top bar's material.
+
+   Desktop and any pointer that hovers are untouched. */
+
+@media (max-width: 720px) and (pointer: coarse) {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+  body { overscroll-behavior: none; }
+  a, button, summary, label, select, input, textarea, [role="button"], [role="option"], [role="tab"] { touch-action: manipulation; }
+  :is(.btn, .menu-item, .nav-item, .tab, .badge, .cmdk-group, .topbar, .g-status, [role="tab"], [role="button"]) {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  /* iOS zooms the page into a field whose text is under 16px. */
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"]),
+  textarea, select { font-size: max(16px, 1em); }
+
+  /* A tap leaves :hover on what was tapped. Undo the hover looks that would stick, and give
+     the press itself an immediate state: no transition on the way in. */
+  .btn:hover:not(:disabled) { transform: none; }
+  .btn-secondary:hover:not(:disabled), .btn-tertiary:hover:not(:disabled) { background: var(--_fill); border-color: var(--_edge); }
+  .btn-tertiary:hover:not(:disabled) { color: var(--_fg); }
+  .menu-item:hover:not([data-highlighted]), .nav-item:hover:not([aria-current]) { background: none; }
+  .btn:active:not(:disabled) { transform: scale(0.97); transition-duration: 0s; }
+  :is(.btn-secondary, .btn-tertiary):active:not(:disabled) { background: var(--fill-active); }
+  :is(.menu-item, .nav-item, a.list-item, a.card, .tab):active { background: var(--fill-active); transition-duration: 0s; }
+
+  /* Page loads on a phone are tab switches, not documents arriving: the next page replaces
+     this one at once (view transitions still hold the old paint until it is ready, so there
+     is no blank frame), and content does not stagger in. */
+  /* Every control already answers a 44px touch here (g-ui.css, coarse pointer); a segmented
+     option gets the same, upward and downward, since its siblings abut it. */
+  .g-segmented > label::after { content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2)) 0; }
+
+  ::view-transition-group(root), ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  .enter > * { animation: none; }
+}
+
+@media (max-width: 720px) {
+  :root[data-gshell], :root[data-gshell] [data-theme] {
+    /* iOS sizes: 17px body, 15px controls and rows, controls a step taller. Every control
+       already answers a 44px touch on a coarse pointer (g-ui.css, its hit area). */
+    --font-size-body: 17px;
+    --font-size-ui: 15px;
+    --h-control: var(--h-4);
+    --h-control-sm: var(--h-3);
+    --h-control-lg: var(--h-5);
+    --pad-control-x: var(--sp-4);
+    /* Grouped, filled surfaces instead of outlined cards: the card is set off by its fill. */
+    --card-border: transparent;
+    --card-highlight: none;
+    --card-bg: color-mix(in oklab, var(--surface-2), var(--text-primary) 5%);
+    --well-border: transparent;
+  }
+  /* Light: a grey page under white groups, as iOS's grouped lists. */
+  :root[data-gshell][data-theme="light"], :root[data-gshell] [data-theme="light"] {
+    --surface-1: color-mix(in oklab, var(--slate-2), var(--slate-12) 5%);
+    --card-bg: var(--slate-1);
+  }
+  @media (prefers-color-scheme: light) {
+    :root[data-gshell][data-theme="system"], :root[data-gshell] [data-theme="system"] {
+      --surface-1: color-mix(in oklab, var(--slate-2), var(--slate-12) 5%);
+      --card-bg: var(--slate-1);
+    }
+  }
+
+  :root[data-gshell] body { line-height: var(--lh-3); }
+  /* Semibold titles and headings, as iOS sets them. */
+  :root[data-gshell] :is(h1, h2, h3, .card-title, .dlg-title, .e-title) { font-weight: 600; }
+  /* Secondary controls are filled, not outlined: a quiet tinted fill like an iOS gray button. */
+  :root[data-gshell] .btn-secondary, :root[data-gshell] .btn-tertiary { --_fill: var(--fill-hover); --_edge: transparent; }
+  :root[data-gshell] .btn { font-weight: 500; }
+  :root[data-gshell] .btn-primary { font-weight: 600; }
+  :root[data-gshell] .menu-item { height: 44px; }
+  /* Segmented options at the control height, like iOS's segmented control. */
+  :root[data-gshell] .g-segmented > label { height: calc(var(--h-control-sm) - 6px); padding: 0 var(--sp-3); font-size: 13px; }
+}
 
 /* g-pane-stack: an inspector column of titled sections. Each .g-pane is a
    title button plus a body; the title's aria-expanded is the state and the

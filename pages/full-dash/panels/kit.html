@@ -322,6 +322,11 @@ window.FD = (function () {
   margin-bottom: var(--sp-2);
   border-bottom: 1px solid var(--border-subtle);
 }
+/* In the iPhone shell a panel is a filled group (g-design native): its fill sets it apart, and
+   the rule under its head is one separator too many. */
+@media (max-width: 720px) {
+  :root[data-gshell] .fd-panel-head { border-bottom-color: transparent; padding-bottom: 0; }
+}
 .fd-panel-head > .ph { color: var(--text-placeholder); font-size: 15px; flex: none; }
 .fd-panel-head h2 { flex: none; }
 .fd-panel-head a.btn { text-decoration: none; flex: none; }

@@ -1,4 +1,4 @@
-/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.9.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 // The rail (kit.css .g-shell[data-rail], .g-rail-toggle, .nav-group), plain DOM with no imports,
 // so a server-rendered page loads it as a module and the Preact shell uses it too.
 //
@@ -228,12 +228,10 @@ export function wireRails(root = document) {
 
 const PHONE = "(max-width: 720px)";
 const HISTORY_MAX = 30;
-const RECENT_MAX = 4;
 const CLOSE_MS = 600;   // past the palette's exit (kit.css, 330ms), so its rows stay until it has gone
 const PATHS = {
   compass: "M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z",
   search: "M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z",
-  list: "M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,64H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,116Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,180Z",
 };
 const glyph = (name) => `<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="${PATHS[name]}"/></svg>`;
 const EDITABLE = 'input:not([type="checkbox"],[type="radio"],[type="button"],[type="submit"],[type="reset"],[type="range"],[type="color"],[type="file"],[type="image"],[type="hidden"]), textarea, select, [contenteditable]:not([contenteditable="false"])';
@@ -472,9 +470,27 @@ export function wireDock(shell, opts = {}) {
     return true;
   }
 
+  /* A tab bar answers the touch, not its release: a finger on a slot starts the switch at once
+     (the click that follows is then spent), as UITabBar does. A mouse or a keyboard still acts
+     on click. The dock never scrolls, so a touch on it is never the start of a swipe. */
+  let pressed = null;
+  dock.addEventListener("pointerdown", (e) => {
+    pressed = null;
+    if (e.pointerType === "mouse" || !e.isPrimary || e.button) return;
+    const slot = e.target.closest(".g-dock-slot");
+    if (!slot) return;
+    pressed = slot;
+    act(slot, e);
+  });
+  dock.addEventListener("pointercancel", () => { pressed = null; });
   dock.addEventListener("click", (e) => {
     const slot = e.target.closest(".g-dock-slot");
     if (!slot) return;
+    if (pressed === slot) { e.preventDefault(); pressed = null; return; }
+    pressed = null;
+    act(slot, e);
+  });
+  function act(slot, e) {
     if (slot.classList.contains("g-dock-go")) { e.preventDefault(); toggle(); return; }
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return;
     e.preventDefault();
@@ -488,7 +504,7 @@ export function wireDock(shell, opts = {}) {
     if (href === current) { navigate(href, true); return; }
     haptic();
     navigate(session.get(memKey(href)) || href, true);
-  });
+  }
 
   /* ---- Go: the palette */
 
@@ -519,7 +535,7 @@ export function wireDock(shell, opts = {}) {
   pal.append(field, list);
   const scrim = document.createElement("div");
   scrim.className = "g-palette-scrim";
-  let open = false, sheet = false, all = false, closeTimer = 0, opener = null;
+  let open = false, sheet = false, closeTimer = 0, opener = null;
 
   function places() {
     const own = placesOf(asideOf(shell));
@@ -572,47 +588,21 @@ export function wireDock(shell, opts = {}) {
         list.append(e);
       }
     } else {
-      const here = urlParts(location.href).at;
-      const hist = session.json(histKey, []);
-      const seen = new Set();
-      const recent = [];
-      const herePlace = hist[0] && hist[0].u === here ? hist[0].p : null;
-      hist.forEach((h) => {
-        if (recent.length >= RECENT_MAX || seen.has(h.p) || h.p === herePlace) return;
-        seen.add(h.p);
-        const p = ps.find((x) => !x.host && x.href === h.p);
-        if (p) recent.push(p);
-      });
-      if (recent.length && !all) {
-        list.append(heading("Recent"));
-        recent.forEach((p) => list.append(row(p, { where: true })));
-        const more = document.createElement("button");
-        more.type = "button";
-        more.className = "menu-item g-palette-item g-palette-all";
-        more.setAttribute("role", "option");
-        more.id = `${list.id}-all`;
-        more.innerHTML = glyph("list");
-        const l = document.createElement("span");
-        l.className = "g-palette-label";
-        l.textContent = "All places";
-        more.append(l);
-        list.append(more);
-      } else {
-        // The whole tree: headings, and each group named over its places.
-        let head = null, group = null;
-        ps.forEach((p) => {
-          if (p.head !== head) { head = p.head; group = null; if (head) list.append(heading(head)); }
-          if (p.group !== group) {
-            group = p.group;
-            if (group) {
-              const g = heading(group);
-              g.classList.add("g-palette-sub");
-              list.append(g);
-            }
+      // Every place, as the rail has them, open: headings, and each group named over its
+      // places. Typing filters; nothing waits behind another tap.
+      let head = null, group = null;
+      ps.forEach((p) => {
+        if (p.head !== head) { head = p.head; group = null; if (head) list.append(heading(head)); }
+        if (p.group !== group) {
+          group = p.group;
+          if (group) {
+            const g = heading(group);
+            g.classList.add("g-palette-sub");
+            list.append(g);
           }
-          list.append(row(p, { child: !!p.group }));
-        });
-      }
+        }
+        list.append(row(p, { child: !!p.group }));
+      });
     }
     highlight(sheet ? -1 : 0);
   }
@@ -634,12 +624,6 @@ export function wireDock(shell, opts = {}) {
 
   function choose(o) {
     if (!o) return;
-    if (o.classList.contains("g-palette-all")) {
-      all = true;
-      fill();
-      if (!sheet) input.focus();
-      return;
-    }
     const href = o.getAttribute("href");
     close(true);
     const here = urlParts(location.href).at;
@@ -653,7 +637,7 @@ export function wireDock(shell, opts = {}) {
     e.preventDefault();
     choose(o);
   });
-  input.addEventListener("input", () => { all = false; fill(); if (sheet && input.value) highlight(0); });
+  input.addEventListener("input", () => { fill(); if (sheet && input.value) highlight(0); });
   input.addEventListener("keydown", (e) => {
     const n = options().length;
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -677,7 +661,6 @@ export function wireDock(shell, opts = {}) {
     if (open) return;
     clearTimeout(closeTimer);
     open = true;
-    all = false;
     input.value = "";
     opener = document.activeElement;
     sheet = phone.matches && shell.hasAttribute("data-dock") && !shell.hasAttribute("data-dock-guest");

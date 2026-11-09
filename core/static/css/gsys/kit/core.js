@@ -1,4 +1,4 @@
-/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.9.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 // Building blocks on g-design classes: toasts, dialogs, buttons, menus, states, page head,
 // fields, badges and a few hooks. Every visual is a g.css or kit.css class; this file only
 // composes them. Nothing here knows which app it is in: what an app adds (where errors are

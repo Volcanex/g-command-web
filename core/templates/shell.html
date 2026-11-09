@@ -18,9 +18,10 @@
   <script>(function(){try{var t=localStorage.getItem('g-theme');if(t)document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('g-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}})();</script>
   <!-- Page styles live inside the streamed body, so on a slow connection the
        markup would paint unstyled and then jump. Hold the content invisible
-       until chrome.js (deferred, runs after the full parse) reveals it with
-       the entrance stagger. The keyframe is a bounded fallback: if JS never
-       arrives, the page still reveals itself after 1.5s. -->
+       until the parser has passed it: the inline script after it reveals it
+       with the entrance stagger. That needs no script file, so the page
+       paints before g-ui.js and chrome.js have run. The keyframe is a bounded
+       fallback: if scripts are off, the page still reveals itself after 1.5s. -->
   <style>.site-main{opacity:0;animation:g-page-fallback .2s ease-out 1.5s forwards}@keyframes g-page-fallback{to{opacity:1}}</style>
   <noscript><style>.site-main{opacity:1;animation:none}</style></noscript>
   <link rel="preload" href="/css/vendor/phosphor/Phosphor.woff2" as="font" type="font/woff2" crossorigin>
@@ -37,7 +38,6 @@
   <script defer src="/css/gsys/g-ui.js"></script>
   <script defer src="/js/chrome.js"></script>
   <script defer src="/js/hub.js"></script>
-  <script type="module">import { wireRails } from "/css/gsys/kit/rail.js"; wireRails();</script>
   <!-- Studio's default cursor (kit cursor.js), so the pointer is the same here and over the
        embedded Studio at /studio. Only the cursor: no coworking. -->
   <script type="module">import { wireOwnCursor } from "/css/gsys/kit/cursor.js"; wireOwnCursor();</script>
@@ -81,6 +81,7 @@
       <div class="content-page site-main">
         {{! content }}
       </div>
+      <script>document.querySelector(".site-main").classList.add("g-ready","enter");</script>
     </div>
 
     <footer class="g-status">
@@ -93,5 +94,9 @@
 
   <div class="g-scrim"></div>
 
+  <!-- The rail and the phone dock (kit rail.js). Async and last, so it runs as soon as the
+       shell is parsed, without waiting behind the deferred scripts: the dock is in the first
+       frames instead of arriving at DOMContentLoaded. -->
+  <script type="module" async>import { wireRails } from "/css/gsys/kit/rail.js"; wireRails();</script>
 </body>
 </html>

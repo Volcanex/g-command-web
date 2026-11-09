@@ -1,4 +1,4 @@
-/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.9.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 /* g-ui-preact kit.css: the app shell look, lifted from Studio without changing a rule.
    Classes on top of g.css (link g.css first); alias tokens only, no raw colours.
    Works on plain HTML: nothing here needs the Preact components.
@@ -223,6 +223,9 @@ button.nav-item { width: 100%; }
 /* The slim bar (g-navigation R7): 48px with its rule at every width, for an app whose bar
    carries a title and a few actions rather than a document's state. */
 .topbar.topbar-slim { min-height: var(--h-5); padding-block: 0; }
+/* The g-admin bar's slot under the top bar (g-admin contract, Docking): 0px when empty, the
+   28px bar in flow when the overlay is up, so nothing in the shell is covered. */
+.g-admin-dock { flex: none; min-width: 0; }
 /* Where the page sits: Parent, a caret, Page. The parent is a link; the page is the title. */
 .topbar-crumbs { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; font-size: 15px; line-height: var(--lh-2); }
 .topbar-crumbs a { color: var(--text-secondary); text-decoration: none; white-space: nowrap; flex: none; }
@@ -426,10 +429,25 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
    z-order on a phone: the palette's scrim (41), the sheet (42), then the dock (43), so the sheet
    rises from behind the dock and the dock stays in reach with Go lit. */
 :root { --g-dock-h: calc(56px + env(safe-area-inset-bottom, 0px)); }
+/* Go's sheet moves like an iOS sheet: in on the iOS curve in 240ms (at 98% of its travel by
+   about 150ms), out faster on the exit curve. Gabriel's call on the phone (9 Nov: "the animation
+   is a little sluggish"), over the calmer spring the dialogs use at every other size. */
+:root { --g-sheet-in: 240ms; --g-sheet-out: 160ms; }
 .g-dock, .g-palette-scrim { display: none; }
 
 @media (max-width: 720px) {
   .g-shell[data-dock] { padding-bottom: var(--g-dock-h); }
+  /* Before rail.js has drawn the dock (a page's first frames), a shell whose rail pins a place
+     already keeps the dock's room and draws its bar, so nothing moves when the slots arrive. */
+  .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock]) { padding-bottom: var(--g-dock-h); }
+  .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock]) > aside { visibility: hidden; }
+  .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock]) .g-nav-toggle { display: none; }
+  .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock], .g-shell .g-shell)::after {
+    content: ""; position: fixed; inset: auto 0 0 0; z-index: 43;
+    height: var(--g-dock-h);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--surface-1);
+  }
   .g-shell[data-dock] > aside { visibility: hidden; }
   .g-shell[data-dock] .g-nav-toggle { display: none; }
   .g-shell[data-dock] .g-shell:not([data-dock]) .g-nav-toggle { display: inline-flex; }
@@ -488,7 +506,12 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
   .g-dock-icon .ph { font-size: 20px; }
   .g-dock-icon .g-mark { width: 18px; height: 18px; }
   .g-dock-label { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .g-dock-slot[aria-current], .g-dock-go[aria-expanded="true"] { color: var(--text-primary); }
+  .g-dock-slot[aria-current], .g-dock-go[aria-expanded="true"] { color: var(--text-primary); font-weight: 600; }
+  /* The selected tab's glyph is drawn heavier, so it reads as filled beside the outlined rest. */
+  .g-dock-slot[aria-current] .g-dock-icon .ph, .g-dock-go[aria-expanded="true"] .g-dock-icon .ph { -webkit-text-stroke: 0.6px currentColor; }
+  .g-dock-slot[aria-current] .g-dock-icon svg[fill="currentColor"], .g-dock-go[aria-expanded="true"] .g-dock-icon svg[fill="currentColor"] { stroke: currentColor; stroke-width: 6px; paint-order: stroke; }
+  /* A press shows at once, with no transition in. */
+  .g-dock-slot:active .g-dock-icon { background: var(--fill-active); transition-duration: 0s; }
   .g-dock-slot[aria-current] .g-dock-icon, .g-dock-go[aria-expanded="true"] .g-dock-icon { background: var(--fill-active); }
   /* While Go is open it is the lit slot. */
   .g-shell[data-go-open] > .g-dock .g-dock-slot[aria-current] { color: var(--text-secondary); }
@@ -508,21 +531,26 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
     inset: auto 0 var(--g-dock-h) 0; z-index: 42;
     width: 100%; max-width: 100%; margin: 0;
     max-height: calc(100dvh - var(--g-dock-h) - env(safe-area-inset-top, 0px) - var(--sp-8));
-    border-width: 1px 0 0; border-radius: var(--radius-card) var(--radius-card) 0 0;
+    /* One edge: the sheet's own rounded top against the scrim. No border and no overlay ring
+       (dialog.dlg's shadow starts with a 1px ring), which drew a second line above the first. */
+    border: none; box-shadow: none;
+    border-radius: calc(var(--radius-card) + var(--sp-1)) calc(var(--radius-card) + var(--sp-1)) 0 0;
     clip-path: none;
     translate: 0 100%;
     transition:
-      translate var(--spring-snap-dur) var(--ease-in-out),
-      transform var(--spring-snap-dur) var(--ease-in-out),
-      display var(--spring-snap-dur) var(--ease-in-out) allow-discrete;
+      translate var(--g-sheet-out) var(--ease-in-out),
+      transform var(--g-sheet-out) var(--ease-in-out),
+      display var(--g-sheet-out) var(--ease-in-out) allow-discrete;
   }
   dialog.g-palette[data-sheet][open] {
     clip-path: none; translate: 0 0;
     transition:
-      translate var(--spring-sheet-dur) var(--spring-sheet),
+      translate var(--g-sheet-in) var(--ease-ios),
       transform var(--spring-smooth-dur) var(--spring-smooth),
-      display var(--spring-sheet-dur) var(--ease-out) allow-discrete;
+      display var(--g-sheet-in) var(--ease-out) allow-discrete;
   }
+  /* While Go is open the scrim covers the top bar; its rule would be a line across the scrim. */
+  .g-shell[data-go-open] > main > .topbar { border-bottom-color: transparent; }
   @starting-style { dialog.g-palette[data-sheet][open] { translate: 0 100%; } }
   /* the dock has stepped down: the sheet drops to the keyboard's edge (a transform, not bottom,
      so riding the keyboard never lays the page out again) */
@@ -538,9 +566,9 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
     display: block; position: fixed; inset: 0; z-index: 41;
     background: rgb(0 0 0 / 0.44);
     opacity: 0; pointer-events: none;
-    transition: opacity var(--spring-snap-dur) var(--ease-in-out);
+    transition: opacity var(--g-sheet-out) var(--ease-in-out);
   }
-  .g-palette-scrim[data-open] { opacity: 1; pointer-events: auto; transition: opacity var(--spring-smooth-dur) var(--ease-out); }
+  .g-palette-scrim[data-open] { opacity: 1; pointer-events: auto; transition: opacity var(--g-sheet-in) var(--ease-out); }
 }
 @keyframes g-dock-in { from { opacity: 0; } }
 
@@ -556,7 +584,6 @@ dialog.g-palette { flex-direction: column; overflow: hidden; }
 .g-palette-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-palette-where { margin-left: auto; padding-left: var(--sp-3); flex: none; color: var(--text-placeholder); font-size: 12px; white-space: nowrap; }
 .g-palette-child { padding-left: var(--sp-5); }
-.g-palette-all { color: var(--text-secondary); }
 .g-palette-list .cmdk-group.g-palette-sub { padding-top: var(--sp-1); color: var(--text-secondary); }
 /* A touch leaves :hover on whatever row now sits under the finger; only the highlight shows. */
 @media (hover: none) { .g-palette-item:hover:not([data-highlighted]) { background: none; } }
@@ -573,6 +600,40 @@ dialog.g-palette { flex-direction: column; overflow: hidden; }
   }
   .g-shell[data-dock-typing] > .g-dock, dialog.g-palette[data-sheet]:not([open]) { opacity: 0; }
   @starting-style { dialog.g-palette[data-sheet][open] { opacity: 0; } }
+}
+
+/* ---------------------------------------------------------------- native: the phone shell */
+
+/* The kit's half of the phone layer (g.css carries the rest, components/native.css: touch
+   habits everywhere on a touch phone, and inside a shell the iOS tokens). Inside an iPhone
+   shell (html[data-gshell]) at phone width the bars read as iOS's: the dock is a translucent
+   material the page runs on under, the top bar sits on the page with no rule under it, and the
+   title is set as iOS sets a navigation title (17px semibold). */
+@media (max-width: 720px) {
+  :root[data-gshell] .g-dock {
+    background: color-mix(in oklab, var(--surface-1) 80%, transparent);
+    -webkit-backdrop-filter: saturate(1.8) blur(20px);
+    backdrop-filter: saturate(1.8) blur(20px);
+  }
+  /* The page runs on under the dock and ends clear of it. Only the outermost shell, and not a
+     host whose guest (Studio inside Command) draws the dock. */
+  :root[data-gshell] .g-shell[data-dock]:not(.g-shell .g-shell, [data-dock-guest]),
+  :root[data-gshell] .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock], .g-shell .g-shell) { padding-bottom: 0; }
+  :root[data-gshell] .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock], .g-shell .g-shell)::after {
+    background: color-mix(in oklab, var(--surface-1) 80%, transparent);
+    -webkit-backdrop-filter: saturate(1.8) blur(20px);
+    backdrop-filter: saturate(1.8) blur(20px);
+  }
+  :root[data-gshell] .g-shell[data-dock]:not(.g-shell .g-shell, [data-dock-guest]) > main > .content::after {
+    content: ""; display: block; height: var(--g-dock-h);
+  }
+  :root[data-gshell] .topbar { border-bottom-color: transparent; }
+  :root[data-gshell] :is(.topbar .page-title, .topbar-title) { font-size: 17px; line-height: var(--lh-3); font-weight: 600; }
+  :root[data-gshell] .topbar-crumbs { font-size: 17px; line-height: var(--lh-3); }
+  :root[data-gshell] .g-dock-label { font-weight: 500; }
+  :root[data-gshell] .g-dock-slot[aria-current] .g-dock-label,
+  :root[data-gshell] .g-dock-go[aria-expanded="true"] .g-dock-label { font-weight: 600; }
+  :root[data-gshell] dialog.g-palette[data-sheet] .cmdk-group { font-size: 13px; line-height: var(--lh-2); }
 }
 
 /* Rail skeleton row, while the nav loads. */

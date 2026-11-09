@@ -1,4 +1,4 @@
-/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.9.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 // g-ui-preact: everything, for apps that want one import.
 export * from "./icon.js";
 export * from "./core.js";

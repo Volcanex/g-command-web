@@ -37,8 +37,9 @@
 
 .g-nav-toggle .ph { font-size: 16px; }
 
-/* chrome.js adds g-ready once the document is fully parsed (every body
-   style block applied), then the g.css .enter stagger sweeps content in */
+/* An inline script after the content (shell.html) adds g-ready once the
+   parser has passed every body style block, then the g.css .enter stagger
+   sweeps content in (not on a touch phone: g.css native) */
 .site-main.g-ready { opacity: 1; animation: none; }
 
 /* status line */
@@ -89,4 +90,9 @@ body.full-dash-page .dash-top { padding-top: var(--sp-5); flex: none; }
    of the screen (its dock, kit.css), so Command's status line would sit under that dock. */
 @media (max-width: 720px) {
   body.g-shell[data-dock-guest] > main > .g-status { display: none; }
+}
+/* On a phone the dock is the foot of the screen: the status line would be a second strip
+   stacked over it, and the top bar already names the page. */
+@media (max-width: 720px) {
+  body.g-shell > main > .g-status { display: none; }
 }

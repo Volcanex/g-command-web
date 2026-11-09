@@ -5,10 +5,11 @@
    rail's groups, hover and pin are the kit's (gsys/kit/rail.js), which runs
    after this and opens the group holding the current link. */
 (() => {
-  /* reveal the page: this script is deferred, so every body <style> has been
-     parsed by now and the content can enter without a restyle jump */
+  /* The page is revealed by the inline script after it (shell.html), as soon as
+     the parser has passed every body <style>; this is only the fallback for a
+     page that lacks it. */
   const main = document.querySelector(".site-main");
-  if (main) { main.classList.add("g-ready", "enter"); }
+  if (main && !main.classList.contains("g-ready")) { main.classList.add("g-ready", "enter"); }
 
   window.toggleNav = (force) => {
     const open = force !== undefined ? force : !document.body.hasAttribute("data-nav-open");
