@@ -629,15 +629,33 @@ def build_nav_html(configs: list[dict]) -> str:
     section, a .nav-item per entry, and a group's children, each with its own
     icon, in a kit .nav-group whose parent is a disclosure button. kit rail.js
     opens the groups (all, by default) and chrome.js marks the current item."""
+    tree = page_tree(configs)
+    rail_pages = [page for _, entries in tree for c, kids in entries for page in (kids or [c])]
+    pins = {}
+    for c in configs:
+        if "nav_pin" not in c:
+            continue
+        pin, slug = c["nav_pin"], c.get("slug", "")
+        if type(pin) is not int or not 1 <= pin <= 4:
+            raise ValueError(f"{slug}: nav_pin must be an integer from 1 to 4 (got {pin!r})")
+        if not any(c is page for page in rail_pages):
+            raise ValueError(f"{slug}: nav_pin is set on a page that is not on the rail")
+        if pin in pins:
+            raise ValueError(f"nav_pin {pin} is shared by pages {pins[pin]!r} and {slug!r}")
+        pins[pin] = slug
+
     def glyph(name: str) -> str:
         return f'<i class="ph ph-{html.escape(str(name))}" aria-hidden="true"></i>'
 
     def item(c: dict, label: str, cls: str = "nav-item", icon: str | None = None) -> str:
-        return (f'<a class="{cls}" href="{html.escape(page_href(c))}">{glyph(icon or c.get("nav_icon", "circle"))}'
+        attrs = f' data-pin="{c["nav_pin"]}"' if "nav_pin" in c else ""
+        if "dock_label" in c:
+            attrs += f' data-dock-label="{html.escape(str(c["dock_label"]), quote=True)}"'
+        return (f'<a class="{cls}" href="{html.escape(page_href(c))}"{attrs}>{glyph(icon or c.get("nav_icon", "circle"))}'
                 f'<span class="ellipsis">{html.escape(str(label))}</span></a>')
 
     parts = []
-    for n, (sec, entries) in enumerate(page_tree(configs)):
+    for n, (sec, entries) in enumerate(tree):
         if n:
             parts.append(f'      <div class="nav-head">{html.escape(str(sec))}</div>')
         for c, kids in entries:
@@ -750,7 +768,10 @@ def main() -> None:
                 pass
 
     _PAGES[:] = all_configs
-    nav_html = build_nav_html(all_configs)
+    try:
+        nav_html = build_nav_html(all_configs)
+    except ValueError as exc:
+        sys.exit(f"ERROR: {exc}")
     # Pre-inject nav into the shell so {{! nav_pages }} resolves without
     # per-page context pollution. Use a literal string replace so the
     # TOKEN_RE substitution loop never sees it.

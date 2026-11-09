@@ -46,6 +46,8 @@ answers somewhere other than `/<slug>` (Home's is `/`). To put it under an exist
 set `nav: false`, `tabs` to that entry's group and a `tab_label`
 (`pages/CLAUDE.md` lists the groups). `chrome.js` marks the current link,
 and on a tab page with no link of its own it marks the group's entry.
+`nav_pin` (a unique integer from 1 to 4) pins a page on the rail to the phone dock.
+The kit reads `data-pin` on the rail link, with `data-dock-label` from an optional `dock_label` override.
 
 ## Styling: g-design
 
@@ -102,3 +104,10 @@ in the user agent. A head script then sets `data-app` on `<html>`, and
 `chrome.css` hides the sidebar, top bar and status line: the app draws the
 navigation and title. Browsers never send the marker, so the site itself is
 unchanged.
+
+The new thin iPhone shell (g-shell-ios) keeps the marker and appends ` GShell/1`, and
+its bridge sets `data-gshell` on `<html>` at document start. There the head script
+does not set `data-app`: the shell draws nothing itself, so the web shows its own top
+bar and, under 721px, the kit's dock (rail items with `data-pin`, wired by `wireRails()`).
+The viewport meta carries `viewport-fit=cover`, so the kit's `env(safe-area-inset-*)`
+padding on the top bar and dock is not zero in a full-screen web view.

@@ -34,9 +34,11 @@ an entry on the web rail apart from the apps (Upload is at the top here and
 under Publish there). The key keeps its name because the apps read the same
 manifest (their sidebar draws the same groups, and their Overview dash is
 still Life, System and Full dash). There are no hub or tile pages.
+`nav_pin` (a unique integer from 1 to 4) pins a rail page to the phone dock;
+`dock_label` optionally overrides its dock label, leaving its rail label unchanged.
 Groups: `projects` (HALN `/haln`, Studio recorder at `/recorder`,
 under Work), `life` (Calendar, Pulse), `system` (Diagram, Services `/system`,
-Compute, Crons, Tickets, Projects, Levels), `brain` (Graph, Notes,
+Compute, Crons, Tickets, Projects, Levels, Alerts), `brain` (Graph, Notes,
 Nerves, References, Lineage), `research` (Making ladder, ANS, Dissertation
 at `/research/<area>`, under Knowledge, see `research/CLAUDE.md`), `design` (Language `/design`, Showcase) and `setup` (Bootstrap `/setup`, Install,
 Passport). `/home`, `/ops`, `/brain`, `/voice` and `/research` are 301s to Home, Home, Graph, Chat and the making ladder.

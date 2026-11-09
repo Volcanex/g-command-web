@@ -150,3 +150,15 @@ def test_manifest_lists_the_current_native_screens(client, monkeypatch):
     body = client.get("/api/app/manifest", cookies=ADMIN).json()
     assert body["native"] == {"calendar": {"route": "/calendar", "min_build": 2}}
     assert body["sections"]
+
+
+def test_manifest_adds_pins_to_existing_navigation_entries(client, monkeypatch):
+    import core.native
+    monkeypatch.setattr(core.native, "native_screens", lambda: {})
+    body = client.get("/api/app/manifest", cookies=ADMIN).json()
+    entries = [entry for section in body["sections"] for entry in section["entries"]]
+    pages = [page for entry in entries for page in [entry, *entry.get("tabs", [])]]
+    assert {page["slug"]: page["pin"] for page in pages if "pin" in page} == {
+        "calendar": 2, "studio": 3, "upload": 4}
+    assert "index" not in {page["slug"] for page in pages}
+    assert "pin" not in next(page for page in pages if page["slug"] == "home")

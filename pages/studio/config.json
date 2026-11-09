@@ -3,6 +3,7 @@
   "slug": "studio",
   "description": "g-studio, running here: edit, preview and publish sites without leaving Command.",
   "nav": true,
+  "nav_pin": 3,
   "order": 0.5,
   "body_class": "studio-page",
   "nav_section": "Overview",

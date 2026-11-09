@@ -37,6 +37,8 @@ def build_manifest(pages_dir, native=None):
         # A child page carries its icon too, so an app drawing it on its own
         # (a Home tile for Calendar) has the same glyph as the rail.
         result["icon"] = config.get("nav_icon", "circle")
+        if "nav_pin" in config:
+            result["pin"] = config["nav_pin"]
         if "layout" in config:
             result["panels"] = layout.panels(config["layout"])
             result["layout"] = layout.normalise(config["layout"])
