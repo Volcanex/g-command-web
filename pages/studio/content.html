@@ -38,7 +38,8 @@
   }
   /* One bar, not two (g-navigation R7). Once the studio draws its own bar, that bar says where
      you are (the site and section, or Your sites) and holds the studio's verbs, so Command's
-     "Studio" bar above it goes. On a phone Command's bar stays: it carries Command's menu. */
+     "Studio" bar above it goes. On a phone the kit does it: the studio's shell is a dock guest,
+     so Command's shell gets data-dock-guest, which hides Command's bar and dock (kit.css). */
   @media (min-width: 721px) {
     body.studio-page .g-main:has(.studio-host .topbar) > .topbar { display: none; }
   }

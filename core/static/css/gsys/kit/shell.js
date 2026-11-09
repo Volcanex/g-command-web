@@ -1,9 +1,9 @@
-/* g-design@1.7.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 // The app shell (g-design .g-shell): sidebar with brand, nav and user foot, the top bar, the
 // phone nav sheet, and the theme switch. The app passes in what is its own (brand name, nav
 // items, menu items, what closes the sheet) as props; nothing here knows its routes.
 import { html, useEffect, useRef, useState } from "./html.js";
-import { wireRailToggle, railPinned, groupOpen, setGroupOpen, RAIL_KEY } from "./rail.js";
+import { wireRailToggle, wireDock, railPinned, groupOpen, setGroupOpen, RAIL_KEY } from "./rail.js";
 import { Icon } from "./icon.js";
 import { Menu } from "./core.js";
 
@@ -28,21 +28,28 @@ export function themeMenuItem() {
 
 /* Under 720px the sidebar is an off-canvas sheet. It closes when closeKey changes (pass the
    current route, so following a link closes it) and on Escape, and focuses its first link
-   when it opens. */
-export function useNavSheet(closeKey) {
+   when it opens. The shell renders data-nav-open from `open` itself (AppShell does), so two
+   shells on one page never open each other's sheet; ref, when given, is that shell. */
+export function useNavSheet(closeKey, ref) {
   const [open, setOpen] = useState(false);
   useEffect(() => { setOpen(false); }, [closeKey]);
   useEffect(() => {
-    const el = document.querySelector(".g-shell");
-    if (el) el.toggleAttribute("data-nav-open", open);
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
     addEventListener("keydown", onKey);
-    const first = document.querySelector(".g-shell > aside a, .g-shell > aside button");
+    const shells = document.querySelectorAll(".g-shell[data-nav-open]");
+    const el = (ref && ref.current) || shells[shells.length - 1];
+    const first = el && el.querySelector(":scope > aside a, :scope > aside button");
     first && first.focus();
     return () => removeEventListener("keydown", onKey);
   }, [open]);
   return [open, setOpen];
+}
+
+/* The dock (rail.js wireDock) for a Preact shell: ref is the .g-shell element, opts its key.
+   AppShell uses it; a screen that draws its own .g-shell calls it with that shell's ref. */
+export function useDock(ref, opts = {}) {
+  useEffect(() => (ref.current ? wireDock(ref.current, opts) : undefined), []);
 }
 
 export function NavToggle({ open, setOpen }) {
@@ -104,7 +111,7 @@ export function RailToggle({ railKey = RAIL_KEY, railOpen = false }) {
   useEffect(() => { if (ref.current) wireRailToggle(ref.current, railKey, railOpen); }, []);
   const pinned = railPinned(railKey, railOpen);
   return html`<button ref=${ref} class="g-rail-toggle" type="button" aria-label=${pinned ? "Collapse" : "Keep open"}
-    aria-pressed=${pinned ? "true" : "false"}></button>`;
+    aria-pressed=${pinned ? "true" : "false"} data-rail-key=${railKey}></button>`;
 }
 
 /* The signed-in person at the foot of the sidebar, with their menu. menuSide="right" opens the
@@ -124,12 +131,16 @@ export function UserFoot({ name, email, initials, items, menuLabel = "Account", 
    page head never repeats it; PageHead's h1 is .sr-only); actions sit
    at the top bar's end. topbar=false drops the top bar (an app that draws its own). The bar is
    .app-topbar, plus .has-actions when it carries actions, so an app can drop a bar that is only
-   the menu button wherever the rail sits beside the content. */
-export function AppShell({ brand, nav, foot, title, actions, topbar = true, closeKey, railKey = RAIL_KEY, railOpen = false, children }) {
-  const [open, setOpen] = useNavSheet(closeKey);
+   the menu button wherever the rail sits beside the content. Under 721px a rail with pinned
+   items (NavItem data-pin="1".."4") becomes the dock, and Go opens the palette (rail.js
+   wireDock); dock=false leaves both out. */
+export function AppShell({ brand, nav, foot, title, actions, topbar = true, closeKey, railKey = RAIL_KEY, railOpen = false, dock = true, children }) {
+  const ref = useRef(null);
+  const [open, setOpen] = useNavSheet(closeKey, ref);
+  useEffect(() => (dock && ref.current ? wireDock(ref.current, { key: railKey }) : undefined), []);
   // The rail's first state, so a pinned rail never flashes collapsed; rail.js owns it after.
   const [rail] = useState(() => (railPinned(railKey, railOpen) ? "pinned" : "collapsed"));
-  return html`<div class="g-shell" data-rail=${rail} data-nav-open=${open ? "" : undefined}>
+  return html`<div ref=${ref} class="g-shell" data-rail=${rail} data-nav-open=${open ? "" : undefined}>
     <aside aria-label="Main">
       ${brand}
       ${nav}

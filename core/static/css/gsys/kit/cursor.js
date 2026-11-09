@@ -1,4 +1,4 @@
-/* g-design@1.7.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 // Your own cursor: the tinted arrow, hand, text bar and fist Studio draws for coworking presence,
 // as the default pointer of every g app, so moving between Command and an embedded Studio never
 // changes it. Plain DOM with no imports, like rail.js, so a server-rendered page loads it as a

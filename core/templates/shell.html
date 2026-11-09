@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="g-admin-project" content="gcommand">
   <meta name="g-command" content="{{ g_command }}">
   <title>{{ title }} - {{ site_name }}</title>
@@ -30,7 +30,10 @@
   <link rel="stylesheet" href="/css/gsys/kit/kit.css">
   <link rel="stylesheet" href="/css/gsys/chrome.css">
   <link rel="stylesheet" href="/css/vendor/phosphor/style.css">
-  <script>if(/ GCommandApp\//.test(navigator.userAgent))document.documentElement.setAttribute('data-app','');</script>
+  <!-- The old native app hides the web chrome (data-app). The new thin shell (GShell/ in the
+       user agent, data-gshell set by its bridge) draws nothing itself, so the web keeps its
+       top bar and dock there. -->
+  <script>(function(){var u=navigator.userAgent,d=document.documentElement;if(/ GCommandApp\//.test(u)&&!/ GShell\//.test(u)&&!d.hasAttribute('data-gshell'))d.setAttribute('data-app','');})();</script>
   <script defer src="/css/gsys/g-ui.js"></script>
   <script defer src="/js/chrome.js"></script>
   <script defer src="/js/hub.js"></script>

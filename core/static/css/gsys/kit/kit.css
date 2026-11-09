@@ -1,4 +1,4 @@
-/* g-design@1.7.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
+/* g-design@1.8.0 g-ui-preact, vendored, do not edit. Update: node scripts/vendor-preact.mjs from the g-design repo. */
 /* g-ui-preact kit.css: the app shell look, lifted from Studio without changing a rule.
    Classes on top of g.css (link g.css first); alias tokens only, no raw colours.
    Works on plain HTML: nothing here needs the Preact components.
@@ -146,6 +146,14 @@ button.nav-item { width: 100%; }
 .g-rail-toggle svg { width: 16px; height: 16px; transition: scale var(--dur-fast) var(--ease-out); }
 .g-shell[data-rail="collapsed"] > aside .g-rail-toggle svg { scale: -1 1; }
 @media (max-width: 720px) { .g-rail-toggle { display: none; } }
+/* The nav list is the rail's scroll region, between the brand and the foot, so the foot never
+   sits over its last items (a rail taller than the window, Studio's editor at 900px). The aside
+   itself then has nothing to scroll; it still can for an app whose nav is not a .nav-list. The
+   list ends on a hard edge at the foot's rule, and an item cut there shows there is more. */
+.g-shell > aside > .nav-list { flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: none; }
+.g-shell > aside > .nav-list::-webkit-scrollbar { display: none; }
+/* The list clips at its own edges now, so its focus rings sit inside the item, as in a menubar. */
+.g-shell > aside > .nav-list :focus-visible { outline-offset: -2px; }
 @media (min-width: 721px) {
   .g-shell { --rail-w: 224px; --rail-mini: 56px; grid-template-columns: var(--rail-w) minmax(0, 1fr); }
   .g-shell[data-rail="collapsed"] { grid-template-columns: var(--rail-mini) minmax(0, 1fr); }
@@ -396,6 +404,176 @@ details.disclose > .disclose-body { padding: 0 0 var(--sp-3); display: flex; fle
   .hide-sm { display: none !important; }
 }
 @media (min-width: 721px) { .show-sm { display: none !important; } }
+
+/* ---------------------------------------------------------------- dock and Go */
+
+/* The phone form of the rail (rail.js wireDock, g-navigation R1): under 721px a bar at the foot of
+   the screen holds the rail's pinned places and Go, which opens the palette of every place. The
+   rail stays in the DOM, hidden, and the menu button goes. Desktop draws none of this; Go is
+   Cmd+K there, the same palette as a centred dialog.
+     <div class="g-shell" data-dock data-go>            (set by rail.js)
+       <aside>... <a class="nav-item" data-pin="1">...</a> ...</aside> <main>...</main>
+       <nav class="g-dock" aria-label="Dock">
+         <a class="g-dock-slot" data-slot="/" aria-current="page">
+           <span class="g-dock-icon"><svg/><span class="g-dock-count">3</span></span>
+           <span class="g-dock-label">Home</span></a> ...
+         <button class="g-dock-slot g-dock-go" aria-haspopup="dialog">...Go</button>
+       </nav>
+       <dialog class="dlg cmdk g-palette" data-palette>
+         <div class="g-palette-field"><svg/><input class="cmdk-input"></div>
+         <div class="cmdk-list g-palette-list">...</div></dialog>
+     </div>
+   z-order on a phone: the palette's scrim (41), the sheet (42), then the dock (43), so the sheet
+   rises from behind the dock and the dock stays in reach with Go lit. */
+:root { --g-dock-h: calc(56px + env(safe-area-inset-bottom, 0px)); }
+.g-dock, .g-palette-scrim { display: none; }
+
+@media (max-width: 720px) {
+  .g-shell[data-dock] { padding-bottom: var(--g-dock-h); }
+  .g-shell[data-dock] > aside { visibility: hidden; }
+  .g-shell[data-dock] .g-nav-toggle { display: none; }
+  .g-shell[data-dock] .g-shell:not([data-dock]) .g-nav-toggle { display: inline-flex; }
+  /* A guest (Studio inside Command) draws the one dock and the one top bar. */
+  .g-shell[data-dock-guest] { padding-bottom: 0; }
+  .g-shell[data-dock-guest] > .g-dock,
+  .g-shell[data-dock-guest] > main > .topbar { display: none; }
+  /* The top bar clears the status bar in a full-screen web view (viewport-fit=cover). */
+  .g-shell:not(.g-shell .g-shell) > main > .topbar,
+  .g-shell[data-dock-guest] .g-shell > main > .topbar {
+    padding-top: calc(var(--sp-2) + env(safe-area-inset-top, 0px));
+    min-height: calc(var(--h-control) + 2 * var(--sp-2) + env(safe-area-inset-top, 0px));
+  }
+  .g-shell:not(.g-shell .g-shell) > main > .topbar.topbar-slim,
+  .g-shell[data-dock-guest] .g-shell > main > .topbar.topbar-slim {
+    padding-top: env(safe-area-inset-top, 0px);
+    min-height: calc(var(--h-5) + env(safe-area-inset-top, 0px));
+  }
+  body:has(.g-shell[data-dock]) .toaster { bottom: calc(var(--g-dock-h) + var(--sp-4)); }
+
+  .g-dock {
+    position: fixed; inset: auto 0 0 0; z-index: 43;
+    display: grid; grid-template-columns: repeat(var(--g-dock-n, 5), minmax(0, 1fr)); gap: var(--sp-1);
+    height: var(--g-dock-h);
+    /* 3px under the 1px rule, so the 52px slots sit 4px down from the dock's edge */
+    padding: 3px var(--sp-2) env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--surface-1);
+    transition: translate var(--spring-smooth-dur) var(--spring-smooth), visibility 0s var(--ease-out);
+  }
+  /* A field has focus: the dock steps down out of the keyboard's way, on the exit curve. */
+  .g-shell[data-dock-typing] > .g-dock {
+    translate: 0 100%; visibility: hidden;
+    transition: translate var(--spring-snap-dur) var(--ease-in-out), visibility 0s var(--ease-in-out) var(--spring-snap-dur);
+  }
+  /* A guest's dock replaces its host's in place: it fades in, it does not rise. */
+  .g-shell .g-shell > .g-dock { animation: g-dock-in var(--spring-smooth-dur) var(--ease-out) backwards; }
+
+  .g-dock-slot {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-width: 0; min-height: 44px; padding: 0;
+    border: none; border-radius: var(--radius-card); background: none;
+    color: var(--text-secondary); text-decoration: none;
+    font: 450 11px/var(--lh-1) var(--font-ui);
+    cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .g-dock-slot:focus-visible { outline-offset: -2px; }
+  .g-dock-icon {
+    position: relative; display: grid; place-items: center;
+    width: 48px; height: 28px; border-radius: var(--radius-full);
+    transition: background var(--dur-base) var(--ease-out);
+  }
+  .g-dock-icon svg { width: 20px; height: 20px; }
+  .g-dock-icon .ph { font-size: 20px; }
+  .g-dock-icon .g-mark { width: 18px; height: 18px; }
+  .g-dock-label { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .g-dock-slot[aria-current], .g-dock-go[aria-expanded="true"] { color: var(--text-primary); }
+  .g-dock-slot[aria-current] .g-dock-icon, .g-dock-go[aria-expanded="true"] .g-dock-icon { background: var(--fill-active); }
+  /* While Go is open it is the lit slot. */
+  .g-shell[data-go-open] > .g-dock .g-dock-slot[aria-current] { color: var(--text-secondary); }
+  .g-shell[data-go-open] > .g-dock .g-dock-slot[aria-current] .g-dock-icon { background: none; }
+  .g-dock-count {
+    position: absolute; top: -4px; right: 2px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: var(--radius-full); background: var(--accent-fill); color: var(--accent-fg);
+    box-shadow: 0 0 0 2px var(--surface-1);
+    font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+
+  /* Go on a phone: a sheet above the dock, the list over the field, so the field and the
+     place you are likely to want sit nearest the thumb. It follows the keyboard up while the
+     field has focus (--g-kb, from visualViewport). */
+  dialog.g-palette[data-sheet] {
+    inset: auto 0 var(--g-dock-h) 0; z-index: 42;
+    width: 100%; max-width: 100%; margin: 0;
+    max-height: calc(100dvh - var(--g-dock-h) - env(safe-area-inset-top, 0px) - var(--sp-8));
+    border-width: 1px 0 0; border-radius: var(--radius-card) var(--radius-card) 0 0;
+    clip-path: none;
+    translate: 0 100%;
+    transition:
+      translate var(--spring-snap-dur) var(--ease-in-out),
+      transform var(--spring-snap-dur) var(--ease-in-out),
+      display var(--spring-snap-dur) var(--ease-in-out) allow-discrete;
+  }
+  dialog.g-palette[data-sheet][open] {
+    clip-path: none; translate: 0 0;
+    transition:
+      translate var(--spring-sheet-dur) var(--spring-sheet),
+      transform var(--spring-smooth-dur) var(--spring-smooth),
+      display var(--spring-sheet-dur) var(--ease-out) allow-discrete;
+  }
+  @starting-style { dialog.g-palette[data-sheet][open] { translate: 0 100%; } }
+  /* the dock has stepped down: the sheet drops to the keyboard's edge (a transform, not bottom,
+     so riding the keyboard never lays the page out again) */
+  .g-shell[data-dock-typing] > dialog.g-palette[data-sheet] { transform: translateY(calc(var(--g-dock-h) - var(--g-kb, 0px))); }
+  dialog.g-palette[data-sheet] .g-palette-field { order: 2; border-top: 1px solid var(--border-subtle); border-bottom: none; }
+  dialog.g-palette[data-sheet] .g-palette-list { flex: 1 1 auto; min-height: 0; max-height: none; padding: var(--sp-2); }
+  dialog.g-palette[data-sheet] .cmdk-input { height: 52px; font-size: 16px; }
+  dialog.g-palette[data-sheet] .g-palette-item { height: 44px; gap: var(--sp-3); font-size: 15px; border-radius: var(--radius); }
+  dialog.g-palette[data-sheet] .g-palette-item > svg { width: 18px; height: 18px; }
+  dialog.g-palette[data-sheet] .g-palette-item > .ph { font-size: 18px; }
+  dialog.g-palette[data-sheet] .g-palette-child { padding-left: var(--sp-6); }
+  .g-palette-scrim {
+    display: block; position: fixed; inset: 0; z-index: 41;
+    background: rgb(0 0 0 / 0.44);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--spring-snap-dur) var(--ease-in-out);
+  }
+  .g-palette-scrim[data-open] { opacity: 1; pointer-events: auto; transition: opacity var(--spring-smooth-dur) var(--ease-out); }
+}
+@keyframes g-dock-in { from { opacity: 0; } }
+
+/* The palette at every width: a search field and the places, as menu rows. */
+dialog.g-palette { flex-direction: column; overflow: hidden; }
+.g-palette-field { display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-4); border-bottom: 1px solid var(--border-subtle); flex: none; }
+.g-palette-field > svg { flex: none; width: 16px; height: 16px; color: var(--text-placeholder); }
+.g-palette-field .cmdk-input { flex: 1 1 auto; min-width: 0; padding: 0; border: none; }
+.g-palette-list { display: flex; flex-direction: column; }
+.g-palette-item { flex: none; text-decoration: none; }
+.g-palette-item > .ph { flex: none; width: 15px; font-size: 15px; text-align: center; color: var(--text-secondary); }
+.g-palette-item > svg { flex: none; }
+.g-palette-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-palette-where { margin-left: auto; padding-left: var(--sp-3); flex: none; color: var(--text-placeholder); font-size: 12px; white-space: nowrap; }
+.g-palette-child { padding-left: var(--sp-5); }
+.g-palette-all { color: var(--text-secondary); }
+.g-palette-list .cmdk-group.g-palette-sub { padding-top: var(--sp-1); color: var(--text-secondary); }
+/* A touch leaves :hover on whatever row now sits under the finger; only the highlight shows. */
+@media (hover: none) { .g-palette-item:hover:not([data-highlighted]) { background: none; } }
+
+@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  /* No sliding: the dock and the sheet crossfade. */
+  .g-dock, dialog.g-palette[data-sheet], .g-palette-scrim {
+    translate: 0 0 !important;
+    transition-property: opacity, visibility, overlay, display !important;
+    transition-duration: var(--dur-base) !important;
+    transition-timing-function: var(--ease-out) !important;
+    transition-delay: 0s !important;
+    transition-behavior: allow-discrete !important;
+  }
+  .g-shell[data-dock-typing] > .g-dock, dialog.g-palette[data-sheet]:not([open]) { opacity: 0; }
+  @starting-style { dialog.g-palette[data-sheet][open] { opacity: 0; } }
+}
 
 /* Rail skeleton row, while the nav loads. */
 .nav-skel { height: var(--h-3); border-radius: var(--radius-sm); }

@@ -1,0 +1,4 @@
+/* Alerts. Alias tokens only (g-design); the kit's card list draws the rows. */
+.alerts-list .list-item .main { text-decoration: none; color: inherit; }
+.alerts-list .list-item .main > :first-child { color: var(--text-primary); }
+.alerts-list .list-item .sub { white-space: pre-line; }

@@ -84,3 +84,9 @@ body.full-dash-page .dash-top { padding-top: var(--sp-5); flex: none; }
 /* A Preact page mounts into this slot (pages/CLAUDE.md, Preact pages). It
    takes no box, so its blocks sit in the page stack like any other page. */
 [data-page-app] { display: contents; }
+
+/* Studio inside Command on a phone: the studio's shell is the dock guest and owns the bottom
+   of the screen (its dock, kit.css), so Command's status line would sit under that dock. */
+@media (max-width: 720px) {
+  body.g-shell[data-dock-guest] > main > .g-status { display: none; }
+}

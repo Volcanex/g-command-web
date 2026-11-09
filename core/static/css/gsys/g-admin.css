@@ -1,4 +1,4 @@
-/* g-design@1.7.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.8.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-tokens: generated from @radix-ui/colors by scripts/build-tokens.mjs. Do not edit. */
 
 /* Dark is the default, unconditionally. data-theme="light" opts a tree out;
@@ -804,6 +804,10 @@
 /* ---------------------------------------------------------------- base */
 
 *, *::before, *::after { box-sizing: border-box; }
+
+/* The page's own background, so overscroll and an app shell's web view (which paints from the
+   page) never flash white around it. */
+html { background: var(--bg); }
 
 /* components set their own display, which would otherwise beat the UA's
    [hidden] rule; the hidden attribute must always win */
@@ -1719,7 +1723,8 @@ dialog.cmdk {
   pointer-events: none;
   transition: opacity var(--dur-slow) var(--ease-out);
 }
-[data-nav-open] .g-scrim { opacity: 1; pointer-events: auto; }
+/* Child selectors: a shell inside another (Studio inside Command) opens only its own sheet. */
+.g-shell[data-nav-open] > .g-scrim { opacity: 1; pointer-events: auto; }
 @media (max-width: 720px) {
   .g-shell { grid-template-columns: 1fr; }
   .g-shell > aside {
@@ -1731,8 +1736,7 @@ dialog.cmdk {
   }
   /* the scrim separates the sheet; a shadow here trips a software-raster
      compositing bug that washes the whole layer light */
-  [data-nav-open].g-shell > aside,
-  [data-nav-open] .g-shell > aside { translate: 0 0; border-right-color: var(--border); }
+  .g-shell[data-nav-open] > aside { translate: 0 0; border-right-color: var(--border); }
   .g-nav-toggle { display: inline-flex; }
 }
 

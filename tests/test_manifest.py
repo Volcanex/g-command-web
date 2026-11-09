@@ -149,7 +149,7 @@ def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
     top = web[0]["entries"]
     assert [(e["slug"], e["label"]) for e in top] == [("", "Home"), ("studio", "Studio"), ("upload", "Upload"), (None, "Life"), (None, "System")]
     assert [k["slug"] for k in top[3]["children"]] == ["calendar", "pulse"]
-    assert [k["slug"] for k in top[4]["children"]] == ["diagram", "system", "compute", "crons", "tickets", "projects", "levels"]
+    assert [k["slug"] for k in top[4]["children"]] == ["diagram", "system", "compute", "crons", "tickets", "projects", "levels", "alerts"]
     brain = [e for e in web[2]["entries"] if e["label"] == "Brain"][0]
     assert brain["slug"] is None and [k["slug"] for k in brain["children"]][:2] == ["graph", "notes"]
     setup = web[4]["entries"][0]
@@ -162,6 +162,72 @@ def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
     html = compiler.build_nav_html(configs(PAGES))
     assert html.count('class="nav-group"') == 7 and html.count("data-open") == 7
     assert "hub" not in html and 'class="nav-twist"' not in html
+
+
+def test_nav_pins_match_the_command_rail_without_other_markup_changes():
+    pages = configs(PAGES)
+    html = compiler.build_nav_html(pages)
+    assert dict(re.findall(r'<a class="[^"]*" href="([^"]*)" data-pin="([1-4])"', html)) == {
+        "/": "1", "/calendar": "2", "/studio": "3", "/upload": "4"}
+    assert '<a class="nav-item nav-child" href="/calendar" data-pin="2">' in html
+    unpinned = [{k: v for k, v in page.items() if k != "nav_pin"} for page in pages]
+    assert re.sub(r' data-pin="[1-4]"', "", html) == compiler.build_nav_html(unpinned)
+
+
+def test_nav_emits_pins_and_escaped_dock_labels_on_links_only():
+    pages = [
+        {"slug": "top", "nav": True, "nav_pin": 1, "dock_label": 'Top & "<place>"'},
+        {"slug": "group", "nav": True, "tabs": "group", "nav_pin": 2, "dock_label": "Group"},
+        {"slug": "child", "nav": False, "tabs": "group", "nav_pin": 3, "dock_label": 'Child\'s & "place"'},
+        {"slug": "other", "nav": True, "dock_label": "Other"},
+    ]
+    html = compiler.build_nav_html(pages)
+    assert '<a class="nav-item" href="/top" data-pin="1" data-dock-label="Top &amp; &quot;&lt;place&gt;&quot;">' in html
+    assert '<a class="nav-item nav-child" href="/group" data-pin="2" data-dock-label="Group">' in html
+    assert '<a class="nav-item nav-child" href="/child" data-pin="3" data-dock-label="Child&#x27;s &amp; &quot;place&quot;">' in html
+    assert '<a class="nav-item" href="/other" data-dock-label="Other">' in html
+    plain = [{k: v for k, v in page.items() if k not in ("nav_pin", "dock_label")} for page in pages]
+    assert re.sub(r' data-(?:pin|dock-label)="[^"]*"', "", html) == compiler.build_nav_html(plain)
+
+
+@pytest.mark.parametrize("pin", [0, 5, -1, 1.0, "1", True, False, None, [], {}])
+def test_nav_rejects_invalid_pin_values(pin):
+    with pytest.raises(ValueError, match="bad: nav_pin must be an integer from 1 to 4"):
+        compiler.build_nav_html([{"slug": "bad", "nav": True, "nav_pin": pin}])
+
+
+def test_nav_rejects_duplicate_pins_across_top_level_and_child_links():
+    with pytest.raises(ValueError, match="nav_pin 1 is shared by pages 'top' and 'child'"):
+        compiler.build_nav_html([
+            {"slug": "top", "nav": True, "nav_pin": 1},
+            {"slug": "group", "nav": True, "tabs": "group", "web_page": False},
+            {"slug": "child", "nav": False, "tabs": "group", "nav_pin": 1},
+        ])
+
+
+@pytest.mark.parametrize("pages", [
+    [{"slug": "hidden", "nav": False, "nav_pin": 1}],
+    [{"slug": "hidden", "nav": True, "web_nav": False, "nav_pin": 1}],
+    [{"slug": "hidden", "nav": False, "tabs": "missing", "nav_pin": 1}],
+    [{"slug": "group", "nav": True, "tabs": "group", "web_nav": False},
+     {"slug": "hidden", "nav": False, "tabs": "group", "nav_pin": 1}],
+    [{"slug": "hidden", "nav": True, "tabs": "group", "web_page": False, "nav_pin": 1},
+     {"slug": "child", "nav": False, "tabs": "group"}],
+])
+def test_nav_rejects_pins_on_pages_without_a_rail_link(pages):
+    with pytest.raises(ValueError, match="hidden: nav_pin is set on a page that is not on the rail"):
+        compiler.build_nav_html(pages)
+
+
+def test_compile_exits_with_a_clear_pin_error(tmp_path, monkeypatch):
+    pages = tmp_path / "pages"
+    page = pages / "bad"
+    page.mkdir(parents=True)
+    (page / "config.json").write_text(json.dumps({"nav": True, "nav_pin": 5}))
+    monkeypatch.setattr(compiler, "PAGES_DIR", pages)
+    monkeypatch.setattr(compiler, "OUTPUT_DIR", tmp_path / "output")
+    with pytest.raises(SystemExit, match="ERROR: bad: nav_pin must be an integer from 1 to 4"):
+        compiler.main()
 
 
 def test_manifest_defaults_ties_tabs_panel_flags_and_bad_configs(tmp_path):

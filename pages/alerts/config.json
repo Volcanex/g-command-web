@@ -1,0 +1,11 @@
+{
+  "title": "Alerts",
+  "slug": "alerts",
+  "description": "The alerts the system sent in the last 12 hours, newest first.",
+  "nav": false,
+  "tabs": "system",
+  "tab_label": "Alerts",
+  "nav_icon": "bell",
+  "order": 37,
+  "gsys": true
+}

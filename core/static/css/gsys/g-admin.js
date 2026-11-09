@@ -1,4 +1,4 @@
-/* g-design@1.7.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
+/* g-design@1.8.0, vendored, do not edit. Update: node scripts/vendor.mjs from the g-design repo. */
 /* g-admin overlay: the admin-only half of the g-admin contract
    (agents/g-admin-contract.md). Loaded by the stub in g-ui.js, only for a
    session the server verified, and never part of the public bundle.

@@ -1,0 +1,31 @@
+{
+  "serve": "python3 {repo}/.glevels/serve.py {port}",
+  "ready": "http://localhost:{port}/",
+  "timeout": 30,
+  "viewports": "phone-s=320x568,phone=390x844,tablet=768x1024,desktop=1440x900",
+  "env": {
+    "GSPACING_LOCK": "/tmp/g-studio-browser.lock"
+  },
+  "pages": [
+    {
+      "name": "Home (phone)",
+      "url": "http://localhost:{port}/",
+      "viewports": "phone=390x844"
+    },
+    {
+      "name": "Calendar (phone)",
+      "url": "http://localhost:{port}/calendar",
+      "viewports": "phone=390x844"
+    },
+    {
+      "name": "Tickets (phone)",
+      "url": "http://localhost:{port}/tickets",
+      "viewports": "phone=390x844"
+    },
+    {
+      "name": "Studio (phone)",
+      "url": "http://localhost:{port}/studio#/sites",
+      "viewports": "phone=390x844"
+    }
+  ]
+}
