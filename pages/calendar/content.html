@@ -127,7 +127,7 @@
   .row .title .open:hover { text-decoration: underline; }
   /* The title is the row's open control: padded either side so its text
      sits inside its box, pulled back by the same so nothing moves. */
-  .row .title .open { padding: 0 var(--sp-2); margin: 0 calc(-1 * var(--sp-2)); }
+  .row .title .open { padding: 0 var(--sp-1); margin: 0 calc(-1 * var(--sp-1)); }
   .row .title .open:focus-visible { outline: 2px solid var(--accent-edge, var(--text-primary)); outline-offset: 2px; border-radius: var(--radius-sm); }
   .row.is-done .title .open { color: var(--ok-text); text-decoration: line-through; }
   .row.is-failed .title .open { color: var(--danger-text); text-decoration: line-through; }
@@ -162,7 +162,8 @@
   .row .move input { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; }
   .agenda .empty { color: var(--text-placeholder); font-size: 13px; margin: 0; }
   /* Held while the feed loads, so the card keeps a body instead of collapsing. */
-  .cal-error { display: grid; justify-items: center; gap: var(--sp-3); padding: var(--sp-3) 0; }
+  .cal-error { display: grid; justify-items: center; align-content: start; gap: var(--sp-3); padding: var(--sp-5) 0; }
+  .cal-error p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-ui); line-height: var(--lh-2); text-align: center; }
   .cal-skel { display: grid; gap: var(--sp-4); padding: var(--sp-3) 0; }
   .cal-skel .skeleton { height: var(--lh-2); width: 72%; }
   .cal-skel .skeleton:nth-child(2) { width: 56%; }
@@ -178,6 +179,10 @@
      time in a fixed column on the left, the title beside it wrapping under
      itself, and the location as one quiet line when there is one. The tick
      sits on the right under the thumb; moving lives in the open details. */
+  /* At the narrowest phones Add is its icon alone (it keeps its label for
+     screen readers), so the due count is never cut. */
+  @media (max-width: 360px) { [data-toggle-add] span { display: none; } }
+
   @media (max-width: 720px) {
     .cal-card { padding: 0; border: 0; background: none; box-shadow: none; }
     .agenda .sec + .sec { margin-top: 0; }
@@ -208,6 +213,12 @@
     .row .title .dot { display: none; }
     .row .title .open { flex: 1 0 100%; font-size: var(--font-size-body); line-height: var(--lh-2); }
     .row .title .open:hover { text-decoration: none; }
+    /* A tap anywhere on the time, title or location opens the item; only
+       the tick's column is left to the tick. */
+    .row .title .open::after {
+      content: ""; position: absolute; top: 0; bottom: 0; left: 0;
+      right: calc(var(--h-5) + var(--sp-3));
+    }
     .row .late, .row .meta { font-size: 12px; line-height: var(--lh-1); }
     .row .meta {
       display: block; flex: 1 1 0; min-width: 0; color: var(--text-secondary);
@@ -355,7 +366,7 @@
   function detailsHtml(it) {
     const t = full[it.slug];
     if (!t) return '<p class="muted">Loading details</p>';
-    if (t.error) return `<p class="muted">Details unavailable: the brain did not answer (${raw(t.error)}). Close and open it to try again.</p>`;
+    if (t.error) return `<p class="muted">Details unavailable: the brain did not answer. Close and open it to try again.</p>`;
     const i = items.indexOf(it);
     const note = `<a class="btn btn-tertiary btn-sm" href="/note/${esc(it.permalink || 'todos/' + it.slug)}">Open note</a>`;
     if (editing) {
@@ -521,7 +532,7 @@
       paint();
       dueCount();
     } catch (e) {
-      const msg = `<div class="cal-error"><p class="empty">Calendar unavailable: the brain did not answer (${esc(e.message)}).</p>
+      const msg = `<div class="cal-error"><p>Calendar unavailable: the brain did not answer.</p>
         <button class="btn btn-secondary btn-sm" type="button" data-retry>Try again</button></div>`;
       (view === 'list' ? listEl : monthDay).innerHTML = msg;
       count.textContent = 'Unavailable';
