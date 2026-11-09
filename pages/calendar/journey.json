@@ -1,0 +1,15 @@
+[
+  {"goto": "/calendar"},
+  {"expect": "Add item"},
+  {"click": ".agenda .row .open >> nth=0"},
+  {"expect": "Edit details"},
+  {"click": ".details [data-act=edit]"},
+  {"expect": "Save details"},
+  {"click": ".details [data-act=cancel]"},
+  {"click": ".g-segmented label:has-text(\"Month\")"},
+  {"expect": "Today"},
+  {"click": "[data-step=\"1\"]"},
+  {"click": "[data-today]"},
+  {"click": ".g-segmented label:has-text(\"List\")"},
+  {"expect": "Add item"}
+]

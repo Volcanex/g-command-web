@@ -58,7 +58,11 @@
 </section>
 
 <div class="card cal-card">
-  <div class="agenda" data-list></div>
+  <div class="agenda" data-list>
+    <div class="cal-skel" aria-hidden="true">
+      <span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span>
+    </div>
+  </div>
 
   <div class="month" data-month hidden>
     <div class="month-nav">
@@ -121,6 +125,9 @@
     overflow-wrap: anywhere;
   }
   .row .title .open:hover { text-decoration: underline; }
+  /* The title is the row's open control: padded either side so its text
+     sits inside its box, pulled back by the same so nothing moves. */
+  .row .title .open { padding: 0 var(--sp-2); margin: 0 calc(-1 * var(--sp-2)); }
   .row .title .open:focus-visible { outline: 2px solid var(--accent-edge, var(--text-primary)); outline-offset: 2px; border-radius: var(--radius-sm); }
   .row.is-done .title .open { color: var(--ok-text); text-decoration: line-through; }
   .row.is-failed .title .open { color: var(--danger-text); text-decoration: line-through; }
@@ -154,16 +161,75 @@
      anchors the native picker to the row, but it is never seen. */
   .row .move input { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; }
   .agenda .empty { color: var(--text-placeholder); font-size: 13px; margin: 0; }
+  /* Held while the feed loads, so the card keeps a body instead of collapsing. */
+  .cal-error { display: grid; justify-items: center; gap: var(--sp-3); padding: var(--sp-3) 0; }
+  .cal-skel { display: grid; gap: var(--sp-4); padding: var(--sp-3) 0; }
+  .cal-skel .skeleton { height: var(--lh-2); width: 72%; }
+  .cal-skel .skeleton:nth-child(2) { width: 56%; }
+  .cal-skel .skeleton:nth-child(3) { width: 64%; }
 
-  @media (max-width: 600px) {
-    .row { grid-template-columns: var(--h-1) minmax(0, 1fr) var(--h-1); column-gap: var(--sp-2); padding: var(--sp-1) 0; }
-    .row .when { grid-column: 2; grid-row: 2; }
-    .row .title { grid-column: 2; grid-row: 1; }
-    .row .move { grid-column: 3; grid-row: 1 / span 2; }
-    .row .tick { grid-row: 1 / span 2; }
-    .row .title { flex-wrap: wrap; column-gap: var(--sp-2); }
+  /* Wider than a phone the tick's hit box and the location line are not
+     drawn: the row is the desktop grid above. */
+  .row .tick-hit { display: contents; }
+  .row .meta, .details .move-detail { display: none; }
+
+  /* The phone list reads like a calendar app: a day per section under a
+     header that sticks while its day scrolls, then one row per item, the
+     time in a fixed column on the left, the title beside it wrapping under
+     itself, and the location as one quiet line when there is one. The tick
+     sits on the right under the thumb; moving lives in the open details. */
+  @media (max-width: 720px) {
+    .cal-card { padding: 0; border: 0; background: none; box-shadow: none; }
+    .agenda .sec + .sec { margin-top: 0; }
+    .agenda h2 {
+      position: sticky; top: 0; z-index: 1; margin: 0;
+      padding: var(--sp-4) 0 var(--sp-2); background: var(--bg);
+      font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .agenda h2 .sub { color: var(--text-secondary); font-weight: 400; }
+    .agenda h2 .badge { display: none; }
+    .row {
+      position: relative;
+      grid-template-columns: var(--h-5) minmax(0, 1fr) var(--h-5);
+      column-gap: var(--sp-3); align-items: start;
+      min-height: var(--h-5); padding: var(--sp-3) 0; border-top: 0;
+    }
+    .row + .row::before {
+      content: ""; position: absolute; top: 0; right: 0;
+      left: calc(var(--h-5) + var(--sp-3)); border-top: 1px solid var(--border-subtle);
+    }
+    .row .when {
+      grid-column: 1; grid-row: 1; font-size: var(--font-size-ui); line-height: var(--lh-2);
+      color: var(--text-primary);
+    }
+    .row .when.all-day { font-size: 12px; color: var(--text-secondary); white-space: normal; }
+    .row .title { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; gap: 0 var(--sp-2); }
     .row .title .dot { display: none; }
-    .details { margin-left: calc(var(--h-1) + var(--sp-2)); padding: var(--sp-3); }
+    .row .title .open { flex: 1 0 100%; font-size: var(--font-size-body); line-height: var(--lh-2); }
+    .row .title .open:hover { text-decoration: none; }
+    .row .late, .row .meta { font-size: 12px; line-height: var(--lh-1); }
+    .row .meta {
+      display: block; flex: 1 1 0; min-width: 0; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .row .move, .row > span:empty { display: none; }
+    .row .tick-hit {
+      grid-column: 3; grid-row: 1; display: flex; align-items: center; justify-content: flex-end;
+      height: calc(var(--lh-2) + 2 * var(--sp-3)); margin: calc(-1 * var(--sp-3)) 0; cursor: pointer;
+    }
+    .details { margin: 0 0 var(--sp-3) calc(var(--h-5) + var(--sp-3)); padding: var(--sp-3); }
+    .details .move-detail { display: inline-flex; position: relative; }
+    .details .move-detail input { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; }
+
+    /* Now: a hairline across the title column between what has happened
+       today and what has not, the time in the time column. */
+    .now-line {
+      display: grid; grid-template-columns: var(--h-5) minmax(0, 1fr); column-gap: var(--sp-3);
+      align-items: center; height: var(--lh-1);
+      font-size: 12px; line-height: var(--lh-1); font-weight: 500; color: var(--text-primary);
+    }
+    .now-line::after { content: ""; border-top: 1px solid var(--text-primary); }
   }
 
   .month-nav { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
@@ -252,13 +318,16 @@
                 data-tip="Move to another date" aria-label="Move ${esc(it.title)}"><i class="ph ph-calendar-dots"></i></button>
         <input type="date" tabindex="-1" aria-hidden="true" data-move="${i}" value="${esc(it.date)}" min="${TODAY}">
       </span>`;
+    // The location line is drawn on phones only; it is plain text, never a link.
+    const meta = it.location ? `<span class="meta">${esc(it.location)}</span>` : '';
+    const allDay = phone() && !it.time ? ' all-day' : '';
     return `
       <div class="row${state}" style="--cat:${CAT_COLOR[it.category] || 'var(--chart-6)'}">
-        <input class="checkbox tick" type="checkbox" data-act="tick" data-i="${i}" ${it.done ? 'checked' : ''}
-               aria-label="${it.done ? 'Mark not done' : 'Mark done'}: ${esc(it.title)}">
-        <span class="when">${whenText}</span>
+        <label class="tick-hit"><input class="checkbox tick" type="checkbox" data-act="tick" data-i="${i}" ${it.done ? 'checked' : ''}
+               aria-label="${it.done ? 'Mark not done' : 'Mark done'}: ${esc(it.title)}"></label>
+        <span class="when${allDay}">${whenText}</span>
         <span class="title"><span class="dot"></span>
-          <button class="open" type="button" data-act="open" data-i="${i}" aria-expanded="${openKey === keyOf(it)}">${it.vital ? '<span class="vital-mark">!</span> ' : ''}${esc(it.title)}</button>${late}</span>
+          <button class="open" type="button" data-act="open" data-i="${i}" aria-expanded="${openKey === keyOf(it)}">${it.vital ? '<span class="vital-mark">!</span> ' : ''}${esc(it.title)}</button>${late}${meta}</span>
         ${move || '<span></span>'}
       </div>${openKey === keyOf(it) ? `<div class="details" data-details="${i}">${detailsHtml(it)}</div>` : ''}`;
   }
@@ -314,9 +383,13 @@
                   ['Amount', raw(money(t.amount))]]
       .filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
     const body = (t.body || '').trim();
+    // On a phone the row has no move button, so moving is here, next to edit.
+    const move = it.recurring || it.done ? '' : `<span class="move-detail">
+        <button class="btn btn-secondary btn-sm" type="button" data-act="move" data-i="${i}">Move</button>
+        <input type="date" tabindex="-1" aria-hidden="true" data-move="${i}" value="${esc(it.date)}" min="${TODAY}"></span>`;
     return `<dl>${rows}</dl>${body ? `<p class="body">${linkify(body)}</p>` : ''}
       <div class="actions">
-        <button class="btn btn-secondary btn-sm" type="button" data-act="edit" data-i="${i}">Edit details</button>${note}
+        <button class="btn btn-secondary btn-sm" type="button" data-act="edit" data-i="${i}">Edit details</button>${move}${note}
       </div>`;
   }
 
@@ -353,6 +426,7 @@
     // habit ticked by mistake can be unticked.
     const today = live.filter(it => it.date === TODAY && !overdue.includes(it)
                                     && !(it.late_days && (it.done || it.failed))).sort(settledLast);
+    if (phone()) { listEl.innerHTML = phoneList(live, overdue, today) || '<p class="empty">Nothing dated in the next five weeks.</p>'; return; }
     const html =
       section('overdue', 'Overdue', overdue, time) +
       section('today', 'Today', today, time) +
@@ -361,6 +435,46 @@
       section('later', 'Later', inRange(on(8), on(LATER_DAYS)), dated);
     listEl.innerHTML = html || '<p class="empty">Nothing dated in the next five weeks.</p>';
   }
+
+  // Phones get a day per section (Today, Tomorrow, then weekday and date),
+  // all-day items first, then by the clock, done ones struck in place.
+  const PHONE = window.matchMedia('(max-width: 720px)');
+  const phone = () => PHONE.matches;
+  const allDayFirst = (a, b) => (!!a.time - !!b.time) || (a.time || '').localeCompare(b.time || '')
+    || plain(a.title).localeCompare(plain(b.title));
+  const clockNow = () => { const d = new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  const phoneWhen = (it) => it.time ? esc(it.time) : 'All day';
+
+  function daySection(key, label, sub, rows, withNow) {
+    if (!rows.length) return '';
+    let body = rows.map(it => row(it, phoneWhen(it)));
+    if (withNow && rows.some(it => it.time)) {
+      const now = clockNow();
+      const next = rows.findIndex(it => it.time && it.time > now);
+      const at = next === -1 ? rows.length : next;
+      // Before the first timed item there is nothing to divide: the line
+      // only shows once part of the day has gone.
+      if (rows.slice(0, at).some(it => it.time)) {
+        body.splice(at, 0, `<div class="now-line" role="note" aria-label="Now, ${now}"><span class="num">${now}</span></div>`);
+      }
+    }
+    return `<section class="sec sec-${key}"><h2>${label}${sub ? `<span class="sub">${sub}</span>` : ''}</h2>${body.join('')}</section>`;
+  }
+
+  function phoneList(live, overdue, today) {
+    const head = (key) => new Date(key + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long' });
+    const date = (key) => new Date(key + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    let html = daySection('overdue', 'Overdue', '', overdue.slice().sort(allDayFirst), false)
+      + daySection('today', 'Today', esc(short(TODAY)), today.slice().sort(allDayFirst), true);
+    for (let n = 1; n <= LATER_DAYS; n++) {
+      const key = on(n);
+      const rows = live.filter(it => it.date === key && !routine(it)).sort(allDayFirst);
+      html += daySection(n === 1 ? 'tomorrow' : 'day', n === 1 ? 'Tomorrow' : esc(head(key)),
+                         n === 1 ? esc(short(key)) : esc(date(key)), rows, false);
+    }
+    return html;
+  }
+  PHONE.addEventListener('change', () => { if (view === 'list') paint(); });
 
   function renderMonth() {
     const start = mondayOf(new Date(cursor.getFullYear(), cursor.getMonth(), 1));
@@ -407,7 +521,8 @@
       paint();
       dueCount();
     } catch (e) {
-      const msg = `<p class="empty">Calendar unavailable: the brain did not answer (${esc(e.message)}). Reload to try again.</p>`;
+      const msg = `<div class="cal-error"><p class="empty">Calendar unavailable: the brain did not answer (${esc(e.message)}).</p>
+        <button class="btn btn-secondary btn-sm" type="button" data-retry>Try again</button></div>`;
       (view === 'list' ? listEl : monthDay).innerHTML = msg;
       count.textContent = 'Unavailable';
     }
@@ -447,6 +562,7 @@
   }
 
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-retry]')) { load(); return; }
     const el = e.target.closest('[data-act]');
     if (!el) return;
     const it = items[Number(el.dataset.i)];
