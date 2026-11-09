@@ -228,8 +228,11 @@ Each panel module exposes `build(ctx)`. The shared `builder` wrapper fills
 the panel envelope and turns failures into the panel's own error state.
 `context.py` supplies `ctx.get(path)` and a request-time London `ctx.now`.
 It reads Brain directly and calls the existing local API functions with
-the authenticated request. Tests inject fixture contexts with the same
-interface. `helpers.py` owns text flattening, date copy and chips.
+the authenticated request. Read snapshots are shared for five seconds, with one
+refresh per source. Stale reads return the last good snapshot while refreshing,
+for at most 60 seconds; successful API writes invalidate these snapshots.
+Calendar and compute prefetch their independent sources together. Tests inject
+fixture contexts with the same interface. `helpers.py` owns text flattening, date copy and chips.
 `manifest.py` mirrors the compiler's navigation rules without importing
 the compiler or mounting a route, except that a page with `app_nav: false`
 is left out: a web-only entry (Home, the web launcher) the apps do not need.

@@ -12,6 +12,8 @@ STATUS = {"EBURN": "About to be wasted, spend all of it", "BURN": "Plenty spare,
 
 @builder("compute")
 def build(ctx):
+    if prefetch := getattr(ctx, "prefetch", None):
+        prefetch("/api/compute/pace", "/api/compute/state")
     pace = ctx.get("/api/compute/pace")
     try:
         state = ctx.get("/api/compute/state") or {}
