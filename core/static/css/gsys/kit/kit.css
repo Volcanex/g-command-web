@@ -611,7 +611,7 @@ dialog.g-palette { flex-direction: column; overflow: hidden; }
    title is set as iOS sets a navigation title (17px semibold). */
 @media (max-width: 720px) {
   :root[data-gshell] .g-dock {
-    background: color-mix(in oklab, var(--surface-1) 80%, transparent);
+    background: color-mix(in oklab, var(--surface-1) 88%, transparent);
     -webkit-backdrop-filter: saturate(1.8) blur(20px);
     backdrop-filter: saturate(1.8) blur(20px);
   }
@@ -620,7 +620,7 @@ dialog.g-palette { flex-direction: column; overflow: hidden; }
   :root[data-gshell] .g-shell[data-dock]:not(.g-shell .g-shell, [data-dock-guest]),
   :root[data-gshell] .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock], .g-shell .g-shell) { padding-bottom: 0; }
   :root[data-gshell] .g-shell:has(> aside a.nav-item[data-pin]):not([data-dock], .g-shell .g-shell)::after {
-    background: color-mix(in oklab, var(--surface-1) 80%, transparent);
+    background: color-mix(in oklab, var(--surface-1) 88%, transparent);
     -webkit-backdrop-filter: saturate(1.8) blur(20px);
     backdrop-filter: saturate(1.8) blur(20px);
   }
