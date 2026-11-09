@@ -11,6 +11,9 @@
       <a class="btn btn-tertiary btn-sm btn-icon" href="/calendar" data-tip="Open calendar" aria-label="Open calendar"><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>
     </header>
     <div class="essentials" data-lines="agenda"></div>
+    <!-- This session's last agenda lines (hub.js keeps them), drawn before the page shows, so
+         Home opens at its real height and hub.js refreshes the lines in place. -->
+    <script>(function(){try{var el=document.currentScript.previousElementSibling,l=JSON.parse(sessionStorage.getItem("g-lines:agenda")||"null");if(!l||!l.length)return;l.slice(0,3).forEach(function(t){var p=document.createElement("p");p.className="essentials-line";p.textContent=t;el.appendChild(p);});}catch(e){}})();</script>
   </section>
 </div>
 <!-- seed:dash-layout -->

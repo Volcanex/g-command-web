@@ -228,7 +228,7 @@ export function wireRails(root = document) {
 
 const PHONE = "(max-width: 720px)";
 const HISTORY_MAX = 30;
-const CLOSE_MS = 600;   // past the palette's exit (kit.css, 330ms), so its rows stay until it has gone
+const CLOSE_MS = 600;   // past the palette's exit (kit.css: 160ms as a phone sheet, 330ms as a dialog), so its rows stay until it has gone
 const PATHS = {
   compass: "M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z",
   search: "M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z",

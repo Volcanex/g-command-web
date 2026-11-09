@@ -6,10 +6,8 @@
    after this and opens the group holding the current link. */
 (() => {
   /* The page is revealed by the inline script after it (shell.html), as soon as
-     the parser has passed every body <style>; this is only the fallback for a
-     page that lacks it. */
-  const main = document.querySelector(".site-main");
-  if (main && !main.classList.contains("g-ready")) { main.classList.add("g-ready", "enter"); }
+     the parser has passed every body <style> (or, on Home, once the agenda's
+     lines are in); the shell's keyframe covers a page whose scripts never ran. */
 
   window.toggleNav = (force) => {
     const open = force !== undefined ? force : !document.body.hasAttribute("data-nav-open");

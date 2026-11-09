@@ -81,7 +81,9 @@
       <div class="content-page site-main">
         {{! content }}
       </div>
-      <script>document.querySelector(".site-main").classList.add("g-ready","enter");</script>
+      <!-- Reveal now, unless an essentials slot ([data-lines], hub.js) is still empty: then wait
+           for its lines (g-essentials) or 600ms, so the page does not grow under the reader. -->
+      <script>(function(){var m=document.querySelector(".site-main"),done=0,go=function(){if(!done){done=1;m.classList.add("g-ready","enter");}};if(!m.querySelector("[data-lines]:empty"))return go();setTimeout(go,600);document.addEventListener("g-essentials",go);})();</script>
     </div>
 
     <footer class="g-status">
