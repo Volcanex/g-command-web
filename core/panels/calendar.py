@@ -51,7 +51,10 @@ def row(item, today):
 def build(ctx):
     today = ctx.now.date()
     end = today + timedelta(days=6)
-    data = ctx.get(f"/api/todos/calendar?date_from={today.isoformat()}&date_to={end.isoformat()}")
+    path = f"/api/todos/calendar?date_from={today.isoformat()}&date_to={end.isoformat()}"
+    if prefetch := getattr(ctx, "prefetch", None):
+        prefetch(path, "/api/todos/agenda")
+    data = ctx.get(path)
     items = data if isinstance(data, list) else []
     # Late work already ticked off is gone; only what is still owed carries over.
     todays = [item for item in items if item.get("date") == today.isoformat() and not item.get("dropped")

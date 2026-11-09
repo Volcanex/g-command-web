@@ -535,7 +535,7 @@ def test_route_upstream_errors_are_200_without_diagnostics(client, monkeypatch, 
     assert response.json() == expected(name, state="error", message=ERRORS[name])
 
 
-def test_context_reads_brain_directly(monkeypatch):
+def test_context_reads_brain_directly(monkeypatch, snapshot_cache):
     from core.api import brain
     calls = []
 
@@ -549,7 +549,7 @@ def test_context_reads_brain_directly(monkeypatch):
     assert calls == [("http://brain.test:8766/api/status", 30, {"Accept": "application/json"})]
 
 
-def test_context_calls_local_functions_with_real_request_and_explicit_defaults(monkeypatch):
+def test_context_calls_local_functions_with_real_request_and_explicit_defaults(monkeypatch, snapshot_cache):
     from core.api import gadmin_panel
     from pages.compute import api as compute
     from pages.crons import api as crons
@@ -616,3 +616,133 @@ def test_dates_use_london_and_dst_without_machine_locale():
     assert span(90061) == "1d 1h"
     assert rounded(2.5) == 3
     assert fixed(2.25, 1) == "2.3"
+
+
+@pytest.fixture
+def snapshot_cache():
+    from core.panels import context
+    context.invalidate()
+    yield context
+    context.invalidate()
+
+
+def test_context_deduplicates_concurrent_reads(snapshot_cache, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    started, release = Event(), Event()
+    calls = []
+
+    def load(ctx, path):
+        calls.append(path)
+        started.set()
+        assert release.wait(2)
+        return {"items": ["one"]}
+
+    monkeypatch.setattr(Context, "_load", load)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(Context(None).get, "/api/status")
+        assert started.wait(2)
+        second = pool.submit(Context(None).get, "/api/status")
+        release.set()
+        result = first.result()
+        result["items"].clear()
+        assert second.result() == {"items": ["one"]}
+    assert len(calls) == 1
+
+
+def test_context_serves_stale_during_one_refresh_and_invalidates(snapshot_cache, monkeypatch):
+    from threading import Event
+    clock = [0]
+    monkeypatch.setattr(snapshot_cache, "monotonic", lambda: clock[0])
+    started, release, finished = Event(), Event(), Event()
+    calls = []
+
+    def load(ctx, path):
+        calls.append(path)
+        if len(calls) == 2:
+            started.set()
+            assert release.wait(2)
+            finished.set()
+        return {"version": len(calls)}
+
+    monkeypatch.setattr(Context, "_load", load)
+    assert Context(None).get("/api/status") == {"version": 1}
+    clock[0] = snapshot_cache.TTL + 1
+    assert Context(None).get("/api/status") == {"version": 1}
+    assert started.wait(2)
+    assert Context(None).get("/api/status") == {"version": 1}
+    release.set()
+    assert finished.wait(2)
+    # Wait for the refresh future, without timing assumptions about its cleanup.
+    with snapshot_cache._LOCK:
+        pending = list(snapshot_cache._PENDING.values())
+    for future in pending:
+        future.result(timeout=2)
+    assert Context(None).get("/api/status") == {"version": 2}
+    snapshot_cache.invalidate()
+    assert Context(None).get("/api/status") == {"version": 3}
+
+
+def test_context_failure_keeps_last_good_but_bounds_staleness(snapshot_cache, monkeypatch):
+    clock = [0]
+    monkeypatch.setattr(snapshot_cache, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(Context, "_load", lambda self, path: {"ok": True})
+    assert Context(None).get("/api/status") == {"ok": True}
+    def fail(self, path):
+        raise TimeoutError("upstream down")
+    monkeypatch.setattr(Context, "_load", fail)
+    clock[0] = snapshot_cache.MAX_STALE + 1
+    with pytest.raises(TimeoutError):
+        Context(None).get("/api/status")
+
+
+def test_calendar_starts_independent_reads_together(snapshot_cache, monkeypatch):
+    from threading import Barrier
+    barrier = Barrier(2, timeout=2)
+    def load(self, path):
+        barrier.wait()
+        return [] if "/calendar?" in path else {"today": [], "lines": []}
+    monkeypatch.setattr(Context, "_load", load)
+    assert build("calendar", Context(None, NOW))["state"] == "ok"
+
+
+def test_context_refresh_failure_preserves_last_good_until_limit(snapshot_cache, monkeypatch):
+    from threading import Event
+    clock = [0]
+    monkeypatch.setattr(snapshot_cache, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(Context, "_load", lambda self, path: {"version": 1})
+    assert Context(None).get("/api/status") == {"version": 1}
+    failed = Event()
+    def fail(self, path):
+        failed.set()
+        raise TimeoutError("upstream down")
+    monkeypatch.setattr(Context, "_load", fail)
+    clock[0] = snapshot_cache.TTL + 1
+    assert Context(None).get("/api/status") == {"version": 1}
+    assert failed.wait(2)
+    with snapshot_cache._LOCK:
+        pending = list(snapshot_cache._PENDING.values())
+    for future in pending:
+        with pytest.raises(TimeoutError):
+            future.result(timeout=2)
+    assert Context(None).get("/api/status") == {"version": 1}
+
+
+def test_invalidated_inflight_read_cannot_restore_snapshot(snapshot_cache, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    started, release = Event(), Event()
+    def load(self, path):
+        started.set()
+        assert release.wait(2)
+        return {"old": True}
+    monkeypatch.setattr(Context, "_load", load)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        old = pool.submit(Context(None).get, "/api/status")
+        assert started.wait(2)
+        snapshot_cache.invalidate()
+        monkeypatch.setattr(Context, "_load", lambda self, path: {"new": True})
+        assert Context(None).get("/api/status") == {"new": True}
+        release.set()
+        assert old.result() == {"old": True}
+    assert Context(None).get("/api/status") == {"new": True}

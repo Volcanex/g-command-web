@@ -165,30 +165,14 @@
     root.innerHTML = `<div class="empty"><div class="e-title">${esc(title)}</div><div class="e-desc">${esc(desc)}</div></div>`;
   }
 
-  // ── manifest (projects, services, hosts) ──
-  let manifest;
-  try {
-    const r = await fetch('/api/gcore');
-    if (!r.ok) throw new Error(`gcore ${r.status}`);
-    manifest = (await r.json()).manifest;
-  } catch (e) {
-    fail('Could not load the manifest', `The /api/gcore route failed (${e.message}). Reload once the server is back.`);
-    setBadge(statTotal, 'down', 'Manifest unavailable', false);
-    statTotal.classList.add('num');
-    return;
-  }
-
-  // ── screenshot + git sidecar (graceful if the job hasn't run) ──
+  // Independent sidecars enrich the manifest cards after their first render.
   let meta = {};
-  try {
-    const r = await fetch('/api/projects/meta');
-    if (r.ok) meta = (await r.json()).projects || {};
-  } catch (e) { /* page still works without thumbnails / commits */ }
-
-  // ── compliance (nerves) + lineage, both best-effort ──
   const compliance = {};
   const lineage = {};
-  await Promise.all([
+  const metaReady = fetch('/api/projects/meta').then(r => r.ok ? r.json() : null).then(d => {
+    if (d) meta = d.projects || {};
+  }).catch(() => {});
+  const detailsReady = Promise.all([
     fetch(`${BRAIN}/api/nerves`).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
       for (const n of d.nodes) if (n.type === 'repo') compliance[n.label] = { compliant: n.compliant, title: n.title };
@@ -205,11 +189,28 @@
     }).catch(() => {}),
   ]);
 
+  // ── manifest (projects, services, hosts) ──
+  let manifest;
+  try {
+    const r = await fetch('/api/gcore');
+    if (!r.ok) throw new Error(`gcore ${r.status}`);
+    manifest = (await r.json()).manifest;
+  } catch (e) {
+    fail('Could not load the manifest', `The /api/gcore route failed (${e.message}). Reload once the server is back.`);
+    setBadge(statTotal, 'down', 'Manifest unavailable', false);
+    statTotal.classList.add('num');
+    return;
+  }
+
   // ── index services by repo (the join key is service.repo == project.id) ──
   const svcByRepo = {};
   for (const s of (manifest.services || [])) (svcByRepo[s.repo] = svcByRepo[s.repo] || []).push(s);
 
   const projects = manifest.projects || [];
+  const wanted = new URLSearchParams(location.search).get('project');
+  const chosen = wanted && projects.find(p => p.id === wanted);
+  const gateSummaries = chosen ? Promise.resolve(null) : fetch('/api/levels/projects').then(r => r.ok ? r.json() : null)
+    .then(d => d ? d.projects || {} : null).catch(() => null);
   const hostName = {};
   for (const h of (manifest.hosts || [])) hostName[h.id] = (h.aliases && h.aliases[1]) || h.provider || h.id;
 
@@ -250,11 +251,7 @@
   }
 
   async function paintGateLines() {
-    let data = null;
-    try {
-      const r = await fetch('/api/levels/projects');
-      if (r.ok) data = (await r.json()).projects || {};
-    } catch (e) { /* the line says so below */ }
+    const data = await gateSummaries;
     for (const el of root.querySelectorAll('[data-gates]')) {
       const id = el.closest('[data-repo]').dataset.repo;
       el.innerHTML = data ? gatesLine(data[id]) : '<span class="rowk">Gates</span><span>Not available right now</span>';
@@ -427,8 +424,6 @@
     return card;
   }
 
-  const wanted = new URLSearchParams(location.search).get('project');
-  const chosen = wanted && projects.find(p => p.id === wanted);
   // ── render grouped by host, or one project's view ──
   root.innerHTML = '';
   if (chosen) {
@@ -472,12 +467,13 @@
   // something actually changed.
   let painted = false;
 
-  async function refreshStatus() {
-    let snap;
+  async function refreshStatus(snap) {
     try {
-      const r = await fetch(`${BRAIN}/api/status`);
-      if (!r.ok) throw new Error(r.status);
-      snap = await r.json();
+      if (!snap) {
+        const r = await fetch(`${BRAIN}/api/status`);
+        if (!r.ok) throw new Error(r.status);
+        snap = await r.json();
+      }
     } catch (e) { return; }
 
     const svcStates = {};
@@ -504,7 +500,23 @@
     painted = true;
   }
 
-  await refreshStatus();
+  const statusReady = fetch(`${BRAIN}/api/status`).then(r => r.ok ? r.json() : null).catch(() => null);
+  await Promise.all([metaReady, detailsReady]);
+  for (const card of root.querySelectorAll('[data-repo]')) {
+    const project = projects.find(p => p.id === card.dataset.repo);
+    const enriched = buildCard(project);
+    const gates = enriched.querySelector('[data-gates]');
+    const previous = card.querySelector('[data-gates]');
+    if (previous) gates.innerHTML = previous.innerHTML;
+    else gates.remove();
+    card.replaceWith(enriched);
+  }
+  if (!chosen) {
+    const compliantCount = projects.filter(p => (compliance[p.id] || {}).compliant === true).length;
+    statComp.textContent = `${compliantCount} g-core compliant`;
+  }
+  const firstStatus = await statusReady;
+  if (firstStatus) await refreshStatus(firstStatus);
   setInterval(refreshStatus, POLL_MS);
 })();
 </script>

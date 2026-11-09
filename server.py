@@ -22,6 +22,8 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
+from starlette.staticfiles import NotModifiedResponse
 import uvicorn
 
 # Admin auth (cookie-based, single-user). Configurable via env vars so
@@ -164,13 +166,14 @@ async def _no_cache_api(request: Request, call_next):
     Pages get `no-cache`: always revalidate. Without a header at all a browser
     may apply heuristic caching, and iOS Safari will keep serving a page it
     never revalidates, which is how a deployed fix stays invisible on the iPad
-    while being live everywhere else. Note the page route returns a bare
-    FileResponse, which sets an ETag but does not answer If-None-Match, so a
-    revalidation is a full 200 rather than a 304; pages are small and correct
-    beats cheap here. Conditional GET would need handling on that route."""
+    while being live everywhere else. HTML revalidates with the FileResponse ETag.
+    """
     response = await call_next(request)
     path = request.url.path
     if path.startswith("/api/"):
+        if request.method in ("POST", "PATCH", "PUT", "DELETE") and response.status_code < 400:
+            from core.panels.context import invalidate
+            invalidate()
         # a route that set its own Cache-Control opted in deliberately
         # (photo thumbnails are immutable); everything else stays live
         if "cache-control" not in response.headers:
@@ -246,6 +249,16 @@ MOVED = {"projects-group": "/recorder", "todos": "/calendar", "home": "/", "ops"
          "research": "/research/making-ladder"}
 
 
+async def _page_response(path, request):
+    stat = await run_in_threadpool(path.stat)
+    response = FileResponse(path, stat_result=stat, headers={"Cache-Control": "no-cache"})
+    tags = request.headers.get("if-none-match", "")
+    if any(tag.strip().removeprefix("W/") in ("*", response.headers["etag"])
+           for tag in tags.split(",")):
+        return NotModifiedResponse(response.headers)
+    return response
+
+
 @app.get("/{path:path}", include_in_schema=False)
 async def serve_pages(path: str, request: Request):
     """Serve compiled HTML pages with clean URLs."""
@@ -264,20 +277,20 @@ async def serve_pages(path: str, request: Request):
     # on a checkout without it, `/` still lands on the full dash.
     if path in ("", "/"):
         if (resolved := _safe_under_output(OUTPUT_DIR / "index.html")) is not None:
-            return FileResponse(resolved)
+            return await _page_response(resolved, request)
         return RedirectResponse("/full-dash", status_code=302)
 
     # Direct file match
     if (resolved := _safe_under_output(OUTPUT_DIR / path)) is not None:
-        return FileResponse(resolved)
+        return await _page_response(resolved, request)
 
     # Slug → output/{slug}.html
     if (resolved := _safe_under_output(OUTPUT_DIR / f"{path}.html")) is not None:
-        return FileResponse(resolved)
+        return await _page_response(resolved, request)
 
     # Directory index
     if (resolved := _safe_under_output(OUTPUT_DIR / path / "index.html")) is not None:
-        return FileResponse(resolved)
+        return await _page_response(resolved, request)
 
     # Tree-walk fallback for dynamic URLs:
     #   /report/{any-slug}        → output/report.html
@@ -289,7 +302,7 @@ async def serve_pages(path: str, request: Request):
     for i in range(len(parts) - 1, 0, -1):
         candidate = OUTPUT_DIR / ("/".join(parts[:i]) + ".html")
         if (resolved := _safe_under_output(candidate)) is not None:
-            return FileResponse(resolved)
+            return await _page_response(resolved, request)
 
     # pages/not-found: the 404 inside Command's shell. Before its first compile, the bare one.
     if (resolved := _safe_under_output(OUTPUT_DIR / "not-found.html")) is not None:

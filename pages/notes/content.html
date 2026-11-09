@@ -142,47 +142,54 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  try {
-    const r = await fetch(BRAIN_API + '/api/notes');
-    if (!r.ok) throw new Error(`notes ${r.status}`);
-    const data = await r.json();
-    all = data.notes;
-    fkind.innerHTML = '<option value="">All kinds</option>' +
-      data.facets.kinds.map(k => `<option value="${k}">${sentence(k)}</option>`).join('');
-    fstat.innerHTML = '<option value="">All statuses</option>' +
-      data.facets.statuses.map(s => `<option value="${s}">${sentence(s)}</option>`).join('');
-    // The sidebar's brain-kind links arrive as /notes?kind=finding.
-    const wanted = new URLSearchParams(location.search).get('kind');
-    if (wanted && data.facets.kinds.includes(wanted)) fkind.value = wanted;
-    [fkind, fstat, fq].forEach(el => el.addEventListener('input', render));
-    render();
-  } catch (e) {
-    cnt.textContent = 'Unavailable';
-    tbody.innerHTML = `<tr><td colspan="5" class="muted">Could not reach the brain API (${escapeHtml(e.message)}). Check ${escapeHtml(BRAIN_API)}, then reload.</td></tr>`;
+  async function loadNotes() {
+    try {
+      const r = await fetch(BRAIN_API + '/api/notes');
+      if (!r.ok) throw new Error(`notes ${r.status}`);
+      const data = await r.json();
+      all = data.notes;
+      fkind.innerHTML = '<option value="">All kinds</option>' +
+        data.facets.kinds.map(k => `<option value="${k}">${sentence(k)}</option>`).join('');
+      fstat.innerHTML = '<option value="">All statuses</option>' +
+        data.facets.statuses.map(s => `<option value="${s}">${sentence(s)}</option>`).join('');
+      // The sidebar's brain-kind links arrive as /notes?kind=finding.
+      const wanted = new URLSearchParams(location.search).get('kind');
+      if (wanted && data.facets.kinds.includes(wanted)) fkind.value = wanted;
+      [fkind, fstat, fq].forEach(el => el.addEventListener('input', render));
+      render();
+    } catch (e) {
+      cnt.textContent = 'Unavailable';
+      tbody.innerHTML = `<tr><td colspan="5" class="muted">Could not reach the brain API (${escapeHtml(e.message)}). Check ${escapeHtml(BRAIN_API)}, then reload.</td></tr>`;
+    }
   }
 
   // Rewrite review queue: notes whose dependency moved and that nobody has
   // re-checked. brain_verify clears only on evidence, so anything left here
   // genuinely needs a human read. Silent failure is fine, it's a secondary
   // signal and must never break the notes table.
-  try {
-    const r = await fetch(BRAIN_API + '/api/stale');
-    if (!r.ok) return;
-    const s = await r.json();
-    const rows = s.outstanding_detail || [];
-    if (!rows.length) return;
-    const box = document.querySelector('[data-stale]');
-    document.querySelector('[data-stale-sub]').textContent =
-      `${rows.length} ${rows.length === 1 ? 'note rests' : 'notes rest'} on a dependency that changed and ` +
-      `${rows.length === 1 ? "hasn't" : "haven't"} been re-checked` +
-      (s.checked_at ? `, swept ${s.checked_at.slice(0, 10)}` : '');
-    document.querySelector('[data-stale-list]').innerHTML = rows.map(o => `
-      <li class="${o.escalate ? 'escalate' : ''}">
-        <a href="/note/${escapeHtml(o.note)}">${escapeHtml(plain(o.title) || o.note)}</a>
-        depends on <a href="/note/${escapeHtml(o.depends_on)}">${escapeHtml(o.depends_on)}</a>
-        <span class="age">${o.age_days ?? 0}d</span>
-      </li>`).join('');
-    box.hidden = false;
-  } catch (e) { /* queue is advisory; never block the page */ }
+  async function loadStale() {
+    try {
+      const r = await fetch(BRAIN_API + '/api/stale');
+      if (!r.ok) return;
+      const s = await r.json();
+      const rows = s.outstanding_detail || [];
+      if (!rows.length) return;
+      const box = document.querySelector('[data-stale]');
+      document.querySelector('[data-stale-sub]').textContent =
+        `${rows.length} ${rows.length === 1 ? 'note rests' : 'notes rest'} on a dependency that changed and ` +
+        `${rows.length === 1 ? "hasn't" : "haven't"} been re-checked` +
+        (s.checked_at ? `, swept ${s.checked_at.slice(0, 10)}` : '');
+      document.querySelector('[data-stale-list]').innerHTML = rows.map(o => `
+        <li class="${o.escalate ? 'escalate' : ''}">
+          <a href="/note/${escapeHtml(o.note)}">${escapeHtml(plain(o.title) || o.note)}</a>
+          depends on <a href="/note/${escapeHtml(o.depends_on)}">${escapeHtml(o.depends_on)}</a>
+          <span class="age">${o.age_days ?? 0}d</span>
+        </li>`).join('');
+      box.hidden = false;
+    } catch (e) { /* queue is advisory; never block the page */ }
+  }
+
+  loadNotes();
+  loadStale();
 })();
 </script>
