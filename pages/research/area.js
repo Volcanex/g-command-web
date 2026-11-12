@@ -2,7 +2,7 @@
 // `mountArea("<id>")`; what the area holds and its sub-views come from the
 // registry (areas.json) through /api/research, and each sub-view's kind picks
 // its renderer below. Sub-views are links (`?view=`), so each is bookmarkable.
-import { html, useState, useEffect, useRef, useCallback, PageHead, Loaded, Empty, SkeletonRows, Badge, mount, useJson } from "../../core/app/boot.js";
+import { html, useState, useEffect, useRef, useCallback, useLayoutEffect, PageHead, Loaded, Empty, SkeletonRows, Badge, mount, useJson } from "../../core/app/boot.js";
 import { parse, inline, plainText } from "./md.js";
 import "./area.css";
 
@@ -235,7 +235,7 @@ const CHOICES = [
   { id: "a", label: "A", key: "1" },
   { id: "b", label: "B", key: "2" },
   { id: "tie", label: "Tie", key: "3" },
-  { id: "neither", label: "Neither is acceptable", key: "4" },
+  { id: "neither", label: "Neither is acceptable", short: "Neither", key: "4" },
 ];
 
 const useNarrow = () => {
@@ -267,6 +267,24 @@ function Judging({ area, set, view, many }) {
   const [show, setShow] = useState("both");
   const [error, setError] = useState("");
   const narrow = useNarrow();
+  const box = useRef(null);
+  /* The pair fills the viewport below the tabs and above whatever the shell
+     pins to the bottom (status line, phone dock), so the frames end above
+     the choice bar and nothing covers them. */
+  useLayoutEffect(() => {
+    const fit = () => {
+      const el = box.current;
+      if (!el) return;
+      let limit = innerHeight;
+      const hit = document.elementFromPoint(innerWidth / 2, innerHeight - 2);
+      if (hit && !el.contains(hit) && !hit.closest("[data-page-app]")) limit = Math.min(limit, hit.getBoundingClientRect().top);
+      const top = el.getBoundingClientRect().top + scrollY;
+      el.style.height = `${Math.max(480, Math.floor(limit - top - 16))}px`;
+    };
+    fit();
+    addEventListener("resize", fit);
+    return () => removeEventListener("resize", fit);
+  });
   const spent = useRef({});
   const since = useRef(performance.now());
   const pair = pairs[at];
@@ -327,7 +345,7 @@ function Judging({ area, set, view, many }) {
   if (!pair) {
     return html`<section class="card rs-judge-end">
       <h2 class="card-title">${judged === pairs.length ? "All judged" : "End of the set"}</h2>
-      <p class="rs-note num">${judged} of ${pairs.length} pairs judged. The results stay hidden until the key is opened.</p>
+      <p class="rs-note num">${judged} of ${pairs.length} pairs judged. You see the results only once you open the key.</p>
       <div class="row-tight">
         <button type="button" class="btn btn-secondary" onClick=${() => go(-1)}>Back to the last pair</button>
         ${judged < pairs.length && html`<button type="button" class="btn btn-secondary" onClick=${() => { setAt(pairs.findIndex((p) => !votes[p.id])); }}>Go to the first one left</button>`}
@@ -342,7 +360,7 @@ function Judging({ area, set, view, many }) {
       referrerpolicy="no-referrer" loading="eager"></iframe>
   </figure>`;
   const views = narrow ? [["a", "A"], ["b", "B"]] : [["both", "Side by side"], ["a", "A wide"], ["b", "B wide"]];
-  return html`<div class="rs-judge">
+  return html`<div class="rs-judge" ref=${box}>
     <header class="rs-judge-head">
       <div class="rs-judge-brief">
         <h2 class="rs-judge-title">${pair.brief}</h2>
@@ -363,7 +381,7 @@ function Judging({ area, set, view, many }) {
       <div class="rs-judge-choices" role="group" aria-label="Which one">
         ${CHOICES.map((c) => html`<button type="button" key=${c.id} aria-pressed=${vote && vote.choice === c.id ? "true" : "false"}
           class=${`btn ${vote && vote.choice === c.id ? "btn-primary" : "btn-secondary"}`} onClick=${() => choose(c.id)}>
-          <span>${c.label}</span><span class="kbd" aria-hidden="true">${c.key}</span></button>`)}
+          <span>${narrow && c.short ? c.short : c.label}</span><span class="kbd" aria-hidden="true">${c.key}</span></button>`)}
       </div>
       <div class="rs-judge-after">
         ${vote ? html`<div class="rs-judge-reasons" role="group" aria-label="Why, optional">
@@ -372,7 +390,7 @@ function Judging({ area, set, view, many }) {
               aria-pressed=${(vote.reasons || []).includes(r) ? "true" : "false"} onClick=${() => toggle(r)}>${r}</button>`)}
           </div>
           <button type="button" class="btn btn-primary rs-judge-next" onClick=${() => go(1)}>${at + 1 === pairs.length ? "Finish" : "Next pair"}</button>`
-        : html`<p class="rs-dim rs-judge-hint">Pick one to go on. Keys 1 to 4 choose, arrows move.</p>`}
+        : html`<p class="rs-dim rs-judge-hint">Pick one to go on, or press 1 to 4 to choose and the arrows to move between pairs.</p>`}
       </div>
       ${error && html`<p class="rs-judge-error" role="alert">${error}</p>`}
     </section>
