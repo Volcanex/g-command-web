@@ -1,0 +1,11 @@
+{
+  "title": "Thesis",
+  "slug": "research/thesis",
+  "description": "The MSc thesis on charters as an alternative to skills: status, open problems, candidate charters and reports, read from the private g-research-data folder.",
+  "nav": false,
+  "tabs": "research",
+  "tab_label": "Thesis",
+  "nav_icon": "scroll",
+  "order": 0,
+  "gsys": true
+}

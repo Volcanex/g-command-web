@@ -2,6 +2,23 @@
   "_doc": "The Research registry (pages/research/CLAUDE.md). One entry per area: its rail page, the checkout it reads (a sibling of this one) and its sub-views. Files are read from disk on every request. exclude names folders that are never read, deny names files that are never read.",
   "areas": [
     {
+      "id": "thesis",
+      "title": "Thesis",
+      "sub": "Charters as an alternative to skills: where the work stands, the open problems, the candidate charters and every report, read from the private research data.",
+      "root": "g-research-data",
+      "path": "",
+      "exclude": ["library", "reading", "dream", "dryruns", "picks", "sweeps", "briefs"],
+      "deny": ["prompt"],
+      "views": [
+        { "id": "now", "title": "Now", "kind": "paper", "file": "view/now.md" },
+        { "id": "problems", "title": "Problems", "kind": "docs", "globs": ["view/problems/*.md"] },
+        { "id": "charters", "title": "Charters", "kind": "docs", "globs": ["view/charters/*.md", "charters/FORMAT.md"] },
+        { "id": "tables", "title": "Tables", "kind": "tables", "globs": ["view/tables/*.tsv", "view/tables/*.csv"] },
+        { "id": "direction", "title": "Direction", "kind": "docs", "globs": ["drafts/*.md", "prereg/*.md"] },
+        { "id": "reports", "title": "Reports", "kind": "docs", "globs": ["reports/2026-*.md", "reports/build/*.md", "reports/synth-*.md", "reports/map-*.md"] }
+      ]
+    },
+    {
       "id": "making-ladder",
       "title": "Making ladder",
       "sub": "Research note 1 from g-research, with its main claims checked against the live g-levels registry.",

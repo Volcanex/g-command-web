@@ -158,7 +158,7 @@ def test_web_rail_puts_what_is_needed_at_the_top_and_nests_the_rest():
     assert design["slug"] is None and [(k["slug"], k["label"]) for k in design["children"]] == [("design", "Language"), ("showcase", "Showcase")]
     research = [e for e in web[2]["entries"] if e["label"] == "Research"][0]
     assert research["slug"] is None and [k["slug"] for k in research["children"]] == [
-        "research/making-ladder", "research/ans", "research/dissertation"]
+        "research/thesis", "research/making-ladder", "research/ans", "research/dissertation"]
     html = compiler.build_nav_html(configs(PAGES))
     assert html.count('class="nav-group"') == 7 and html.count("data-open") == 7
     assert "hub" not in html and 'class="nav-twist"' not in html

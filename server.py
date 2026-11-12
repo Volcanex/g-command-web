@@ -246,7 +246,7 @@ async def logout_page():
 # System were overviews of what Home's full dash now shows, and Brain's page
 # was its graph. Their configs stay, since the apps' manifest draws them.
 MOVED = {"projects-group": "/recorder", "todos": "/calendar", "home": "/", "ops": "/", "brain": "/graph", "voice": "/chat",
-         "research": "/research/making-ladder"}
+         "research": "/research/thesis"}
 
 
 async def _page_response(path, request):
