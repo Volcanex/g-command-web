@@ -2,7 +2,7 @@
 // `mountArea("<id>")`; what the area holds and its sub-views come from the
 // registry (areas.json) through /api/research, and each sub-view's kind picks
 // its renderer below. Sub-views are links (`?view=`), so each is bookmarkable.
-import { html, PageHead, Loaded, Empty, SkeletonRows, Badge, mount, useJson } from "../../core/app/boot.js";
+import { html, useState, useEffect, useRef, useCallback, PageHead, Loaded, Empty, SkeletonRows, Badge, mount, useJson } from "../../core/app/boot.js";
 import { parse, inline, plainText } from "./md.js";
 import "./area.css";
 
@@ -225,9 +225,168 @@ function Charts({ data }) {
   </figure>`)}</div>`;
 }
 
+/* ---------------------------------------------------------------- judge */
+
+/* Blind pairwise judging. The pages are model-written HTML, so they load from a
+   route that sandboxes them by CSP and into iframes that never get
+   allow-same-origin. Nothing here names an arm, a file or a tally. */
+
+const CHOICES = [
+  { id: "a", label: "A", key: "1" },
+  { id: "b", label: "B", key: "2" },
+  { id: "tie", label: "Tie", key: "3" },
+  { id: "neither", label: "Neither is acceptable", key: "4" },
+];
+
+const useNarrow = () => {
+  const q = "(max-width: 720px)";
+  const [narrow, setNarrow] = useState(() => matchMedia(q).matches);
+  useEffect(() => {
+    const m = matchMedia(q);
+    const on = () => setNarrow(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return narrow;
+};
+
+function JudgeSets({ sets, view }) {
+  return html`<div class="card flush"><div class="table-wrap"><table class="table rs-table">
+    <thead><tr><th>Set</th><th class="r">Judged</th></tr></thead>
+    <tbody>${sets.map((s) => html`<tr key=${s.run}>
+      <td><a href=${viewHref(view, { set: s.run })}>${flat(s.title)}</a></td>
+      <td class="r num">${s.judged} of ${s.pairs}</td></tr>`)}</tbody>
+  </table></div></div>`;
+}
+
+function Judging({ area, set, view, many }) {
+  const pairs = set.pairs;
+  const [votes, setVotes] = useState(set.votes || {});
+  const first = pairs.findIndex((p) => !(set.votes || {})[p.id]);
+  const [at, setAt] = useState(first < 0 ? pairs.length : first);
+  const [show, setShow] = useState("both");
+  const [error, setError] = useState("");
+  const narrow = useNarrow();
+  const spent = useRef({});
+  const since = useRef(performance.now());
+  const pair = pairs[at];
+  const vote = pair && votes[pair.id];
+
+  /* Time on a pair, counted only while the tab is in view. */
+  const bank = useCallback(() => {
+    const now = performance.now();
+    if (pair && document.visibilityState === "visible") spent.current[pair.id] = (spent.current[pair.id] || 0) + (now - since.current);
+    since.current = now;
+  }, [pair]);
+  useEffect(() => {
+    since.current = performance.now();
+    const vis = () => (document.visibilityState === "visible" ? (since.current = performance.now()) : bank());
+    document.addEventListener("visibilitychange", vis);
+    return () => { document.removeEventListener("visibilitychange", vis); bank(); };
+  }, [at]);
+
+  const send = useCallback(async (choice, reasons) => {
+    if (!pair) return;
+    bank();
+    const prev = votes[pair.id];
+    setVotes((v) => ({ ...v, [pair.id]: { choice, reasons } }));
+    setError("");
+    try {
+      const r = await fetch(`/api/research/${area}/judge/${encodeURIComponent(set.run)}/vote`, {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pair: pair.id, choice, reasons, seconds: Math.round((spent.current[pair.id] || 0) / 100) / 10 }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+    } catch (_) {
+      setVotes((v) => ({ ...v, [pair.id]: prev }));
+      setError("That vote did not save. Check the connection and choose again.");
+    }
+  }, [pair, votes, area, set.run, bank]);
+
+  const go = useCallback((n) => { setAt((i) => Math.max(0, Math.min(pairs.length, i + n))); setShow("both"); setError(""); }, [pairs.length]);
+  const choose = (id) => send(id, vote && vote.choice === id ? vote.reasons || [] : []);
+  const toggle = (r) => {
+    const now = vote.reasons || [];
+    send(vote.choice, now.includes(r) ? now.filter((x) => x !== r) : [...now, r]);
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || /^(TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.target.tagName === "INPUT" && (e.target.type !== "radio" || e.key.startsWith("Arrow"))) return;  // radios keep their own arrows
+      const c = CHOICES.find((x) => x.key === e.key);
+      if (c && pair) { e.preventDefault(); choose(c.id); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  });
+
+  const judged = pairs.filter((p) => votes[p.id]).length;
+  if (!pair) {
+    return html`<section class="card rs-judge-end">
+      <h2 class="card-title">${judged === pairs.length ? "All judged" : "End of the set"}</h2>
+      <p class="rs-note num">${judged} of ${pairs.length} pairs judged. The results stay hidden until the key is opened.</p>
+      <div class="row-tight">
+        <button type="button" class="btn btn-secondary" onClick=${() => go(-1)}>Back to the last pair</button>
+        ${judged < pairs.length && html`<button type="button" class="btn btn-secondary" onClick=${() => { setAt(pairs.findIndex((p) => !votes[p.id])); }}>Go to the first one left</button>`}
+        ${many && html`<a class="btn btn-tertiary" href=${viewHref(view)}>All sets</a>`}
+      </div>
+    </section>`;
+  }
+  const side = narrow && show === "both" ? "a" : show;
+  const frame = (k) => html`<figure class="rs-judge-frame" key=${pair.id + k} data-hidden=${side !== "both" && side !== k ? "" : undefined}>
+    <figcaption>${k.toUpperCase()}</figcaption>
+    <iframe src=${pair[k]} title=${`Page ${k.toUpperCase()}`} sandbox="allow-scripts allow-forms allow-modals"
+      referrerpolicy="no-referrer" loading="eager"></iframe>
+  </figure>`;
+  const views = narrow ? [["a", "A"], ["b", "B"]] : [["both", "Side by side"], ["a", "A wide"], ["b", "B wide"]];
+  return html`<div class="rs-judge">
+    <header class="rs-judge-head">
+      <div class="rs-judge-brief">
+        <h2 class="rs-judge-title">${pair.brief}</h2>
+        <p class="rs-note">${set.question}</p>
+      </div>
+      <div class="rs-judge-nav">
+        <button type="button" class="btn btn-tertiary btn-sm" onClick=${() => go(-1)} disabled=${at === 0}>Back</button>
+        <span class="num rs-judge-count" aria-live="polite">${at + 1} of ${pairs.length}</span>
+        <button type="button" class="btn btn-tertiary btn-sm" onClick=${() => go(1)}>Skip</button>
+      </div>
+    </header>
+    <div class="g-segmented rs-judge-show" role="radiogroup" aria-label="Show">
+      ${views.map(([id, label]) => html`<label key=${id}><input type="radio" name="rs-judge-show" value=${id}
+        checked=${side === id} onChange=${() => setShow(id)} />${label}</label>`)}
+    </div>
+    <div class="rs-judge-frames" data-show=${side}>${frame("a")}${frame("b")}</div>
+    <section class="card rs-judge-bar" aria-label="Your choice">
+      <div class="rs-judge-choices" role="group" aria-label="Which one">
+        ${CHOICES.map((c) => html`<button type="button" key=${c.id} aria-pressed=${vote && vote.choice === c.id ? "true" : "false"}
+          class=${`btn ${vote && vote.choice === c.id ? "btn-primary" : "btn-secondary"}`} onClick=${() => choose(c.id)}>
+          <span>${c.label}</span><span class="kbd" aria-hidden="true">${c.key}</span></button>`)}
+      </div>
+      <div class="rs-judge-after">
+        ${vote ? html`<div class="rs-judge-reasons" role="group" aria-label="Why, optional">
+            <span class="rs-dim">Why, optional</span>
+            ${set.reasons.map((r) => html`<button type="button" key=${r} class="btn btn-sm rs-judge-chip"
+              aria-pressed=${(vote.reasons || []).includes(r) ? "true" : "false"} onClick=${() => toggle(r)}>${r}</button>`)}
+          </div>
+          <button type="button" class="btn btn-primary rs-judge-next" onClick=${() => go(1)}>${at + 1 === pairs.length ? "Finish" : "Next pair"}</button>`
+        : html`<p class="rs-dim rs-judge-hint">Pick one to go on. Keys 1 to 4 choose, arrows move.</p>`}
+      </div>
+      ${error && html`<p class="rs-judge-error" role="alert">${error}</p>`}
+    </section>
+  </div>`;
+}
+
+function Judge({ data, view, area }) {
+  if (!data.set) return html`<${JudgeSets} sets=${data.sets} view=${view} />`;
+  return html`<${Judging} key=${data.set.run} area=${area} set=${data.set} view=${view} many=${data.sets.length > 1} />`;
+}
+
 /* ---------------------------------------------------------------- page */
 
-const KINDS = { paper: Paper, docs: Docs, claims: Claims, "ans-runs": Runs, "ans-atlas": Atlas, tables: Tables, charts: Charts };
+const KINDS = { paper: Paper, docs: Docs, claims: Claims, "ans-runs": Runs, "ans-atlas": Atlas, tables: Tables, charts: Charts, judge: Judge };
 
 function Missing({ data, title }) {
   return html`<div class="card"><${Empty} icon="info" title=${data.reason || `No ${title.toLowerCase()} yet`}
@@ -236,11 +395,12 @@ function Missing({ data, title }) {
 
 function View({ area, view }) {
   const q = params();
-  const doc = q.get("doc");
-  const state = useJson(`/api/research/${area}/${view.id}${doc ? `?doc=${encodeURIComponent(doc)}` : ""}`);
+  const extra = new URLSearchParams();
+  for (const k of ["doc", "set"]) if (q.get(k)) extra.set(k, q.get(k));
+  const state = useJson(`/api/research/${area}/${view.id}${extra.size ? `?${extra}` : ""}`);
   const Kind = KINDS[view.kind];
   return html`<${Loaded} state=${state} skeleton=${html`<${SkeletonRows} rows=${6} />`}>
-    ${(data) => (data.missing && !(data.docs && data.docs.length) ? html`<${Missing} data=${data} title=${view.title} />` : html`<${Kind} data=${data} view=${view.id} />`)}
+    ${(data) => (data.missing && !(data.docs && data.docs.length) ? html`<${Missing} data=${data} title=${view.title} />` : html`<${Kind} data=${data} view=${view.id} area=${area} />`)}
   <//>`;
 }
 

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from core.auth import cookie_ok
 from core.instance import sibling
@@ -359,8 +360,92 @@ def view_claims(area, view, request):
             "mtime": _mtime(path)}
 
 
+# ---------------------------------------------------------------- judge
+
+PAGE_NAME = re.compile(r"[a-z0-9]{6,16}\.html")
+CHOICES = ("a", "b", "tie", "neither")
+PAGE_HEADERS = {"Content-Security-Policy": "sandbox allow-scripts allow-forms allow-modals",
+                "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-cache",
+                "Referrer-Policy": "no-referrer"}
+
+
+def _judge_sets(area, globs):
+    """{run: pairs.json path} for every runs/<run>/judge/pairs.json the globs find.
+    Only pairs.json, the pages and votes.jsonl beside it are ever read. The key
+    that maps pages to arms (judge-key.json) is never touched."""
+    out = {}
+    for rel, path in _matches(area, globs):
+        if path.name == "pairs.json" and path.parent.name == "judge":
+            out.setdefault(path.parent.parent.name, path)
+    return out
+
+
+def _load_set(path):
+    try:
+        data = json.loads(_read(path))
+    except ValueError:
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("pairs"), list):
+        return None
+    return data
+
+
+def _votes(path):
+    """Latest vote per pair. A line that does not parse is skipped."""
+    votes_file = path.with_name("votes.jsonl")
+    latest = {}
+    if votes_file.is_file():
+        for line in _read(votes_file).splitlines():
+            try:
+                v = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(v, dict) and isinstance(v.get("pair"), str):
+                latest[v["pair"]] = v
+    return latest
+
+
+def view_judge(area, view, request):
+    sets = _judge_sets(area, view.get("globs", []))
+    listing = []
+    for run, path in sets.items():
+        data = _load_set(path)
+        if data is None:
+            continue
+        ids = {p.get("id") for p in data["pairs"]}
+        listing.append({"run": run, "title": data.get("title") or run, "pairs": len(ids),
+                        "judged": sum(k in ids for k in _votes(path))})
+    if not listing:
+        return {"sets": [], **_missing(area, "No judging sets yet")}
+    out = {"sets": listing}
+    want = request.query_params.get("set")
+    if want is None and len(listing) == 1:
+        want = listing[0]["run"]
+    if want in sets and any(s["run"] == want for s in listing):
+        data = _load_set(sets[want])
+        votes = _votes(sets[want])
+        pairs = [{"id": p.get("id"), "brief": p.get("brief", ""),
+                  "a": f"/api/research/{area['id']}/judge/{want}/page/{p.get('a')}",
+                  "b": f"/api/research/{area['id']}/judge/{want}/page/{p.get('b')}"}
+                 for p in data["pairs"]]
+        out["set"] = {"run": want, "title": data.get("title") or want, "question": data.get("question", ""),
+                      "reasons": [r for r in data.get("reasons", []) if isinstance(r, str)], "pairs": pairs,
+                      "votes": {k: {"choice": v.get("choice"), "reasons": v.get("reasons", [])}
+                                for k, v in votes.items()}}
+    return out
+
+
+def _judge_set(aid, run):
+    area = _area(aid)
+    globs = [g for v in area["views"] if v["kind"] == "judge" for g in v.get("globs", [])]
+    path = _judge_sets(area, globs).get(run) if globs else None
+    if path is None:
+        raise HTTPException(404, "No judging set by that name")
+    return area, path
+
+
 KINDS = {"paper": view_paper, "docs": view_docs, "tables": view_tables, "charts": view_charts,
-         "ans-runs": view_ans_runs, "ans-atlas": view_ans_atlas, "claims": view_claims}
+         "ans-runs": view_ans_runs, "ans-atlas": view_ans_atlas, "claims": view_claims, "judge": view_judge}
 
 
 # ---------------------------------------------------------------- routes
@@ -385,6 +470,53 @@ def file(aid: str, path: str, request: Request):
     return FileResponse(found, media_type=IMAGE_TYPES[found.suffix.lower()], headers={
         "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'", "X-Content-Type-Options": "nosniff",
         "Cache-Control": "private, no-cache"})
+
+
+@router.get("/{aid}/judge/{run}/page/{name}")
+def judge_page(aid: str, run: str, name: str, request: Request):
+    """One page to judge, sandboxed by its own CSP so it gets an opaque origin even opened directly."""
+    _auth(request)
+    if not PAGE_NAME.fullmatch(name):
+        raise HTTPException(404, "No page by that name")
+    area, path = _judge_set(aid, run)
+    folder = (path.parent / "pages").resolve()
+    try:
+        found = (folder / name).resolve()
+        found.relative_to(folder)
+    except (ValueError, OSError):
+        raise HTTPException(404, "No page by that name")
+    if not found.is_file():
+        raise HTTPException(404, "No page by that name")
+    return FileResponse(found, media_type="text/html; charset=utf-8", headers=PAGE_HEADERS)
+
+
+class Vote(BaseModel):
+    pair: str
+    choice: str
+    reasons: list[str] = []
+    seconds: float = 0
+
+
+@router.post("/{aid}/judge/{run}/vote")
+def judge_vote(aid: str, run: str, body: Vote, request: Request):
+    """Append one vote. The latest line per pair wins when read back."""
+    _auth(request)
+    area, path = _judge_set(aid, run)
+    data = _load_set(path)
+    if data is None or body.pair not in {p.get("id") for p in data["pairs"]}:
+        raise HTTPException(404, "No pair by that id in this set, so nothing was saved.")
+    if body.choice not in CHOICES:
+        raise HTTPException(400, "A choice is a, b, tie or neither. Nothing was saved.")
+    allowed = set(data.get("reasons", []))
+    if not set(body.reasons) <= allowed:
+        raise HTTPException(400, "A reason is not one of this set's reasons. Nothing was saved.")
+    seconds = body.seconds if body.seconds == body.seconds else 0.0  # NaN
+    seconds = round(max(0.0, min(seconds, 86400.0)), 1)
+    line = {"pair": body.pair, "choice": body.choice, "reasons": [r for r in data["reasons"] if r in body.reasons],
+            "seconds": seconds, "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+    with path.with_name("votes.jsonl").open("a", encoding="utf-8") as f:
+        f.write(json.dumps(line) + "\n")
+    return {"ok": True, "pair": body.pair, "choice": body.choice}
 
 
 @router.get("/{aid}/{vid}")

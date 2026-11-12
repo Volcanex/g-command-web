@@ -162,3 +162,72 @@ def test_safe_refuses_outside_hidden_excluded_and_denied(roots):
 def test_unknown_area_and_view(client):
     assert client.get("/api/research/nope/paper").status_code == 404
     assert client.get("/api/research/ans/nope").status_code == 404
+
+
+# ---------------------------------------------------------------- judge
+
+@pytest.fixture
+def judge(tmp_path, monkeypatch):
+    data = tmp_path / "g-research-data"
+    jd = data / "runs" / "p1" / "judge"
+    (jd / "pages").mkdir(parents=True)
+    (jd / "pages" / "abc123.html").write_text("<p>page a</p>")
+    (jd / "pages" / "def456.html").write_text("<p>page b</p>")
+    (data / "runs" / "p1" / "judge-key.json").write_text('{"abc123.html": "arm-secret"}')
+    (data / "runs" / "secret.html").write_text("outside")
+    (jd / "pairs.json").write_text(json.dumps({
+        "run": "p1", "title": "Probe one", "question": "Which would you keep?",
+        "reasons": ["clearer", "more character"],
+        "pairs": [{"id": "p01", "brief": "A meal planner", "a": "abc123.html", "b": "def456.html"},
+                  {"id": "p02", "brief": "A meal planner", "a": "def456.html", "b": "abc123.html"}]}))
+    monkeypatch.setenv("RESEARCH_G_RESEARCH_DATA_DIR", str(data))
+    return jd
+
+
+def test_judge_lists_sets_and_hides_the_key(client, judge):
+    r = client.get("/api/research/thesis/judge").json()
+    assert r["sets"] == [{"run": "p1", "title": "Probe one", "pairs": 2, "judged": 0}]
+    s = r["set"]
+    assert s["question"] == "Which would you keep?" and s["reasons"] == ["clearer", "more character"]
+    assert [p["id"] for p in s["pairs"]] == ["p01", "p02"]
+    assert s["pairs"][0]["a"] == "/api/research/thesis/judge/p1/page/abc123.html"
+    assert "arm-secret" not in json.dumps(r) and "judge-key" not in json.dumps(r)
+
+
+def test_judge_page_route(client, judge):
+    r = client.get("/api/research/thesis/judge/p1/page/abc123.html")
+    assert r.status_code == 200 and "page a" in r.text
+    assert r.headers["content-security-policy"] == "sandbox allow-scripts allow-forms allow-modals"
+    assert r.headers["x-content-type-options"] == "nosniff"
+    for bad in ("..%2F..%2Fsecret.html", "..%2Fjudge-key.json", "ABC123.html", "abc.html", "abc123.htm",
+                "abc123.html%00", "nothere99.html"):
+        assert client.get(f"/api/research/thesis/judge/p1/page/{bad}").status_code == 404, bad
+    assert client.get("/api/research/thesis/judge/..%2F..%2Fruns/page/abc123.html").status_code == 404
+    assert client.get("/api/research/thesis/judge/nope/page/abc123.html").status_code == 404
+
+
+def test_judge_vote_route(client, judge):
+    url = "/api/research/thesis/judge/p1/vote"
+    assert client.post(url, json={"pair": "p01", "choice": "a", "reasons": ["clearer"], "seconds": 12.34}).status_code == 200
+    line = json.loads((judge / "votes.jsonl").read_text().splitlines()[0])
+    assert line["pair"] == "p01" and line["choice"] == "a" and line["reasons"] == ["clearer"]
+    assert line["seconds"] == 12.3 and line["at"].endswith("+00:00")
+    assert client.post(url, json={"pair": "zz", "choice": "a"}).status_code == 404
+    assert client.post(url, json={"pair": "p01", "choice": "c"}).status_code == 400
+    assert client.post(url, json={"pair": "p01", "choice": "b", "reasons": ["made up"]}).status_code == 400
+    assert len((judge / "votes.jsonl").read_text().splitlines()) == 1
+    client.post(url, json={"pair": "p01", "choice": "neither", "reasons": [], "seconds": 3})
+    r = client.get("/api/research/thesis/judge").json()
+    assert r["set"]["votes"] == {"p01": {"choice": "neither", "reasons": []}}
+    assert r["sets"][0]["judged"] == 1
+
+
+def test_judge_routes_need_the_gate(judge, roots, monkeypatch):
+    app = FastAPI()
+    app.include_router(research_api.router, prefix="/api/research")
+    monkeypatch.setattr("core.auth.ADMIN_COOKIE", "seed_admin")
+    monkeypatch.setattr("core.auth.ADMIN_VALUE", "ok")
+    c = TestClient(app)
+    assert c.get("/api/research/thesis/judge/p1/page/abc123.html").status_code == 401
+    assert c.post("/api/research/thesis/judge/p1/vote", json={"pair": "p01", "choice": "a"}).status_code == 401
+    assert not (judge / "votes.jsonl").exists()

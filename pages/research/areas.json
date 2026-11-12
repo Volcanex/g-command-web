@@ -16,6 +16,7 @@
         { "id": "charters", "title": "Charters", "kind": "docs", "globs": ["view/charters/*.md", "charters/FORMAT.md"] },
         { "id": "tables", "title": "Tables", "kind": "tables", "globs": ["view/tables/*.tsv", "view/tables/*.csv"] },
         { "id": "runs", "title": "Runs", "kind": "docs", "globs": ["runs/README.md", "runs/*/README.md"] },
+        { "id": "judge", "title": "Judge", "kind": "judge", "globs": ["runs/*/judge/pairs.json"] },
         { "id": "reading", "title": "Reading", "kind": "docs", "globs": ["notes/*/00-synthesis.md", "notes/*/*.md"] },
         { "id": "direction", "title": "Direction", "kind": "docs", "globs": ["drafts/*.md", "prereg/*.md"] },
         { "id": "reports", "title": "Reports", "kind": "docs", "globs": ["reports/2026-*.md", "reports/build/*.md", "reports/synth-*.md", "reports/map-*.md"] }
