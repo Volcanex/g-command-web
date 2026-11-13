@@ -25,8 +25,9 @@
 .jobs-facts dt { color: var(--text-secondary); }
 .jobs-facts dd { margin: 0; overflow-wrap: anywhere; }
 .jobs-next { display: flex; flex-direction: column; gap: var(--sp-1); }
-.jobs-rounds td { vertical-align: top; overflow-wrap: anywhere; }
-.jobs-rounds td:first-child { white-space: nowrap; }
+.jobs-rounds { min-width: calc(var(--sp-7) * 11); }
+.jobs-rounds td { vertical-align: top; }
+.jobs-rounds td:first-child, .jobs-rounds td:last-child { white-space: nowrap; }
 .jobs-more ul { margin: 0; padding-left: var(--sp-5); }
 .jobs-done > summary { color: var(--text-secondary); padding-block: var(--sp-2); }
 .jobs-done > .jobs-stack { margin-top: var(--sp-3); }
