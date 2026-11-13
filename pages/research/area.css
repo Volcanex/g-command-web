@@ -153,3 +153,11 @@
   .rs-judge-reasons > .rs-dim { flex: none; }
   .rs-judge-next { width: 100%; }
 }
+/* On a wide screen the choices and what follows them share one row, so the
+   frames keep the height a second row would take. */
+@media (min-width: 721px) {
+  .rs-judge-bar { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: var(--sp-4); padding-block: var(--sp-3); }
+  .rs-judge-after { flex: 1 1 0; min-width: 0; }
+  .rs-judge-hint { margin-left: auto; text-align: right; }
+  .rs-judge-error { flex-basis: 100%; }
+}
