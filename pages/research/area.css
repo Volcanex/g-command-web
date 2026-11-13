@@ -102,16 +102,21 @@
 .rs-figure img { display: block; width: 100%; height: auto; border-radius: var(--radius); background: var(--surface); }
 .rs-figure figcaption { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--font-size-ui); line-height: var(--lh-2); }
 
-/* Judge: one pair at a time in a column that fills the viewport (height set by
-   area.js), frames taking the space left and the choice bar as the last row. */
+/* Judge: one pair at a time. The frames get the height area.js works out, so
+   head, frames and choice bar fill one screen once the page is scrolled to it. */
 .rs-judge { display: flex; flex-direction: column; gap: var(--sp-3); min-height: 0; }
 .rs-judge-head { flex: none; display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-4); }
 .rs-judge-brief { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; max-width: var(--col-text); }
-.rs-judge-title { margin: 0; font-size: 18px; line-height: var(--lh-3); font-weight: 500; color: var(--text-primary); }
+.rs-judge-title { margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); font-weight: 500; color: var(--text-primary); }
+.rs-judge-text {
+  margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); cursor: pointer;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden;
+}
+.rs-judge-text[aria-expanded="true"] { display: block; }
 .rs-judge-nav { flex: none; display: flex; align-items: center; gap: var(--sp-2); }
 .rs-judge-count { min-width: calc(var(--sp-8) + var(--sp-2)); text-align: center; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); }
 .rs-judge-show { flex: none; align-self: flex-start; }
-.rs-judge-frames { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); }
+.rs-judge-frames { flex: none; height: 70vh; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); }
 .rs-judge-frames:not([data-show="both"]) { grid-template-columns: minmax(0, 1fr); }
 .rs-judge-frame { margin: 0; display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; min-height: 0; }
 .rs-judge-frame[data-hidden] { display: none; }

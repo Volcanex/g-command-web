@@ -268,23 +268,33 @@ function Judging({ area, set, view, many }) {
   const [error, setError] = useState("");
   const narrow = useNarrow();
   const box = useRef(null);
-  /* The pair fills the viewport below the tabs and above whatever the shell
-     pins to the bottom (status line, phone dock), so the frames end above
-     the choice bar and nothing covers them. */
+  const frames = useRef(null);
+  const [open, setOpen] = useState(false);
+  /* The pair fills one screen once the page is scrolled to it: the frames get
+     every pixel between whatever the shell pins above (top bar) and below
+     (status line, phone dock) that the head and the choice bar do not need. */
   useLayoutEffect(() => {
     const fit = () => {
-      const el = box.current;
-      if (!el) return;
+      const el = box.current, fr = frames.current;
+      if (!el || !fr) return;
       let limit = innerHeight;
       const hit = document.elementFromPoint(innerWidth / 2, innerHeight - 2);
       if (hit && !el.contains(hit) && !hit.closest("[data-page-app]")) limit = Math.min(limit, hit.getBoundingClientRect().top);
-      const top = el.getBoundingClientRect().top + scrollY;
-      el.style.height = `${Math.max(480, Math.floor(limit - top - 16))}px`;
+      const r = el.getBoundingClientRect();
+      let top = 0;
+      for (let n = document.elementFromPoint(r.left + 8, 2); n && n !== document.body && !el.contains(n); n = n.parentElement) {
+        const pos = getComputedStyle(n).position;
+        if (pos === "sticky" || pos === "fixed") { top = n.getBoundingClientRect().bottom; break; }
+      }
+      const rest = r.height - fr.getBoundingClientRect().height;
+      fr.style.height = `${Math.max(320, Math.floor(limit - top - rest - 16))}px`;
+      el.style.scrollMarginTop = `${Math.ceil(top + 8)}px`;
     };
     fit();
     addEventListener("resize", fit);
     return () => removeEventListener("resize", fit);
   });
+  useEffect(() => { if (box.current) box.current.scrollIntoView({ block: "start" }); }, [at]);
   const spent = useRef({});
   const since = useRef(performance.now());
   const pair = pairs[at];
@@ -363,8 +373,9 @@ function Judging({ area, set, view, many }) {
   return html`<div class="rs-judge" ref=${box}>
     <header class="rs-judge-head">
       <div class="rs-judge-brief">
-        <h2 class="rs-judge-title">${pair.brief}</h2>
-        <p class="rs-note">${set.question}</p>
+        <h2 class="rs-judge-title">${set.question}</h2>
+        <p class="rs-judge-text" role="button" tabindex="0" aria-expanded=${open} title=${open ? "Show less" : "Show the whole brief"}
+          onClick=${() => setOpen(!open)} onKeyDown=${(e) => { if (e.key === "Enter") setOpen(!open); }}>${pair.brief}</p>
       </div>
       <div class="rs-judge-nav">
         <button type="button" class="btn btn-tertiary btn-sm" onClick=${() => go(-1)} disabled=${at === 0}>Back</button>
@@ -376,7 +387,7 @@ function Judging({ area, set, view, many }) {
       ${views.map(([id, label]) => html`<label key=${id}><input type="radio" name="rs-judge-show" value=${id}
         checked=${side === id} onChange=${() => setShow(id)} />${label}</label>`)}
     </div>
-    <div class="rs-judge-frames" data-show=${side}>${frame("a")}${frame("b")}</div>
+    <div class="rs-judge-frames" ref=${frames} data-show=${side}>${frame("a")}${frame("b")}</div>
     <section class="card rs-judge-bar" aria-label="Your choice">
       <div class="rs-judge-choices" role="group" aria-label="Which one">
         ${CHOICES.map((c) => html`<button type="button" key=${c.id} aria-pressed=${vote && vote.choice === c.id ? "true" : "false"}
