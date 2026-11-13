@@ -281,14 +281,18 @@ function Judging({ area, set, view, many }) {
       const hit = document.elementFromPoint(innerWidth / 2, innerHeight - 2);
       if (hit && !el.contains(hit) && !hit.closest("[data-page-app]")) limit = Math.min(limit, hit.getBoundingClientRect().top);
       const r = el.getBoundingClientRect();
-      let top = 0;
+      let top = 0, pane = false;
       for (let n = document.elementFromPoint(r.left + 8, 2); n && n !== document.body && !el.contains(n); n = n.parentElement) {
         const pos = getComputedStyle(n).position;
         if (pos === "sticky" || pos === "fixed") { top = n.getBoundingClientRect().bottom; break; }
       }
+      /* Where the page scrolls inside a pane, the pane's top edge is the limit. */
+      for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+        if (/auto|scroll/.test(getComputedStyle(n).overflowY)) { top = Math.max(top, n.getBoundingClientRect().top); pane = true; break; }
+      }
       const rest = r.height - fr.getBoundingClientRect().height;
-      fr.style.height = `${Math.max(320, Math.floor(limit - top - rest - 16))}px`;
-      el.style.scrollMarginTop = `${Math.ceil(top + 8)}px`;
+      fr.style.height = `${Math.max(320, Math.floor(limit - top - rest - 24))}px`;
+      el.style.scrollMarginTop = `${pane ? 8 : Math.ceil(top + 8)}px`;
     };
     fit();
     addEventListener("resize", fit);

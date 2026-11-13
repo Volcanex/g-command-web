@@ -106,11 +106,11 @@
    head, frames and choice bar fill one screen once the page is scrolled to it. */
 .rs-judge { display: flex; flex-direction: column; gap: var(--sp-3); min-height: 0; }
 .rs-judge-head { flex: none; display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-4); }
-.rs-judge-brief { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; max-width: var(--col-text); }
+.rs-judge-brief { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
 .rs-judge-title { margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); font-weight: 500; color: var(--text-primary); }
 .rs-judge-text {
   margin: 0; font-size: var(--font-size-ui); line-height: var(--lh-2); color: var(--text-secondary); cursor: pointer;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
 }
 .rs-judge-text[aria-expanded="true"] { display: block; }
 .rs-judge-nav { flex: none; display: flex; align-items: center; gap: var(--sp-2); }
