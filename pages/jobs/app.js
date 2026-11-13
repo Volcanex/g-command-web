@@ -1,11 +1,11 @@
 import {
   html, PageHead, Loaded, Empty, ErrorState, SkeletonRows, Button, Badge,
-  Dialog, mount, useJson, useState,
+  Dialog, Field, mount, useJson, useState, useEffect, toastOk, toastError,
 } from "../../core/app/boot.js";
 import "./app.css";
 
 const VIEWS = [
-  ["roster", "Daytime tap"], ["applications", "Applications"],
+  ["interviews", "Interviews"], ["roster", "Daytime tap"], ["applications", "Applications"],
   ["letters", "Cover letters"], ["questions", "Screening questions"], ["runs", "Runs"],
 ];
 const TONES = { ok: "ok", warn: "warn", bad: "danger", inert: "plain" };
@@ -156,6 +156,137 @@ function RecordDialog({ record, onClose }) {
   <//>`;
 }
 
+const OUTCOMES = {
+  passed: ["Passed", "ok"], failed: ["Failed", "danger"], missed: ["Missed", "danger"],
+  held: ["Held", "plain"], upcoming: ["Booked", "info"], unknown: ["Not confirmed", "warn"],
+};
+const STATUSES = [["interviewing", "Interviewing"], ["lead", "Lead"], ["offer", "Offer"],
+  ["rejected", "Rejected"], ["withdrawn", "Withdrawn"], ["closed", "Closed"]];
+const day = (iso, time) => {
+  const d = new Date(`${String(iso).slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return copy(iso);
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + (time ? ` ${time}` : "");
+};
+const onCalendar = (r) => `/calendar?item=${encodeURIComponent(r.slug)}&date=${encodeURIComponent(r.date)}`;
+
+async function post(path, body) {
+  const r = await fetch(path, { method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (r.status === 401) { location.href = "/login"; throw new Error("Signed out"); }
+  let j = {};
+  try { j = await r.json(); } catch { /* empty body */ }
+  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : `Jobs answered ${r.status}`);
+  return j;
+}
+
+function Outcome({ value }) {
+  const [label, kind] = OUTCOMES[value] || OUTCOMES.unknown;
+  return html`<${Badge} kind=${kind}>${label}<//>`;
+}
+
+function Rounds({ item }) {
+  if (!item.rounds.length) {
+    const word = (item.match || [item.company])[0];
+    return html`<p class="jobs-muted">No rounds yet. Put the next one on the calendar with ${plain(word)} in the title and it shows here.</p>`;
+  }
+  return html`<div class="table-wrap"><table class="table jobs-rounds" aria-label=${`${plain(item.company)} rounds`}>
+    <thead><tr><th>When</th><th>Round</th><th>With</th><th>How it went</th></tr></thead>
+    <tbody>${item.rounds.map((r) => html`<tr key=${r.date}>
+      <td class="num">${r.slug ? html`<a href=${onCalendar(r)}>${day(r.date, r.time)}</a>` : day(r.date, r.time)}</td>
+      <td>${plain(r.stage)}</td><td>${plain(r.with || "")}</td><td><${Outcome} value=${r.outcome} /></td>
+    </tr>`)}</tbody>
+  </table></div>`;
+}
+
+function Recruiter({ person }) {
+  const tel = person.phone && String(person.phone).replace("(0)", "").replace(/[^+\d]/g, "");
+  return html`<dd>${plain(person.name)}${person.agency && `, ${plain(person.agency)}`}
+    <div class="jobs-actions jobs-muted">
+      ${person.email && html`<a href=${`mailto:${person.email}`}>${person.email}</a>`}
+      ${tel && html`<a class="num" href=${`tel:${tel}`}>${plain(person.phone)}</a>`}
+    </div></dd>`;
+}
+
+function Interview({ item, onLog }) {
+  const next = item.next_round;
+  return html`<article class="card jobs-stack" id=${item.id}>
+    <div class="jobs-heading"><h2 class="card-title">${plain(item.company)}</h2>
+      <${Badge} kind=${item.tone}>${copy(item.status_label)}<//></div>
+    ${item.role && html`<p>${plain(item.role)}</p>`}
+    <dl class="jobs-facts">
+      <div><dt>Salary</dt><dd>${item.salary ? plain(item.salary) : "Not stated yet"}
+        ${item.salary_note && html`<div class="jobs-muted">${copy(item.salary_note)}</div>`}</dd></div>
+      ${item.location && html`<div><dt>Where</dt><dd>${copy(item.location)}</dd></div>`}
+      ${item.recruiter?.name && html`<div><dt>Recruiter</dt><${Recruiter} person=${item.recruiter} /></div>`}
+    </dl>
+    ${(next || item.next) && html`<div class="jobs-next">
+      <span class="jobs-muted">Next</span>
+      ${next && html`<a href=${onCalendar(next)}><span class="num">${day(next.date, next.time)}</span>, ${plain(next.stage)}</a>`}
+      ${item.next && html`<p>${copy(item.next)}</p>`}
+    </div>`}
+    ${item.feedback && html`<div class="jobs-next"><span class="jobs-muted">Feedback</span><p>${copy(item.feedback)}</p></div>`}
+    <${Rounds} item=${item} />
+    <details><summary>About the role, contacts and history</summary><div class="jobs-stack jobs-more">
+      ${item.about && html`<p>${copy(item.about)}</p>`}
+      ${(item.contacts || []).length > 0 && html`<div><span class="jobs-muted">At the company</span><ul>${item.contacts.map((c) => html`<li key=${c.name + c.email}>
+        ${plain(c.name)}${c.title && `, ${plain(c.title)}`}${c.email && html` <a href=${`mailto:${c.email}`}>${c.email}</a>`}</li>`)}</ul></div>`}
+      ${(item.log || []).length > 0 && html`<div><span class="jobs-muted">Log</span><ul>${[...item.log].reverse().map((l, i) => html`<li key=${i}>
+        <span class="num">${day(l.date)}</span>: ${copy(l.text)}</li>`)}</ul></div>`}
+      ${(item.sources || []).length > 0 && html`<div><span class="jobs-muted">Where this came from</span><ul class="jobs-muted">${item.sources.map((src, i) => html`<li key=${i}>${copy(src)}</li>`)}</ul></div>`}
+    </div></details>
+    <${Button} size="sm" onClick=${() => onLog(item)}>Log an update<//>
+  </article>`;
+}
+
+function Interviews({ data, onLog }) {
+  if (!data.items.length) return html`<${Empty} title="No interviews logged" desc="Ask an agent to log one from the recruiter's email, or run gjobs interview add on the server." />`;
+  const live = data.items.filter((x) => x.live);
+  const done = data.items.filter((x) => !x.live);
+  return html`<div class="jobs-stack">
+    ${!data.calendar && html`<p class="jobs-muted">The calendar did not answer, so booked rounds are missing. Refresh to try again.</p>`}
+    ${live.map((item) => html`<${Interview} key=${item.id} item=${item} onLog=${onLog} />`)}
+    ${done.length > 0 && html`<details class="jobs-done"><summary>Crossed off: ${done.map((x) => plain(x.company)).join(", ")}</summary>
+      <div class="jobs-stack">${done.map((item) => html`<${Interview} key=${item.id} item=${item} onLog=${onLog} />`)}</div>
+    </details>`}
+  </div>`;
+}
+
+function InterviewCounts({ items }) {
+  const n = (status) => items.filter((x) => x.status === status).length;
+  const crossed = items.filter((x) => !x.live).length;
+  return html`<div class="jobs-actions jobs-muted num" aria-label="Interview summary">
+    ${n("offer") > 0 && html`<span>${n("offer")} with an offer</span>`}
+    <span>${n("interviewing")} interviewing</span><span>${n("lead")} leads</span><span>${crossed} crossed off</span>
+  </div>`;
+}
+
+function LogDialog({ item, onClose, onSaved }) {
+  const [f, setF] = useState({ status: "", next: "", note: "" });
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (item) setF({ status: item.status, next: item.next || "", note: "" }); }, [item]);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const body = {};
+  if (item && f.status !== item.status) body.status = f.status;
+  if (item && f.next.trim() !== (item.next || "")) body.next = f.next.trim();
+  if (f.note.trim()) body.note = f.note.trim();
+  const save = async () => {
+    setBusy(true);
+    try { await post(`/api/jobs/interviews/${encodeURIComponent(item.id)}`, body); toastOk("Update logged", plain(item.company)); onSaved(); }
+    catch (e) { toastError(e, "Update not logged"); } finally { setBusy(false); }
+  };
+  return html`<${Dialog} open=${!!item} onClose=${onClose} size="sm" busy=${busy}
+      title=${item ? `Log an update for ${plain(item.company)}` : "Log an update"}
+      foot=${html`<${Button} kind="secondary" onClick=${onClose}>Cancel<//>
+        <${Button} kind="primary" busy=${busy} disabled=${!Object.keys(body).length} onClick=${save}>Log update<//>`}>
+    <${Field} label="Status" id="iv-status"><span class="select-wrap"><select id="iv-status" class="select" value=${f.status} onChange=${set("status")}>
+      ${STATUSES.map(([id, label]) => html`<option key=${id} value=${id}>${label}</option>`)}</select></span><//>
+    <${Field} label="Next step" optional hint="One line. Clear it once nothing is pending." id="iv-next">
+      <input id="iv-next" class="input" value=${f.next} onInput=${set("next")} /><//>
+    <${Field} label="Note" optional hint="Goes in the log under today's date." id="iv-note">
+      <textarea id="iv-note" class="textarea" rows="3" value=${f.note} onInput=${set("note")}></textarea><//>
+  <//>`;
+}
+
 function Sources({ data }) {
   return html`<details class="card jobs-sources"><summary>Where these records come from</summary>
     <p class="jobs-muted">Read from Jobs on every request. Read at ${when(data.read_at)}.</p>
@@ -168,12 +299,13 @@ function Sources({ data }) {
 
 function Page() {
   const params = new URLSearchParams(location.search);
-  const view = VIEWS.some(([id]) => id === params.get("view")) ? params.get("view") : "roster";
+  const view = VIEWS.some(([id]) => id === params.get("view")) ? params.get("view") : "interviews";
   const state = useJson(`/api/jobs?view=${view}`);
   const [selected, setSelected] = useState(null);
   const [dismissed, setDismissed] = useState(false);
+  const [logging, setLogging] = useState(null);
   return html`
-    <${PageHead} title="Jobs" sub="Applications, the records of what was sent, and what needs your help.">
+    <${PageHead} title="Jobs" sub="Interviews, applications, and what needs your help.">
       <${Button} size="sm" onClick=${state.reload}>Refresh records<//>
     <//>
     <nav class="tabs jobs-tabs" aria-label="Jobs views">${VIEWS.map(([id, title]) => html`
@@ -183,18 +315,21 @@ function Page() {
       skeleton=${html`<${SkeletonRows} rows=${4} />`}>
       ${(data) => {
         const record = selected || (!dismissed && data.items.find((r) => r.stem === params.get("application")));
-        return html`<div class="jobs-actions jobs-muted num" aria-label="Archive summary">
+        return html`${view === "interviews" ? html`<${InterviewCounts} items=${data.items} />`
+          : html`<div class="jobs-actions jobs-muted num" aria-label="Archive summary">
           <span>${data.summary.tap} waiting on a human check</span><span>${data.summary.open_questions} open questions</span>
           <span>${data.summary.counts.CONFIRMED || 0} sent and confirmed</span>
           <span>${Object.values(data.summary.counts).reduce((a, b) => a + b, 0)} archived records</span>
-        </div>
+        </div>`}
+        ${view === "interviews" && html`<${Interviews} data=${data} onLog=${setLogging} />`}
         ${view === "roster" && html`<${Roster} items=${data.items} onDetails=${setSelected} />`}
         ${view === "applications" && html`<${Applications} data=${data} onDetails=${setSelected} />`}
         ${view === "letters" && html`<${Letters} items=${data.items} />`}
         ${view === "questions" && html`<${Questions} items=${data.items} />`}
         ${view === "runs" && html`<${Runs} data=${data} />`}
         <${Sources} data=${data} />
-        <${RecordDialog} record=${record} onClose=${() => { setSelected(null); setDismissed(true); }} />`;
+        <${RecordDialog} record=${record} onClose=${() => { setSelected(null); setDismissed(true); }} />
+        <${LogDialog} item=${logging} onClose=${() => setLogging(null)} onSaved=${() => { setLogging(null); state.reload(); }} />`;
       }}
     <//>`;
 }

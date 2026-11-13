@@ -21,3 +21,12 @@
 .jobs-record dd { margin: 0; overflow-wrap: anywhere; }
 .jobs-sources > * + * { margin-top: var(--sp-3); }
 .jobs-sources .mono { overflow-wrap: anywhere; }
+.jobs-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--sp-7) * 6), 1fr)); gap: var(--sp-3) var(--sp-5); margin: 0; }
+.jobs-facts dt { color: var(--text-secondary); }
+.jobs-facts dd { margin: 0; overflow-wrap: anywhere; }
+.jobs-next { display: flex; flex-direction: column; gap: var(--sp-1); }
+.jobs-rounds td { vertical-align: top; overflow-wrap: anywhere; }
+.jobs-rounds td:first-child { white-space: nowrap; }
+.jobs-more ul { margin: 0; padding-left: var(--sp-5); }
+.jobs-done > summary { color: var(--text-secondary); padding-block: var(--sp-2); }
+.jobs-done > .jobs-stack { margin-top: var(--sp-3); }
