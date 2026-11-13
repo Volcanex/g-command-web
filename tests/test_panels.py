@@ -98,10 +98,10 @@ def test_money_orders_dates_then_priority_and_title():
              todo("undated-a", category="bill", priority="P1"),
              todo("undated-p0", category="bill", priority="P0"), todo("not-money")]
     rows = [
-        {"id": "earlier", "title": "earlier", "link": "/note/todos/earlier", "trail": {"text": "3 days late", "tone": "danger"}},
-        {"id": "late", "title": "late", "link": "/note/todos/late", "trail": {"text": "1 day late", "tone": "danger"}},
-        {"id": "today", "title": "today", "link": "/note/todos/today", "trail": {"text": "Today", "tone": "warn"}},
-        {"id": "tomorrow", "title": "tomorrow", "link": "/note/todos/tomorrow", "trail": {"text": "Tue 20 Oct", "tone": "muted"}},
+        {"id": "earlier", "title": "earlier", "link": "/calendar?item=earlier&date=2026-10-16", "trail": {"text": "3 days late", "tone": "danger"}},
+        {"id": "late", "title": "late", "link": "/calendar?item=late&date=2026-10-18", "trail": {"text": "1 day late", "tone": "danger"}},
+        {"id": "today", "title": "today", "link": "/calendar?item=today&date=2026-10-19", "trail": {"text": "Today", "tone": "warn"}},
+        {"id": "tomorrow", "title": "tomorrow", "link": "/calendar?item=tomorrow&date=2026-10-20", "trail": {"text": "Tue 20 Oct", "tone": "muted"}},
         {"id": "undated-p0", "title": "undated-p0", "link": "/note/todos/undated-p0"},
         {"id": "undated-a", "title": "undated-a", "link": "/note/todos/undated-a"},
         {"id": "undated-z", "title": "undated-z", "link": "/note/todos/undated-z"},
@@ -149,7 +149,7 @@ def test_brief_bold_label_uses_the_same_colon_boundary_as_javascript(line, item)
 
 
 def calendar_row(slug, **fields):
-    return {"id": slug + ":2026-10-19", "title": slug, "link": "/note/todos/" + slug,
+    return {"id": slug + ":2026-10-19", "title": slug, "link": f"/calendar?item={slug}&date=2026-10-19",
             "done": False, "struck": False, "accent": "muted", "title_tone": "plain",
             "action": {"label": "Mark done", "method": "PATCH", "path": "/api/brain/api/todos/" + slug,
                        "body": {"status": "done"}, "error": CALENDAR_ERROR}, **fields}
@@ -173,9 +173,9 @@ def test_calendar_today_chronological_carried_triage_future_and_actions():
              todo("outside", date="2026-10-26")]
     following = next_days()
     following[0]["rows"] = [
-        {"id": "future-a:2026-10-20", "title": "future-a", "link": "/note/todos/future-a", "done": True, "struck": True,
+        {"id": "future-a:2026-10-20", "title": "future-a", "link": "/calendar?item=future-a&date=2026-10-20", "done": True, "struck": True,
          "lead": {"text": "09:00", "tone": "muted"}, "accent": "muted", "title_tone": "muted"},
-        {"id": "future-z:2026-10-20", "title": "future-z", "link": "/note/todos/future-z", "done": False, "struck": False,
+        {"id": "future-z:2026-10-20", "title": "future-z", "link": "/calendar?item=future-z&date=2026-10-20", "done": False, "struck": False,
          "accent": "muted", "title_tone": "plain"}]
     agenda = {"today": [todo("early"), todo("later"), todo("untimed")], "overdue": [todo("late"), todo("vital")],
               "tomorrow": [], "week": [], "bills": []}

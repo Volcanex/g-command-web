@@ -6,7 +6,7 @@
       "sources": [
         "pages/calendar/content.html"
       ],
-      "verified": "c4db800ac474167e274ae69366f7a557a9466e3660d3eed2da60b7e0cfbfec9a",
+      "verified": "35205610d452513be3a47ee681615f277e4bc77e4f9f61080a7460dce5e6ffb5",
       "min_build": 1
     },
     "todo-actions": {
@@ -14,7 +14,7 @@
       "sources": [
         "pages/calendar/content.html"
       ],
-      "verified": "c4db800ac474167e274ae69366f7a557a9466e3660d3eed2da60b7e0cfbfec9a",
+      "verified": "35205610d452513be3a47ee681615f277e4bc77e4f9f61080a7460dce5e6ffb5",
       "min_build": 1
     }
   }

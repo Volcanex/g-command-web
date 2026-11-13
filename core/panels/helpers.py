@@ -109,7 +109,16 @@ def chip(text, tone="plain", badge=False, icon=None, tip=None):
 
 
 def note(item):
-    return "/note/" + plain(item.get("permalink"))
+    # Todo permalinks carry the vault name (brain/todos/x); note paths do not.
+    return "/note/" + plain(item.get("permalink")).removeprefix("brain/")
+
+
+def todo_link(item):
+    """A calendar item opens on the calendar with its details showing."""
+    on = item.get("date") or item.get("due") or str(item.get("start") or "")[:10]
+    if not (on and item.get("slug")):
+        return note(item)
+    return f"/calendar?item={encoded(item['slug'])}&date={encoded(on)}"
 
 
 def row_id(item):

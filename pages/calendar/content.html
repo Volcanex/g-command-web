@@ -307,6 +307,10 @@
   let cursor = new Date(); cursor.setDate(1);
   let selected = TODAY;
   let items = [];   // every occurrence fetched, the index is the row's handle
+  // A link from elsewhere (Home's panels, Jobs) names one item as
+  // ?item=<slug>&date=<day>, and it opens with its details showing.
+  const asked = new URLSearchParams(location.search);
+  let deep = asked.get('item') ? { slug: asked.get('item'), date: asked.get('date') || '' } : null;
 
   // A habit that happens every day is not a deadline: past today it would
   // fill every section with the one thing you already know. Bills and vital
@@ -368,7 +372,7 @@
     if (!t) return '<p class="muted">Loading details</p>';
     if (t.error) return `<p class="muted">Details unavailable: the brain did not answer. Close and open it to try again.</p>`;
     const i = items.indexOf(it);
-    const note = `<a class="btn btn-tertiary btn-sm" href="/note/${esc(it.permalink || 'todos/' + it.slug)}">Open note</a>`;
+    const note = `<a class="btn btn-tertiary btn-sm" href="/note/todos/${esc(it.slug)}">Open note</a>`;
     if (editing) {
       const s = startOf(t);
       return `<form class="edit-form" data-edit="${i}">
@@ -523,12 +527,39 @@
     if (view === 'list') renderList(); else renderMonth();
   }
 
+  // Opens the linked item. A day outside the list's window is shown in its
+  // month instead; that needs another load, so this returns false.
+  function openDeep() {
+    const it = items.find(x => x.slug === deep.slug && (!deep.date || x.date === deep.date))
+            || items.find(x => x.slug === deep.slug);
+    if (!it && deep.date && view === 'list') {
+      view = 'month';
+      cursor = new Date(deep.date + 'T12:00:00'); cursor.setDate(1);
+      selected = deep.date;
+      document.querySelectorAll('input[name="view"]').forEach(r => { r.checked = r.value === view; });
+      return false;
+    }
+    deep = null;
+    const url = new URL(location.href);
+    url.searchParams.delete('item'); url.searchParams.delete('date');
+    if (view === 'month') url.searchParams.set('view', 'month');
+    history.replaceState(null, '', url);
+    if (!it) return true;
+    if (view === 'month') selected = it.date;
+    openKey = keyOf(it); editing = false;
+    fetchFull(it.slug);
+    requestAnimationFrame(() => document.querySelector('[data-details]')
+      ?.closest('.details')?.previousElementSibling?.scrollIntoView({ block: 'center' }));
+    return true;
+  }
+
   async function load() {
     const [start, end] = range();
     try {
       const r = await fetch(`${API_BASE}/api/todos/calendar?date_from=${iso(start)}&date_to=${iso(end)}`);
       if (!r.ok) throw new Error(`status ${r.status}`);
       items = await r.json();
+      if (deep && !openDeep()) return load();
       paint();
       dueCount();
     } catch (e) {

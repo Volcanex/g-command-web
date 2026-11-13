@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from core.panels import builder
 from core.panels.agenda import counts, due_today
-from core.panels.helpers import chip, day, encoded, note, plain, row_id, sort_text
+from core.panels.helpers import chip, day, encoded, plain, row_id, sort_text, todo_link
 
 
 CAT_TONES = {
@@ -26,7 +26,7 @@ def row(item, today):
     routine = item.get("recurring") and not item.get("vital") and not item.get("urgent")
     title_tone = "muted" if routine else "ok" if done else "danger" if today and item.get("failed") else "plain"
     result = {"id": row_id(item) + ":" + item["date"], "title": plain(item.get("title")),
-              "link": note(item), "done": done,
+              "link": todo_link(item), "done": done,
               "struck": done or (today and bool(item.get("failed"))),
               "accent": CAT_TONES.get(item.get("category"), "muted"), "title_tone": title_tone}
     if item.get("time"):

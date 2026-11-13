@@ -1,7 +1,7 @@
 from datetime import date
 
 from core.panels import builder
-from core.panels.helpers import chip, day, note, plain, row_id, sort_text
+from core.panels.helpers import chip, day, plain, row_id, sort_text, todo_link
 
 
 @builder("money")
@@ -17,7 +17,7 @@ def build(ctx):
         return {"meta": meta, "state": "empty", "message": "Nothing owed or to sort."}
     rows = []
     for item in items:
-        row = {"id": row_id(item), "title": plain(item.get("title")), "link": note(item)}
+        row = {"id": row_id(item), "title": plain(item.get("title")), "link": todo_link(item)}
         due = item.get("due")
         if due and due < today:
             days = (date.fromisoformat(today) - date.fromisoformat(due)).days
